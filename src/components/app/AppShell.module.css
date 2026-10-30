@@ -1,0 +1,174 @@
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.content {
+  width: 100%;
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-10);
+  flex: 1;
+}
+
+/* ── Panel host ─────────────────────────────────────────────── */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  padding: 0;
+  display: block;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.panelHost {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: var(--panel);
+  max-width: 100%;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panelHost > * {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+
+[dir="ltr"] .panelHost {
+  animation-name: slideInLtr;
+}
+@keyframes slideInLtr {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ── Toasts ─────────────────────────────────────────────────── */
+.toasts {
+  position: fixed;
+  bottom: var(--space-6);
+  inset-inline-start: var(--space-6);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(380px, calc(100vw - 2 * var(--space-6)));
+}
+
+.toast {
+  box-shadow: var(--shadow-md);
+  animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastIn {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ── Global search results ──────────────────────────────────── */
+.results {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: 60;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-base);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.resultTitle {
+  display: block;
+  font-size: 13px;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultSub {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+/* ── Live indicator ─────────────────────────────────────────── */
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  padding-inline-start: var(--space-2);
+}
+
+/* ── Loading skeleton ───────────────────────────────────────── */
+.skeletonPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.skeletonRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.skeletonCard {
+  height: 112px;
+  border-radius: var(--radius-lg);
+}
+
+.skeletonTable {
+  height: 320px;
+  border-radius: var(--radius-lg);
+}
+
+/* ── Mobile: sidebar becomes a top row ──────────────────────── */
+@media (max-width: 899px) {
+  .shell {
+    flex-direction: column;
+  }
+  /* sidebar-as-top-row rules live in app/globals.css (.sa-shell > .sa-sidebar) */
+  .main {
+    min-height: 0;
+  }
+  .content {
+    padding: var(--space-5) var(--space-4);
+  }
+  .panelHost {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .panelHost,
+  .toast {
+    animation: none;
+  }
+}

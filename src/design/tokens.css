@@ -1,0 +1,116 @@
+/* Super Admin — generated from tokens.json */
+:root, [data-theme="light"] {
+  --bg-canvas: #fafafa;
+  --bg-surface: #ffffff;
+  --bg-muted: #f5f5f5;
+  --bg-inverse: #171717;
+  --bg-inverse-hover: #0a0a0a;
+  --bg-scrim: #0a0a0a66;
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --text-tertiary: #737373;
+  --text-disabled: #a1a1a1;
+  --text-inverse: #fafafa;
+  --border-subtle: #f5f5f5;
+  --border-base: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --border-inverse: #171717;
+  --accent: #2563eb;
+  --on-accent: #ffffff;
+  --accent-text: #1d4ed8;
+  --success: #047857;
+  --on-success: #ffffff;
+  --success-text: #047857;
+  --warning: #d97706;
+  --on-warning: #0a0a0a;
+  --warning-text: #92400e;
+  --danger: #dc2626;
+  --on-danger: #ffffff;
+  --danger-text: #b91c1c;
+  --focus: var(--accent);
+  --shadow-sm: 0 1px 2px 0 rgba(10, 10, 10, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(10, 10, 10, 0.08), 0 2px 4px -2px rgba(10, 10, 10, 0.06);
+  --shadow-modal: 0 25px 50px -12px rgba(10, 10, 10, 0.25);
+  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
+  --focus-ring-danger: 0 0 0 2px #ffffff, 0 0 0 4px #dc2626;
+}
+[data-theme="dark"] {
+  --bg-canvas: #0a0a0a;
+  --bg-surface: #171717;
+  --bg-muted: #262626;
+  --bg-inverse: #fafafa;
+  --bg-inverse-hover: #ffffff;
+  --bg-scrim: #0a0a0a99;
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #8a8a8a;
+  --text-disabled: #525252;
+  --text-inverse: #171717;
+  --border-subtle: #202020;
+  --border-base: #2e2e2e;
+  --border-strong: #404040;
+  --border-inverse: #fafafa;
+  --accent: #2563eb;
+  --on-accent: #ffffff;
+  --accent-text: #60a5fa;
+  --success: #047857;
+  --on-success: #ffffff;
+  --success-text: #34d399;
+  --warning: #d97706;
+  --on-warning: #0a0a0a;
+  --warning-text: #fbbf24;
+  --danger: #dc2626;
+  --on-danger: #ffffff;
+  --danger-text: #f87171;
+  --focus: var(--accent);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  --focus-ring: 0 0 0 2px #171717, 0 0 0 4px #60a5fa;
+  --focus-ring-danger: 0 0 0 2px #171717, 0 0 0 4px #ef4444;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  --control-sm: 32px;
+  --control-md: 36px;
+  --control-lg: 40px;
+  --touch: 48px;
+  --touch-lg: 56px;
+  --row: 44px;
+  --topbar: 56px;
+  --sidebar: 232px;
+  --panel: 440px;
+  --modal: 480px;
+  --content: 1280px;
+  --worker: 480px;
+  --font-sans: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+@font-face { font-family: "Heebo"; src: url("/fonts/Heebo.ttf"); font-weight: 100 900; font-style: normal; font-display: swap; }
+.kpi { font-family: var(--font-sans); font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; }
+.page-title { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.panel-title { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.section-title { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 600; }
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 400; }
+.body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 600; }
+.control { font-family: var(--font-sans); font-size: 13px; line-height: 20px; font-weight: 500; }
+.label { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 500; }
+.caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; }
+.micro { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; }
+.touch { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 500; }
+.num { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 500; }
+.num-lg { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; }
+.num-micro { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; }

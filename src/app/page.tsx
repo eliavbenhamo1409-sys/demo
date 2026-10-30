@@ -1,69 +1,262 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useCallback, useMemo, useState } from "react";
+import Link from "next/link";
+import { useData, type AttentionEntry, type Movement as MovementRow } from "@/lib/store";
+import { useUi } from "@/components/app/ui-state";
+import { WeeklyChart } from "@/components/app/WeeklyChart";
+import { QuickActions } from "@/components/app/QuickActions";
+import {
+  Attention,
+  Avatar,
+  Button,
+  Card,
+  EmptyState,
+  Movement,
+  Stat,
+  Table,
+  type AttentionItem,
+  type TableColumn,
+} from "@/components/ui";
+import { fmtQty, fmtRelative, fmtSigned, fmtWhen } from "@/lib/format";
+
+const MAX_ATTENTION = 6;
+const RECENT = 12;
+
+export default function OverviewPage() {
+  const { state, stats, attention, weekly, product, worker, resolveFault } = useData();
+  const { openAction, openProduct, notify } = useUi();
+  const [busyFault, setBusyFault] = useState<string | null>(null);
+  const isLoading = state.status === "loading";
+
+  /* ───────── subline ───────── */
+  const subline = useMemo(() => {
+    const parts: string[] = [];
+    if (stats.products > 0) parts.push(`${fmtQty(stats.products)} מוצרים`);
+    if (stats.movementsToday > 0) parts.push(`${fmtQty(stats.movementsToday)} תנועות היום`);
+    if (state.loadedAt) parts.push(`עודכן ${fmtRelative(new Date(state.loadedAt).toISOString())}`);
+    return parts.join(" · ");
+  }, [stats.products, stats.movementsToday, state.loadedAt]);
+
+  /* ───────── stats ───────── */
+  const stockNote =
+    stats.out > 0 && stats.low > 0
+      ? `${fmtQty(stats.out)} אזלו · ${fmtQty(stats.low)} מתחת למינימום`
+      : stats.out > 0
+        ? `${fmtQty(stats.out)} אזלו מהמלאי`
+        : stats.low > 0
+          ? `${fmtQty(stats.low)} מתחת למינימום`
+          : stats.products > 0
+            ? "כל המוצרים מעל המינימום"
+            : undefined;
+
+  const delta =
+    stats.movementsYesterday > 0
+      ? Math.round(((stats.movementsToday - stats.movementsYesterday) / stats.movementsYesterday) * 100)
+      : undefined;
+
+  const exceptionsNote =
+    stats.exceptions > 0
+      ? [
+          stats.openFaults > 0 ? `${fmtQty(stats.openFaults)} תקלות` : "",
+          stats.pendingMappings > 0 ? `${fmtQty(stats.pendingMappings)} התאמות` : "",
+          stats.out + stats.low > 0 ? `${fmtQty(stats.out + stats.low)} מלאי` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "אין חריגות פתוחות";
+
+  /* ───────── attention ───────── */
+  const onResolve = useCallback(
+    async (entry: AttentionEntry) => {
+      if (!entry.faultId || busyFault) return;
+      setBusyFault(entry.faultId);
+      try {
+        await resolveFault(entry.faultId);
+        notify({ tone: "success", title: "התקלה סומנה כטופלה", text: entry.title });
+      } catch (e) {
+        notify({ tone: "danger", title: "סימון התקלה נכשל", text: e instanceof Error ? e.message : undefined });
+      } finally {
+        setBusyFault(null);
+      }
+    },
+    [resolveFault, notify, busyFault],
+  );
+
+  const attentionItems = useMemo<AttentionItem[]>(
+    () =>
+      attention.slice(0, MAX_ATTENTION).map((a) => {
+        const base: AttentionItem = {
+          id: a.id,
+          severity: a.severity,
+          label: a.label,
+          title: a.title,
+          meta: a.meta.map((m, i) => (i === 0 && a.kind !== "fault" ? <span key={i} className="sa-mono ltr">{m}</span> : m)),
+        };
+        switch (a.kind) {
+          case "out":
+          case "low":
+            return { ...base, action: "קלוט", onAction: () => openAction("receive", { productId: a.productId }) };
+          case "fault":
+            return {
+              ...base,
+              action: "טפל",
+              onAction: () => void onResolve(a),
+              secondary: a.productId ? "פרטים" : undefined,
+              onSecondary: a.productId ? () => openProduct(a.productId as string) : undefined,
+            };
+          case "mapping":
+            return { ...base, action: "תקן", onAction: () => openAction("map-supplier-item", { supplierItemId: a.supplierItemId }) };
+        }
+      }),
+    [attention, openAction, openProduct, onResolve],
+  );
+
+  /* ───────── recent movements ───────── */
+  const recent = useMemo(() => state.movements.slice(0, RECENT), [state.movements]);
+
+  const columns = useMemo<TableColumn<MovementRow>[]>(
+    () => [
+      { key: "created_at", title: "שעה", width: "96px", align: "ltr", mono: true, muted: true, render: (m) => fmtWhen(m.created_at) },
+      { key: "type", title: "פעולה", width: "128px", render: (m) => <Movement type={m.type} /> },
+      {
+        key: "product_id",
+        title: "מוצר",
+        render: (m) => {
+          const p = product(m.product_id);
+          return (
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-ink">{p?.name ?? "מוצר שנמחק"}</span>
+              {p ? <span className="sa-mono ltr self-start text-[11px] leading-[14px] text-ink-3">{p.sku}</span> : null}
+            </span>
+          );
+        },
+      },
+      {
+        key: "qty",
+        title: "כמות",
+        width: "88px",
+        align: "num",
+        render: (m) => (
+          <span className={m.type === "in" ? "sa-qty-in" : m.type === "out" ? "sa-qty-out" : undefined}>{fmtSigned(m.qty, m.type)}</span>
+        ),
+      },
+      {
+        key: "worker_id",
+        title: "עובד",
+        width: "160px",
+        render: (m) => {
+          const w = worker(m.worker_id);
+          return w ? (
+            <span className="inline-flex items-center gap-[var(--space-2)]">
+              <Avatar name={w.name} size="sm" />
+              <span className="truncate">{w.name}</span>
+            </span>
+          ) : (
+            <span className="text-ink-3">—</span>
+          );
+        },
+      },
+    ],
+    [product, worker],
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <div className="flex flex-col gap-[var(--space-6)]">
+      <header>
+        <h1 className="sa-page-title" style={{ fontSize: 30, lineHeight: "36px", fontWeight: 600 }}>
+          סקירה
+        </h1>
+        {subline ? <p className="sa-page-sub">{subline}</p> : null}
+      </header>
+
+      <div className="grid grid-cols-1 gap-[var(--space-4)] min-[1100px]:grid-cols-12">
+        {/* ── main column ── */}
+        <div className="flex min-w-0 flex-col gap-[var(--space-4)] min-[1100px]:col-span-8">
+          <div className="sa-stats">
+            <Stat
+              label="מצב מלאי"
+              value={fmtQty(stats.products)}
+              unit="מוצרים"
+              icon="package"
+              note={stockNote}
+              tone={stats.out > 0 || stats.low > 0 ? "warning" : undefined}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <Stat
+              label="תנועות היום"
+              value={fmtQty(stats.movementsToday)}
+              icon="activity"
+              delta={delta}
+              deltaUnit={delta != null ? "%" : undefined}
+              note={stats.movementsYesterday > 0 ? "לעומת אתמול" : stats.movementsToday > 0 ? "אין תנועות אתמול" : undefined}
+            />
+            <Stat
+              label="חריגות פתוחות"
+              value={fmtQty(stats.exceptions)}
+              icon="alert-circle"
+              note={exceptionsNote}
+              tone={stats.openFaults > 0 ? "danger" : stats.exceptions > 0 ? "warning" : undefined}
+            />
+          </div>
+
+          <Card
+            title="דורש טיפול"
+            count={attention.length}
+            flush
+            footer={
+              attention.length > MAX_ATTENTION ? (
+                <>
+                  <span>
+                    מציג <span className="sa-mono ltr">{MAX_ATTENTION}</span> מתוך <span className="sa-mono ltr">{fmtQty(attention.length)}</span>
+                  </span>
+                  <Link href="/inventory?filter=low" className="sa-btn sa-btn-link sa-btn-sm">
+                    כל החריגות
+                  </Link>
+                </>
+              ) : undefined
+            }
           >
-            Documentation
-          </a>
+            <Attention items={attentionItems} />
+          </Card>
+
+          <Card title="תנועות אחרונות" flush>
+            <Table<MovementRow>
+              columns={columns}
+              data={recent}
+              isLoading={isLoading}
+              skeletonRows={6}
+              caption="התנועות האחרונות במלאי"
+              onRowClick={(m) => openProduct(m.product_id, "history")}
+              className="rounded-none border-0 shadow-none"
+              empty={
+                <EmptyState title="אין תנועות עדיין" hint="קליטה או הוצאה ראשונה תופיע כאן">
+                  <Button variant="secondary" icon="arrow-down-left" onClick={() => openAction("receive")}>
+                    קליטת סחורה
+                  </Button>
+                </EmptyState>
+              }
+              footer={
+                recent.length > 0 ? (
+                  <>
+                    <span>
+                      מציג <span className="sa-mono ltr">{fmtQty(recent.length)}</span> מתוך <span className="sa-mono ltr">{fmtQty(state.movements.length)}</span>
+                    </span>
+                    <Link href="/inventory?tab=movements" className="sa-btn sa-btn-link sa-btn-sm">
+                      כל התנועות
+                    </Link>
+                  </>
+                ) : undefined
+              }
+            />
+          </Card>
         </div>
-      </main>
+
+        {/* ── right rail ── */}
+        <aside className="flex min-w-0 flex-col gap-[var(--space-4)] min-[1100px]:col-span-4">
+          <WeeklyChart days={weekly} />
+          <QuickActions />
+        </aside>
+      </div>
     </div>
   );
 }
