@@ -17,6 +17,8 @@ import "./app-shell.css";
 const SHELL_ACTIONS: ActionItem[] = [
   ...DEFAULT_ACTIONS,
   { key: "new-product", label: "מוצר חדש", sub: "הוספת פריט למלאי", icon: "plus", tone: "neutral" },
+  { key: "new-supplier", label: "ספק חדש", sub: "ספק שעדיין לא במילון", icon: "truck", tone: "neutral" },
+  { key: "new-worker", label: "עובד חדש", sub: "עובד שיופיע באפליקציית הטלפון", icon: "user", tone: "neutral" },
 ];
 
 const ACTION_KIND: Record<string, ActionKind> = {
@@ -24,6 +26,8 @@ const ACTION_KIND: Record<string, ActionKind> = {
   issue: "issue",
   fault: "fault",
   "new-product": "new-product",
+  "new-supplier": "new-supplier",
+  "new-worker": "new-worker",
 };
 
 type SearchHit =
