@@ -98,3 +98,7 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
 .sa-topbar { position: relative; z-index: 70; }
 .sa-actionmenu .sa-menu { z-index: 80; }
 .sa-actionmenu .sa-menu-list { max-height: none; }
+
+/* A card clips its corners, but never an open select menu inside it. */
+.sa-card:has(.sa-select-trigger.is-open), .sa-card-body:has(.sa-select-trigger.is-open) { overflow: visible !important; }
+.sa-select .sa-menu { z-index: 60; }
