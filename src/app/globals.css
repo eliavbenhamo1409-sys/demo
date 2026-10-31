@@ -97,3 +97,4 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
 /* Top bar menus (actions, search results) float above page content. */
 .sa-topbar { position: relative; z-index: 70; }
 .sa-actionmenu .sa-menu { z-index: 80; }
+.sa-actionmenu .sa-menu-list { max-height: none; }
