@@ -16,6 +16,7 @@ export type ActionKind =
   | "new-supplier"
   | "edit-supplier"
   | "new-worker"
+  | "edit-worker"
   | "new-supplier-item" // שם של ספק למוצר
   | "map-supplier-item" // למה שייך השם הזה
   | "suppliers"; // רשימת הספקים

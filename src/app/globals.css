@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../design/tokens.css";
 @import "../design/components.css";
+@import "../design/theme-modern.css";
 
 /* Map design tokens into Tailwind v4 so utilities and `sa-*` classes share one source. */
 @theme inline {
@@ -64,8 +65,24 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
     gap: var(--space-1);
     overflow-x: auto;
   }
+  /* On phones the footer keeps only the settings row, inline at the end of the bar. */
   .sa-shell > .sa-sidebar > .sa-nav-foot {
+    flex-direction: row;
+    align-items: center;
+    border-top: 0;
+    padding: var(--space-2);
+    flex-shrink: 0;
+  }
+  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-user {
     display: none;
+  }
+  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item > span {
+    display: none;
+  }
+  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item {
+    width: var(--control-md);
+    padding: 0;
+    justify-content: center;
   }
 }
 

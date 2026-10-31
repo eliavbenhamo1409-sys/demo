@@ -5,7 +5,7 @@
  * Opened via useUi().openProduct(id, tab?); reads ui.panel of type "product".
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useData, type Movement } from "@/lib/store";
+import { useData, type Fault, type Movement } from "@/lib/store";
 import { useUi } from "./ui-state";
 import { Badge, Button, Fields, Notice, SidePanel, Spinner, Stat, Timeline, type TimelineItem } from "@/components/ui";
 import { fmtDate, fmtQty, fmtRelative, MOVEMENT_LABEL } from "@/lib/format";
@@ -121,10 +121,41 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
 
   const subtitle = [p.category, p.location].filter(Boolean).join(" · ");
 
-  const timelineItems: TimelineItem[] = (rows ?? []).map((m) => {
-    const extra = m.note || m.reference;
+  // The fault behind a history entry: photo, full note and status live on the fault, not the movement.
+  const faultDetail = (f: Fault) => {
+    const src = faultPhotoUrl(f.photo_path);
+    const resolving = busy === `fault:${f.id}`;
+    return (
+      <div className="sa-timeline-detail">
+        <p className="sa-timeline-note">{f.description}</p>
+        {src ? (
+          <a className="sa-fault-photo" href={src} target="_blank" rel="noreferrer" aria-label="פתח את התמונה">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt="תצלום התקלה" loading="lazy" />
+          </a>
+        ) : null}
+        <div className="sa-timeline-status">
+          {f.status === "open" ? (
+            <>
+              <Badge tone="danger" dot>פתוחה</Badge>
+              <Button variant="link" size="sm" disabled={resolving} onClick={() => void run(`fault:${f.id}`, () => resolveFault(f.id), "התקלה סומנה כטופלה")}>
+                {resolving ? "מסמן…" : "סמן כטופל"}
+              </Button>
+            </>
+          ) : (
+            <Badge tone="success" dot>טופלה{f.resolved_at ? ` ${fmtRelative(f.resolved_at)}` : ""}</Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const productFaults = state.faults.filter((f) => f.product_id === id);
+  const movementEntries = (rows ?? []).map((m) => {
+    const fault = productFaults.find((f) => f.movement_id === m.id);
+    const extra = fault ? null : m.note || m.reference;
     const head = extra ? `${MOVEMENT_LABEL[m.type]} · ${extra}` : MOVEMENT_LABEL[m.type];
-    return {
+    const item: TimelineItem = {
       id: m.id,
       type: m.type,
       title: m.external_name ? (
@@ -136,12 +167,32 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
       when: fmtRelative(m.created_at),
       by: worker(m.worker_id)?.name,
       qty: m.qty,
+      detail: fault ? faultDetail(fault) : undefined,
     };
+    return { at: m.created_at, item };
   });
+  // Faults reported without a quantity have no movement, but still belong in the product's history.
+  const faultEntries = rows
+    ? productFaults
+        .filter((f) => !f.movement_id)
+        .map((f) => {
+          const item: TimelineItem = {
+            id: f.id,
+            type: "fault",
+            when: fmtRelative(f.created_at),
+            by: worker(f.reported_by)?.name,
+            detail: faultDetail(f),
+          };
+          return { at: f.created_at, item };
+        })
+    : [];
+  const timelineItems = [...movementEntries, ...faultEntries]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map((e) => e.item);
 
   const tabs = [
     { value: "details", label: "פרטים" },
-    { value: "history", label: "היסטוריה", count: rows ? rows.length : undefined },
+    { value: "history", label: "היסטוריה", count: rows ? timelineItems.length : undefined },
   ];
 
   return (
@@ -293,7 +344,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
             <div className="flex justify-center py-[var(--space-8)] text-ink-3">
               <Spinner size="md" track label="טוען היסטוריה" />
             </div>
-          ) : rows && rows.length === 0 ? (
+          ) : rows && timelineItems.length === 0 ? (
             <p className="sa-muted py-[var(--space-6)] text-center">אין תנועות למוצר זה עדיין</p>
           ) : (
             <Timeline items={timelineItems} />

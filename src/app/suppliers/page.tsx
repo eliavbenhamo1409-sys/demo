@@ -1,427 +1,281 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState, type MouseEvent, type ReactNode } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useData, type Supplier, type SupplierItem } from "@/lib/store";
+/**
+ * מילון ספקים — product first. Every product has one name in the factory;
+ * each row lists what every supplier calls it. Pending names from delivery
+ * notes sit in an inbox at the top until someone says which product they are.
+ */
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { isTempId, normalizeName, useData, type Product, type SupplierItem } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
-import { fmtQty, fmtRelative } from "@/lib/format";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  MappingStatus,
-  Modal,
-  Notice,
-  SearchBar,
-  Select,
-  Table,
-  Tabs,
-  type TableColumn,
-} from "@/components/ui";
+import { fmtQty } from "@/lib/format";
+import { Button, Card, EmptyState, Modal, SearchBar } from "@/components/ui";
+import { productOptions } from "@/components/app/forms/options";
+import { PendingInbox } from "@/components/app/dictionary/PendingInbox";
+import { ProductRow } from "@/components/app/dictionary/ProductRow";
 
-type Tab = "all" | "pending" | "approved" | "suppliers";
+type Row = { product: Product; aliases: SupplierItem[]; pending: number };
 
-const TAB_VALUES: readonly Tab[] = ["all", "pending", "approved", "suppliers"];
-
-function isTab(v: string | null): v is Tab {
-  return v !== null && (TAB_VALUES as readonly string[]).includes(v);
-}
-
-type PendingDelete =
-  | { kind: "item"; item: SupplierItem }
-  | { kind: "supplier"; supplier: Supplier; itemCount: number }
-  | null;
-
-/** Hebrew subline: "{N} ספקים · {M} שמות חיצוניים · {P} ממתינים לאישור", zero parts omitted. */
-function subline(suppliers: number, items: number, pending: number): string {
-  const parts: string[] = [];
-  if (suppliers > 0) parts.push(`${fmtQty(suppliers)} ספקים`);
-  if (items > 0) parts.push(`${fmtQty(items)} שמות חיצוניים`);
-  if (pending > 0) parts.push(`${fmtQty(pending)} ממתינים לאישור`);
-  return parts.length ? parts.join(" · ") : "אין עדיין ספקים במילון";
-}
-
-const stop = (e: MouseEvent) => e.stopPropagation();
+const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
 export default function SuppliersPage() {
-  return (
-    <Suspense fallback={null}>
-      <SuppliersView />
-    </Suspense>
-  );
-}
-
-function SuppliersView() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { state, product, supplier, approveSupplierItem, deleteSupplierItem, deleteSupplier } = useData();
+  const { state, product, supplier, mapSupplierItem, approveSupplierItem, deleteSupplierItem } = useData();
   const { openAction, openProduct, notify } = useUi();
 
-  // The URL is the source of truth for the tab (?tab=pending|approved|suppliers; absent = all).
-  const urlTab = searchParams.get("tab");
-  const tab: Tab = isTab(urlTab) ? urlTab : "all";
   const [query, setQuery] = useState("");
-  const [supplierFilter, setSupplierFilter] = useState("");
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
-  const [busy, setBusy] = useState(false);
-
-  const changeTab = useCallback(
-    (next: string) => {
-      if (!isTab(next)) return;
-      const params = new URLSearchParams(searchParams.toString());
-      if (next === "all") params.delete("tab");
-      else params.set("tab", next);
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    },
-    [router, pathname, searchParams],
-  );
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<SupplierItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const loading = state.status === "loading";
-  const pendingCount = useMemo(() => state.supplierItems.filter((i) => i.status === "pending").length, [state.supplierItems]);
-  const approvedCount = state.supplierItems.length - pendingCount;
 
-  const itemCountBySupplier = useMemo(() => {
-    const total = new Map<string, number>();
-    const pending = new Map<string, number>();
+  const supplierName = useCallback((id: string) => supplier(id)?.name ?? "ספק לא ידוע", [supplier]);
+
+  const prodOpts = useMemo(() => productOptions(state.products), [state.products]);
+
+  /* ── pending inbox: every name that still needs a decision ──
+   * pending names (with or without a guessed product) and any name whose
+   * product no longer exists (the DB nulls product_id but keeps "approved"). */
+  const inbox = useMemo(
+    () =>
+      state.supplierItems
+        .filter((i) => i.status === "pending" || !i.product_id || !product(i.product_id))
+        .sort((a, b) => b.times_seen - a.times_seen || b.created_at.localeCompare(a.created_at)),
+    [state.supplierItems, product],
+  );
+
+  /* ── products with their aliases ── */
+  const rows = useMemo<Row[]>(() => {
+    const byProduct = new Map<string, SupplierItem[]>();
     for (const i of state.supplierItems) {
-      total.set(i.supplier_id, (total.get(i.supplier_id) ?? 0) + 1);
-      if (i.status === "pending") pending.set(i.supplier_id, (pending.get(i.supplier_id) ?? 0) + 1);
+      if (!i.product_id || !product(i.product_id)) continue;
+      const list = byProduct.get(i.product_id);
+      if (list) list.push(i);
+      else byProduct.set(i.product_id, [i]);
     }
-    return { total, pending };
-  }, [state.supplierItems]);
-
-  const q = query.trim().toLowerCase();
-
-  const mappings = useMemo(() => {
-    const matches = (i: SupplierItem) => {
-      if (supplierFilter && i.supplier_id !== supplierFilter) return false;
-      if (tab === "pending" && i.status !== "pending") return false;
-      if (tab === "approved" && i.status !== "approved") return false;
-      if (!q) return true;
-      const p = product(i.product_id);
-      const s = supplier(i.supplier_id);
-      const hay = [i.external_name, i.external_sku ?? "", s?.name ?? "", p?.name ?? "", p?.sku ?? "", p?.barcode ?? ""].join(" ").toLowerCase();
-      return hay.includes(q);
-    };
     const rank = (i: SupplierItem) => (i.status === "pending" ? 0 : 1);
-    return state.supplierItems
-      .filter(matches)
-      .sort((a, b) => rank(a) - rank(b) || b.created_at.localeCompare(a.created_at));
-  }, [state.supplierItems, supplierFilter, tab, q, product, supplier]);
+    return state.products
+      .map((p) => {
+        const aliases = (byProduct.get(p.id) ?? [])
+          .slice()
+          .sort((a, b) => rank(a) - rank(b) || b.times_seen - a.times_seen || a.external_name.localeCompare(b.external_name, "he"));
+        return { product: p, aliases, pending: aliases.filter((a) => a.status === "pending").length };
+      })
+      .sort((a, b) => (b.pending > 0 ? 1 : 0) - (a.pending > 0 ? 1 : 0) || b.aliases.length - a.aliases.length || a.product.name.localeCompare(b.product.name, "he"));
+  }, [state.products, state.supplierItems, product]);
 
-  const suppliers = useMemo(() => {
-    return state.suppliers.filter((s) => {
-      if (supplierFilter && s.id !== supplierFilter) return false;
-      if (!q) return true;
-      return [s.name, s.contact ?? "", s.phone ?? "", s.email ?? ""].join(" ").toLowerCase().includes(q);
+  const q = normalizeName(query);
+  const visible = useMemo(() => {
+    if (!q) return rows;
+    return rows.filter(({ product: p, aliases }) => {
+      if (normalizeName(p.name).includes(q) || normalizeName(p.sku).includes(q) || normalizeName(p.barcode).includes(q)) return true;
+      return aliases.some(
+        (a) => normalizeName(a.external_name).includes(q) || normalizeName(a.external_sku).includes(q) || normalizeName(supplierName(a.supplier_id)).includes(q),
+      );
     });
-  }, [state.suppliers, supplierFilter, q]);
+  }, [rows, q, supplierName]);
+  const visibleAliases = useMemo(() => visible.reduce((n, r) => n + r.aliases.length, 0), [visible]);
 
-  const supplierOptions = useMemo(() => state.suppliers.map((s) => ({ value: s.id, label: s.name })), [state.suppliers]);
+  /* ── writes ── */
+  const stillSaving = useCallback(
+    (item: SupplierItem) => {
+      if (!isTempId(item.id)) return false;
+      notify({ tone: "neutral", title: "השם עדיין נשמר", text: "נסה שוב בעוד רגע" });
+      return true;
+    },
+    [notify],
+  );
 
-  const openMap = useCallback((supplierItemId: string) => openAction("map-supplier-item", { supplierItemId }), [openAction]);
-
-  const approve = useCallback(
-    async (item: SupplierItem) => {
-      if (!item.product_id) {
-        openMap(item.id);
-        return;
-      }
+  const approveWithProduct = useCallback(
+    async (item: SupplierItem, productId: string) => {
+      if (stillSaving(item)) return;
+      setApprovingId(item.id);
       try {
-        await approveSupplierItem(item.id);
-        notify({ tone: "success", title: "ההתאמה אושרה", text: item.external_name });
+        await mapSupplierItem(item.id, productId);
+        const p = product(productId);
+        notify({ tone: "success", title: `"${item.external_name}" אושר כ-${p?.name ?? ""}`.trim() });
       } catch (e) {
         notify({ tone: "danger", title: "האישור נכשל", text: e instanceof Error ? e.message : undefined });
+      } finally {
+        setApprovingId(null);
       }
     },
-    [approveSupplierItem, notify, openMap],
+    [mapSupplierItem, product, notify, stillSaving],
+  );
+
+  const approveInRow = useCallback(
+    async (item: SupplierItem) => {
+      if (stillSaving(item)) return;
+      setApprovingId(item.id);
+      try {
+        await approveSupplierItem(item.id);
+        const p = product(item.product_id);
+        notify({ tone: "success", title: `"${item.external_name}" אושר כ-${p?.name ?? ""}`.trim() });
+      } catch (e) {
+        notify({ tone: "danger", title: "האישור נכשל", text: e instanceof Error ? e.message : undefined });
+      } finally {
+        setApprovingId(null);
+      }
+    },
+    [approveSupplierItem, product, notify, stillSaving],
+  );
+
+  const requestDelete = useCallback(
+    (item: SupplierItem) => {
+      if (stillSaving(item)) return;
+      setPendingDelete(item);
+    },
+    [stillSaving],
   );
 
   const confirmDelete = useCallback(async () => {
-    if (!pendingDelete) return;
-    setBusy(true);
+    if (!pendingDelete || stillSaving(pendingDelete)) return;
+    setDeleting(true);
     try {
-      if (pendingDelete.kind === "item") {
-        await deleteSupplierItem(pendingDelete.item.id);
-        notify({ tone: "success", title: "השם החיצוני נמחק", text: pendingDelete.item.external_name });
-      } else {
-        await deleteSupplier(pendingDelete.supplier.id);
-        notify({ tone: "success", title: "הספק נמחק", text: pendingDelete.supplier.name });
-      }
+      await deleteSupplierItem(pendingDelete.id);
+      notify({ tone: "success", title: `"${pendingDelete.external_name}" הוסר`, text: supplierName(pendingDelete.supplier_id) });
       setPendingDelete(null);
     } catch (e) {
       notify({ tone: "danger", title: "המחיקה נכשלה", text: e instanceof Error ? e.message : undefined });
     } finally {
-      setBusy(false);
+      setDeleting(false);
     }
-  }, [pendingDelete, deleteSupplierItem, deleteSupplier, notify]);
+  }, [pendingDelete, deleteSupplierItem, notify, supplierName, stillSaving]);
 
-  /* ───────── columns ───────── */
+  const closeRow = useCallback(() => setOpenRowId(null), []);
 
-  const mappingColumns = useMemo<TableColumn<SupplierItem>[]>(
-    () => [
-      {
-        key: "supplier_id",
-        title: "ספק",
-        width: "16%",
-        render: (i) => <span className="sa-cell-primary">{supplier(i.supplier_id)?.name ?? "—"}</span>,
-      },
-      {
-        key: "external_name",
-        title: "שם אצל הספק",
-        render: (i) => <bdi>{i.external_name}</bdi>,
-      },
-      {
-        key: "external_sku",
-        title: 'מק"ט חיצוני',
-        width: "14%",
-        align: "ltr",
-        mono: true,
-        muted: true,
-        render: (i) => i.external_sku ?? "",
-      },
-      {
-        key: "product_id",
-        title: "מוצר במפעל",
-        render: (i) => {
-          const p = product(i.product_id);
-          if (!p) return <span className="sa-muted">— לא ממופה</span>;
-          return (
-            <span>
-              {p.name}
-              <span className="sa-cell-sub sa-mono ltr">{p.sku}</span>
-              {p.barcode ? <span className="sa-cell-sub sa-mono ltr">{p.barcode}</span> : null}
-            </span>
-          );
-        },
-      },
-      {
-        key: "times_seen",
-        title: "זיהויים",
-        align: "num",
-        width: "11%",
-        render: (i) => (
-          <span className="block">
-            <span className={i.times_seen === 0 ? "sa-faint" : undefined}>{fmtQty(i.times_seen)}</span>
-            {i.last_seen_at ? <span className="sa-cell-sub">{fmtRelative(i.last_seen_at)}</span> : null}
-          </span>
-        ),
-      },
-      {
-        key: "status",
-        title: "סטטוס",
-        width: "24%",
-        render: (i) => (
-          <span onClick={stop}>
-            <MappingStatus
-              status={i.status}
-              target={product(i.product_id)?.sku}
-              onApprove={() => void approve(i)}
-              onFix={() => openMap(i.id)}
-            />
-          </span>
-        ),
-      },
-      {
-        key: "actions",
-        title: <span className="sa-sr">פעולות</span>,
-        width: "88px",
-        render: (i) => (
-          <span className="sa-row-actions" onClick={stop}>
-            {i.product_id ? (
-              <Button variant="ghost" size="sm" iconOnly icon="eye" aria-label="פתח מוצר" title="פתח מוצר" onClick={() => openProduct(i.product_id as string)} />
-            ) : null}
-            <Button variant="ghost" size="sm" iconOnly icon="trash" aria-label="מחק" title="מחק" onClick={() => setPendingDelete({ kind: "item", item: i })} />
-          </span>
-        ),
-      },
-    ],
-    [supplier, product, approve, openMap, openProduct],
-  );
-
-  const supplierColumns = useMemo<TableColumn<Supplier>[]>(
-    () => [
-      { key: "name", title: "שם", render: (s) => <span className="sa-cell-primary">{s.name}</span> },
-      { key: "contact", title: "איש קשר", render: (s) => s.contact ?? "" },
-      { key: "phone", title: "טלפון", align: "ltr", mono: true, width: "14%", render: (s) => s.phone ?? "" },
-      { key: "email", title: "אימייל", align: "ltr", width: "20%", render: (s) => s.email ?? "" },
-      {
-        key: "items",
-        title: "שמות חיצוניים",
-        align: "num",
-        width: "12%",
-        render: (s) => fmtQty(itemCountBySupplier.total.get(s.id) ?? 0),
-      },
-      {
-        key: "pending",
-        title: "לא מאושר",
-        align: "num",
-        width: "10%",
-        render: (s) => {
-          const n = itemCountBySupplier.pending.get(s.id) ?? 0;
-          return <span className={n > 0 ? "sa-low" : undefined}>{fmtQty(n)}</span>;
-        },
-      },
-      {
-        key: "actions",
-        title: <span className="sa-sr">פעולות</span>,
-        width: "88px",
-        render: (s) => (
-          <span className="sa-row-actions" onClick={stop}>
-            <Button variant="ghost" size="sm" iconOnly icon="edit" aria-label="עריכה" title="עריכה" onClick={() => openAction("edit-supplier", { supplierId: s.id })} />
-            <Button
-              variant="ghost"
-              size="sm"
-              iconOnly
-              icon="trash"
-              aria-label="מחק"
-              title="מחק"
-              onClick={() => setPendingDelete({ kind: "supplier", supplier: s, itemCount: itemCountBySupplier.total.get(s.id) ?? 0 })}
-            />
-          </span>
-        ),
-      },
-    ],
-    [itemCountBySupplier, openAction],
-  );
-
-  /* ───────── empty states ───────── */
-
-  const dictionaryEmpty: ReactNode =
-    state.supplierItems.length === 0 ? (
-      <EmptyState icon="book-open" title="המילון ריק" hint="הוסף ספק, ואז את השמות שהוא משתמש בהם">
-        <Button variant="primary" icon="plus" onClick={() => openAction("new-supplier")}>ספק חדש</Button>
-        {state.suppliers.length > 0 ? (
-          <Button variant="secondary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם חיצוני חדש</Button>
-        ) : null}
-      </EmptyState>
-    ) : (
-      <EmptyState icon="search" title="אין שמות חיצוניים שמתאימים לסינון" hint="נסה חיפוש אחר או הצג את כל הספקים" />
-    );
-
-  const suppliersEmpty: ReactNode =
-    state.suppliers.length === 0 ? (
-      <EmptyState icon="truck" title="אין עדיין ספקים" hint="הוסף את הספק הראשון כדי להתחיל לבנות את המילון">
-        <Button variant="primary" icon="plus" onClick={() => openAction("new-supplier")}>ספק חדש</Button>
-      </EmptyState>
-    ) : (
-      <EmptyState icon="search" title="אין ספקים שמתאימים לסינון" />
-    );
-
-  const tabs = [
-    { value: "all", label: "הכל" },
-    {
-      value: "pending",
-      label: (
-        <>
-          לא מאושר
-          {pendingCount > 0 ? <Badge tone="warning" solid count>{fmtQty(pendingCount)}</Badge> : null}
-        </>
-      ),
-    },
-    { value: "approved", label: "מאושר" },
-    { value: "suppliers", label: "ספקים" },
+  /* ── header counts (the pending count is exactly the inbox) ── */
+  const counts: ReactNode[] = [
+    <><span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים</>,
+    <><span className="sa-num">{fmtQty(state.supplierItems.length)}</span> שמות של ספקים</>,
   ];
+  if (inbox.length > 0) counts.push(<><span className="sa-num">{fmtQty(inbox.length)}</span> ממתינים לאישור</>);
 
-  const footerLabel =
-    tab === "suppliers"
-      ? `${fmtQty(suppliers.length)} ספקים`
-      : `${fmtQty(mappings.length)} שמות חיצוניים${tab === "all" && pendingCount > 0 ? ` · ${fmtQty(pendingCount)} לא מאושר · ${fmtQty(approvedCount)} מאושר` : ""}`;
+  /* ── list body ── */
+  let body: ReactNode;
+  if (loading) {
+    body = (
+      <div className="sa-dict-list" aria-busy="true" aria-label="טוען">
+        {SKELETON_ROWS.map((i) => (
+          <div key={i} className="sa-dict-skeleton">
+            <div className="flex flex-col gap-2">
+              <span className="sa-skeleton" style={{ width: 160, height: 14 }} />
+              <span className="sa-skeleton" style={{ width: 96 }} />
+            </div>
+            <div className="sa-dict-skeleton-chips">
+              <span className="sa-skeleton" style={{ width: 140 }} />
+              <span className="sa-skeleton" style={{ width: 110 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  } else if (state.products.length === 0) {
+    body = (
+      <EmptyState icon="package" title="אין עדיין מוצרים במפעל" hint="המילון נבנה על המוצרים במלאי. צור מוצר ראשון ואז רשום איך הספקים קוראים לו.">
+        <Button variant="primary" icon="plus" onClick={() => openAction("new-product")}>מוצר חדש</Button>
+      </EmptyState>
+    );
+  } else if (visible.length === 0) {
+    body = <EmptyState icon="search" title="לא נמצא מוצר או שם שמתאים לחיפוש" />;
+  } else {
+    body = (
+      <div className="sa-dict-list" role="list" aria-label="מוצרים ושמות של ספקים">
+        <div className="sa-dict-head" aria-hidden="true">
+          <span>המוצר במפעל</span>
+          <span>איך הספקים קוראים לו</span>
+          <span>הוספה</span>
+        </div>
+        {visible.map(({ product: p, aliases }) => (
+          <ProductRow
+            key={p.id}
+            product={p}
+            aliases={aliases}
+            supplierName={supplierName}
+            open={openRowId === p.id}
+            onOpen={() => setOpenRowId(p.id)}
+            onClose={closeRow}
+            onOpenProduct={() => openProduct(p.id)}
+            onApprove={(item) => void approveInRow(item)}
+            onRemove={requestDelete}
+            approvingId={approvingId}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  const deleteSupplierLabel = pendingDelete ? supplierName(pendingDelete.supplier_id) : "";
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="sa-page-title" style={{ fontSize: 30, lineHeight: "36px", fontWeight: 600 }}>מילון ספקים</h1>
-        <p className="sa-page-sub">{subline(state.suppliers.length, state.supplierItems.length, pendingCount)}</p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-[1_1_320px]">
+          <h1 className="sa-page-title" style={{ fontSize: 30, lineHeight: "36px", fontWeight: 600 }}>מילון ספקים</h1>
+          <p className="sa-page-sub">
+            לכל מוצר שם אחד במפעל. כאן רושמים איך כל ספק קורא לו.
+            {counts.map((c, i) => (
+              <span key={i}> · {c}</span>
+            ))}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="secondary" icon="truck" onClick={() => openAction("suppliers")}>ספקים</Button>
+          <Button variant="primary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם של ספק</Button>
+        </div>
       </header>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <SearchBar
-          kbd={false}
-          value={query}
-          onChange={setQuery}
-          placeholder='חיפוש שם חיצוני, מק"ט, ספק או מוצר…'
-          className="min-w-[260px] flex-1 max-w-[420px]"
+      {inbox.length > 0 ? (
+        <PendingInbox
+          items={inbox}
+          productOptions={prodOpts}
+          supplierName={supplierName}
+          approvingId={approvingId}
+          onApprove={(item, productId) => void approveWithProduct(item, productId)}
+          onNewProduct={(item) => openAction("new-product", { supplierItemId: item.id })}
+          onDelete={requestDelete}
         />
-        <Select
-          options={supplierOptions}
-          value={supplierFilter}
-          onChange={setSupplierFilter}
-          allLabel="כל הספקים"
-          placeholder="ספק"
-          searchPlaceholder="חיפוש ספק…"
-          minWidth={180}
-        />
-        <Tabs tabs={tabs} value={tab} onChange={changeTab} />
-        <div className="ms-auto flex items-center gap-2">
-          <Button variant="secondary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם חיצוני חדש</Button>
-          <Button variant="primary" onClick={() => openAction("new-supplier")}>ספק חדש</Button>
-        </div>
-      </div>
-
-      {tab === "pending" && pendingCount > 0 ? (
-        <Notice tone="neutral" title="שמות שהגיעו בתעודות משלוח ועדיין לא אושרו">
-          אישור מלמד את המערכת לזהות אותם אוטומטית.
-        </Notice>
       ) : null}
 
-      {tab === "suppliers" ? (
-        <Table<Supplier>
-          caption="רשימת הספקים במילון"
-          columns={supplierColumns}
-          data={suppliers}
-          isLoading={loading}
-          skeletonRows={5}
-          empty={suppliersEmpty}
-          onRowClick={(s) => openAction("edit-supplier", { supplierId: s.id })}
-          footer={<span>{footerLabel}</span>}
-        />
-      ) : (
-        <Table<SupplierItem>
-          caption="שמות חיצוניים של ספקים והתאמתם למוצרי המפעל"
-          columns={mappingColumns}
-          data={mappings}
-          isLoading={loading}
-          skeletonRows={6}
-          empty={dictionaryEmpty}
-          onRowClick={(i) => openMap(i.id)}
-          footer={<span>{footerLabel}</span>}
-        />
-      )}
+      <SearchBar
+        kbd={false}
+        value={query}
+        onChange={setQuery}
+        placeholder='חיפוש מוצר, מק"ט, ברקוד או שם אצל ספק…'
+        className="w-full max-w-[480px]"
+      />
 
-      {pendingDelete?.kind === "item" ? (
-        <Modal
-          title="מחק שם חיצוני"
-          tone="danger"
-          confirmLabel="מחק שם חיצוני"
-          busy={busy}
-          onConfirm={() => void confirmDelete()}
-          onClose={() => !busy && setPendingDelete(null)}
-        >
-          <p>
-            השם <strong><bdi>{pendingDelete.item.external_name}</bdi></strong>
-            {supplier(pendingDelete.item.supplier_id) ? <> של {supplier(pendingDelete.item.supplier_id)?.name}</> : null} יימחק מהמילון.
-            קליטות עתידיות בשם הזה לא יזוהו אוטומטית.
-          </p>
-        </Modal>
-      ) : null}
+      <Card
+        flush
+        footer={
+          !loading && state.products.length > 0 ? (
+            <span>
+              <span className="sa-num">{fmtQty(visible.length)}</span> מוצרים מוצגים · <span className="sa-num">{fmtQty(visibleAliases)}</span> שמות
+            </span>
+          ) : undefined
+        }
+      >
+        {body}
+      </Card>
 
-      {pendingDelete?.kind === "supplier" ? (
+      {pendingDelete ? (
         <Modal
-          title="מחק ספק"
+          title={
+            pendingDelete.status === "approved"
+              ? `הסר את השם "${pendingDelete.external_name}" של ${deleteSupplierLabel}?`
+              : `מחק את השם "${pendingDelete.external_name}" של ${deleteSupplierLabel}?`
+          }
           tone="danger"
-          confirmLabel="מחק ספק"
-          busy={busy}
+          confirmLabel={pendingDelete.status === "approved" ? "הסר" : "מחק"}
+          busy={deleting}
           onConfirm={() => void confirmDelete()}
-          onClose={() => !busy && setPendingDelete(null)}
+          onClose={() => !deleting && setPendingDelete(null)}
         >
-          <p>
-            הספק <strong>{pendingDelete.supplier.name}</strong> יימחק.
-            {pendingDelete.itemCount > 0
-              ? ` יחד איתו יימחקו גם ${fmtQty(pendingDelete.itemCount)} השמות החיצוניים שלו מהמילון.`
-              : " לספק הזה אין שמות חיצוניים במילון."}
+          <p className="m-0">
+            {pendingDelete.status === "approved"
+              ? "קליטות עתידיות בשם הזה לא יזוהו אוטומטית."
+              : "השם יימחק מהרשימה. אם יגיע שוב בתעודת משלוח הוא יופיע כאן מחדש."}
           </p>
         </Modal>
       ) : null}

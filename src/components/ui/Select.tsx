@@ -4,7 +4,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type Keyboard
 import { cx } from "./cx";
 import { Icon } from "./Icon";
 
-export interface SelectOption { value: string; label: ReactNode }
+/** `pinned` keeps an option visible while searching, e.g. an "add new" action. */
+export interface SelectOption { value: string; label: ReactNode; pinned?: boolean }
 
 export interface SelectProps {
   options: (string | SelectOption)[];
@@ -28,7 +29,7 @@ export interface SelectProps {
   className?: string;
 }
 
-type Item = { value: string; label: ReactNode; isAll?: boolean };
+type Item = { value: string; label: ReactNode; isAll?: boolean; pinned?: boolean };
 
 function labelText(label: ReactNode): string {
   if (typeof label === "string" || typeof label === "number") return String(label);
@@ -58,12 +59,12 @@ export function Select({
   const labelId = `sa-sel-${uid}-label`;
 
   const normalized = useMemo<Item[]>(
-    () => options.map((o) => (typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label })),
+    () => options.map((o) => (typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label, pinned: o.pinned })),
     [options],
   );
   const items = useMemo<Item[]>(() => {
     const q = query.trim().toLowerCase();
-    const filtered = q ? normalized.filter((o) => (labelText(o.label) || o.value).toLowerCase().includes(q)) : normalized;
+    const filtered = q ? normalized.filter((o) => o.pinned || (labelText(o.label) || o.value).toLowerCase().includes(q)) : normalized;
     return allLabel ? [{ value: "", label: allLabel, isAll: true }, ...filtered] : filtered;
   }, [normalized, query, allLabel]);
 

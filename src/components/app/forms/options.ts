@@ -10,8 +10,10 @@ export function productOptions(products: Product[], withNew = false): SelectOpti
   return opts;
 }
 
-export function supplierOptions(suppliers: Supplier[]): SelectOption[] {
-  return suppliers.map((s) => ({ value: s.id, label: s.name }));
+export function supplierOptions(suppliers: Supplier[], withNew = false): SelectOption[] {
+  const opts: SelectOption[] = suppliers.map((s) => ({ value: s.id, label: s.name }));
+  if (withNew) opts.push({ value: NEW_OPTION, label: "+ ספק חדש", pinned: true });
+  return opts;
 }
 
 export function workerOptions(workers: Worker[], withNew = false): SelectOption[] {

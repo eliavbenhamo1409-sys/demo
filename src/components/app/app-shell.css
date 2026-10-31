@@ -179,13 +179,45 @@
   flex-direction: column;
 }
 
-.sa-dict-row {
+.sa-dict-row,
+.sa-dict-head {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) auto;
   gap: var(--space-3) var(--space-6);
   align-items: start;
   padding: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Column titles so the reader knows what each column holds. */
+.sa-dict-head {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  background: var(--bg-canvas);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary);
+}
+
+.sa-dict-head > span:last-child {
+  /* keeps the third column as wide as the add button beneath it */
+  min-width: 112px;
+}
+
+.sa-dict-action {
+  display: flex;
+  justify-content: flex-start;
+  min-width: 112px;
+}
+
+/* The inline form takes the names column and the action column together. */
+.sa-dict-row.is-open .sa-dict-aliases {
+  grid-column: 2 / -1;
+}
+.sa-dict-row.is-open .sa-dict-action {
+  display: none;
 }
 
 .sa-dict-list > .sa-dict-row:last-child {
@@ -281,7 +313,17 @@
 }
 
 .sa-dict-chip-sup {
-  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--bg-muted);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .sa-dict-chip.is-pending {
@@ -292,7 +334,7 @@
 
 .sa-dict-chip.is-pending .sa-dict-chip-sup {
   color: var(--warning-text);
-  opacity: 0.8;
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
 }
 
 .sa-dict-chip .sa-btn.sa-dict-chip-approve {
@@ -420,7 +462,7 @@
 
 .sa-dict-skeleton {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) auto;
   gap: var(--space-3) var(--space-6);
   align-items: center;
   padding: var(--space-4);
@@ -561,6 +603,12 @@
   .sa-dict-skeleton {
     grid-template-columns: minmax(0, 1fr);
   }
+  .sa-dict-head {
+    display: none;
+  }
+  .sa-dict-row.is-open .sa-dict-aliases {
+    grid-column: auto;
+  }
   .sa-dict-form > .sa-field,
   .sa-dict-form > .sa-field.is-sku,
   .sa-dict-form > .sa-field.is-supplier {
@@ -574,4 +622,154 @@
   .sa-dict-inbox-actions .sa-select {
     flex: 1 1 100%;
   }
+}
+
+/* ── Faults page ────────────────────────────────────────────── */
+.sa-faults {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-fault-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sa-faults > .sa-fault-row:last-child {
+  border-bottom: 0;
+}
+
+.sa-fault-row.is-done .sa-fault-title {
+  color: var(--text-secondary);
+}
+
+.sa-fault-thumb {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-base);
+  background: var(--bg-muted);
+  overflow: hidden;
+  color: var(--danger-text);
+}
+
+.sa-fault-thumb.is-empty {
+  color: var(--text-tertiary);
+}
+
+.sa-fault-row:not(.is-done) .sa-fault-thumb.is-empty {
+  color: var(--danger-text);
+}
+
+.sa-fault-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+a.sa-fault-thumb:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sa-fault-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sa-fault-title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sa-fault-product {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.1s ease;
+}
+
+.sa-fault-product .sa-mono {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.sa-fault-product:hover {
+  color: var(--accent-text);
+}
+
+.sa-fault-product:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sa-fault-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+.sa-fault-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-top: 2px;
+}
+
+@media (max-width: 599px) {
+  .sa-fault-row {
+    flex-wrap: wrap;
+  }
+  .sa-fault-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+}
+
+/* ── Team page ──────────────────────────────────────────────── */
+.sa-team-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sa-team-name.is-inactive .sa-cell-primary {
+  color: var(--text-tertiary);
+  font-weight: 500;
 }

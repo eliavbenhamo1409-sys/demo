@@ -15,6 +15,7 @@ import { SupplierForm } from "./forms/SupplierForm";
 import { WorkerForm } from "./forms/WorkerForm";
 import { SupplierItemForm } from "./forms/SupplierItemForm";
 import { MapSupplierItemForm } from "./forms/MapSupplierItemForm";
+import { SuppliersPanel } from "./forms/SuppliersPanel";
 
 function FormFor({ kind, ctx }: { kind: ActionKind; ctx: ActionContext }) {
   switch (kind) {
@@ -35,11 +36,15 @@ function FormFor({ kind, ctx }: { kind: ActionKind; ctx: ActionContext }) {
     case "edit-supplier":
       return <SupplierForm ctx={ctx} mode="edit" />;
     case "new-worker":
-      return <WorkerForm />;
+      return <WorkerForm mode="new" />;
+    case "edit-worker":
+      return <WorkerForm ctx={ctx} mode="edit" />;
     case "new-supplier-item":
       return <SupplierItemForm ctx={ctx} />;
     case "map-supplier-item":
       return <MapSupplierItemForm ctx={ctx} />;
+    case "suppliers":
+      return <SuppliersPanel />;
     default:
       return null;
   }

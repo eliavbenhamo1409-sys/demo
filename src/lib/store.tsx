@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Reactive data layer for Super Admin.
+ * Reactive data layer for the inventory app.
  *
  * - Loads every table once (factory-scale data), keeps it in React state.
  * - Subscribes to Supabase Realtime (postgres_changes) so every client stays

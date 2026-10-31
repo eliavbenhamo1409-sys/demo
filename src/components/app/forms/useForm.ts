@@ -89,9 +89,11 @@ export function useAutofocus<T extends HTMLElement>() {
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const first = root.querySelector<HTMLElement>(
-      'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), button.sa-select-trigger:not([disabled])',
-    );
+    const first =
+      root.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") ??
+      root.querySelector<HTMLElement>(
+        'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), button.sa-select-trigger:not([disabled])',
+      );
     const t = window.setTimeout(() => first?.focus(), 30);
     return () => window.clearTimeout(t);
   }, []);

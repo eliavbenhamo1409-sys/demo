@@ -12,6 +12,8 @@ export interface TimelineItem {
   when?: string;
   by?: string;
   qty?: number;
+  /** Extra content under the row, e.g. a fault's note and photo. */
+  detail?: ReactNode;
 }
 
 export interface TimelineProps {
@@ -31,12 +33,15 @@ export function Timeline({ items, className }: TimelineProps) {
         return (
           <li key={it.id ?? i} className={cx("sa-timeline-item", `is-${t}`)}>
             <Mark type={t} icon={MOVEMENT_ICON[t]} size="md" />
-            <div className="sa-timeline-body">
-              <div className="min-w-0">
-                <p className="sa-timeline-title">{it.title ?? MOVEMENT_LABEL[t]}</p>
-                {meta ? <p className="sa-timeline-meta">{meta}</p> : null}
+            <div className="min-w-0 flex-1">
+              <div className="sa-timeline-body">
+                <div className="min-w-0">
+                  <p className="sa-timeline-title">{it.title ?? MOVEMENT_LABEL[t]}</p>
+                  {meta ? <p className="sa-timeline-meta">{meta}</p> : null}
+                </div>
+                {it.qty != null ? <span className="sa-timeline-qty">{fmtSigned(it.qty, t)}</span> : null}
               </div>
-              {it.qty != null ? <span className="sa-timeline-qty">{fmtSigned(it.qty, t)}</span> : null}
+              {it.detail}
             </div>
           </li>
         );

@@ -5,7 +5,8 @@ export type IconName =
   | "chevron-down" | "chevron-up" | "chevron-left" | "chevron-right" | "arrow-left" | "arrow-right" | "arrow-up" | "arrow-down"
   | "arrow-down-left" | "arrow-up-right" | "alert-triangle" | "alert-circle" | "info" | "package" | "grid" | "book-open"
   | "more-horizontal" | "filter" | "clock" | "calendar" | "external-link" | "download" | "upload" | "file-text" | "inbox"
-  | "truck" | "tag" | "link" | "refresh" | "camera" | "menu" | "layers" | "activity" | "hash" | "eye" | "copy" | "printer";
+  | "truck" | "tag" | "link" | "refresh" | "camera" | "menu" | "layers" | "activity" | "hash" | "eye" | "copy" | "printer"
+  | "settings" | "sun" | "moon";
 
 export type Tone = "neutral" | "success" | "warning" | "danger" | "accent";
 export type MovementType = "in" | "out" | "fault" | "adjust";
@@ -83,6 +84,9 @@ const ICONS: Record<IconName, Shape[]> = {
   "eye": [p("M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"), c(12, 12, 3)],
   "copy": [r(9, 9, 13, 13, 2, 2), p("M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1")],
   "printer": [pl("6 9 6 2 18 2 18 9"), p("M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"), r(6, 14, 12, 8)],
+  "settings": [c(12, 12, 3), p("M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z")],
+  "sun": [c(12, 12, 4), l(12, 2, 12, 4), l(12, 20, 12, 22), l(4.93, 4.93, 6.34, 6.34), l(17.66, 17.66, 19.07, 19.07), l(2, 12, 4, 12), l(20, 12, 22, 12), l(4.93, 19.07, 6.34, 17.66), l(17.66, 6.34, 19.07, 4.93)],
+  "moon": [p("M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z")],
 };
 
 export const ICON_NAMES = Object.keys(ICONS) as IconName[];

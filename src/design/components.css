@@ -1,4 +1,4 @@
-/* Super Admin — component stylesheet (RTL-first, logical properties).
+/* ניהול מלאי — component stylesheet (RTL-first, logical properties).
    Grown out of natan's globals.css and component classes; every colour, radius, shadow,
    spacing and size is a token from tokens.css — nothing is declared twice. Prefix: sa- */
 
@@ -280,6 +280,10 @@ input, textarea, select { font-family: inherit; }
 .sa-timeline-title { font-size: 13px; line-height: 20px; font-weight: 500; margin: 0; }
 .sa-timeline-meta { font-size: 12px; line-height: 16px; color: var(--text-tertiary); margin: 0; }
 .sa-timeline-qty { font-family: var(--font-mono); font-size: 13px; font-weight: 600; direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
+.sa-timeline-detail { margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); }
+.sa-timeline-detail .sa-fault-photo { margin-top: 0; }
+.sa-timeline-note { font-size: 13px; line-height: 20px; color: var(--text-secondary); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sa-timeline-status { display: flex; align-items: center; gap: var(--space-2); }
 .sa-timeline-item.is-in .sa-timeline-qty { color: var(--success-text); }
 .sa-timeline-item.is-out .sa-timeline-qty { color: var(--accent-text); }
 

@@ -1,6 +1,6 @@
-# Super Admin — build brief (read fully before writing code)
+# ניהול מלאי — build brief (read fully before writing code)
 
-Hebrew, RTL, three pages only: **סקירה** (`/`), **מלאי** (`/inventory`), **מילון ספקים** (`/suppliers`).
+Hebrew, RTL, five pages only: **סקירה** (`/`), **מלאי** (`/inventory`), **תקלות** (`/faults`), **מילון ספקים** (`/suppliers`), **צוות** (`/team`). Do not add pages; new workflows go into tabs or side panels of these.
 Stack: Next.js 16 App Router (`src/app`), React 19, TypeScript strict, Tailwind v4 (`src/app/globals.css`), Supabase JS.
 All pages are **client components** driven by `useData()` from `src/lib/store.tsx` (realtime + optimistic writes) and `useUi()` from `src/components/app/ui-state.tsx`.
 **No demo/mock data anywhere.** If a table is empty, render a quiet `EmptyState` that says what to do. Never hardcode names, numbers or rows.

@@ -35,7 +35,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
     form.setErrors({});
     void form.run(async () => {
       await mapSupplierItem(item.id, productId);
-      notify({ tone: "success", title: target ? `${item.external_name} הותאם ל-${target.name}` : "ההתאמה אושרה" });
+      notify({ tone: "success", title: target ? `"${item.external_name}" אושר כ-${target.name}` : `"${item.external_name}" אושר` });
       close();
     });
   };
@@ -57,11 +57,11 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
   return (
     <>
       <FormPanel
-        title="תיקון התאמה"
+        title="למה שייך השם הזה?"
         subtitle={sup?.name}
         onClose={close}
         onSubmit={submit}
-        submitLabel="אשר התאמה"
+        submitLabel="אשר"
         submitDisabled={!item}
         busy={form.busy}
         error={form.error}
@@ -86,13 +86,13 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
         }
       >
         {!item ? (
-          <Notice tone="warning" title="השם החיצוני לא נמצא">ייתכן שנמחק ממכשיר אחר.</Notice>
+          <Notice tone="warning" title="השם לא נמצא">ייתכן שנמחק ממכשיר אחר.</Notice>
         ) : (
           <>
             <Fields
               items={[
                 { label: "ספק", value: sup?.name },
-                { label: "סטטוס", value: item.status === "approved" ? "מאושר" : "לא מאושר" },
+                { label: "סטטוס", value: item.status === "approved" ? "מאושר" : "ממתין לאישור" },
                 { label: "שם אצל הספק", value: item.external_name },
                 { label: "מק\"ט חיצוני", value: item.external_sku ?? undefined, num: true },
                 {
@@ -122,7 +122,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
                   <span className="sa-num">{target.sku}</span> · במלאי {target.qty} {target.unit}
                 </span>
               ) : (
-                <span className="sa-hint">אישור ההתאמה יסמן את השם כמאושר</span>
+                <span className="sa-hint">אחרי האישור המערכת תזהה את השם הזה לבד בפעם הבאה</span>
               )}
             </div>
           </>
@@ -139,7 +139,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
           onClose={() => { if (!deleting) { setConfirmDelete(false); setDeleteError(null); } }}
         >
           <div className="flex flex-col gap-[var(--space-3)]">
-            <p className="m-0">השם החיצוני יוסר ממילון הספק{sup ? ` ${sup.name}` : ""}. הפעולה אינה הפיכה.</p>
+            <p className="m-0">השם יוסר מהמילון של {sup?.name ?? "הספק"}. קליטות עתידיות בשם הזה לא יזוהו אוטומטית.</p>
             {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}
           </div>
         </Modal>

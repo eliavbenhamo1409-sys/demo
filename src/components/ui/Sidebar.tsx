@@ -22,6 +22,8 @@ export interface SidebarProps {
   mark?: React.ReactNode;
   user?: { name: string; role?: string };
   onSignOut?: (e: React.MouseEvent) => void;
+  /** Extra rows at the bottom of the sidebar (e.g. settings). */
+  foot?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -41,11 +43,12 @@ export function Sidebar({
   items = DEFAULT_SIDEBAR_ITEMS,
   active,
   onNavigate,
-  brand = "Super Admin",
+  brand = "ניהול מלאי",
   brandSub,
   mark,
   user,
   onSignOut,
+  foot,
   className,
   style,
 }: SidebarProps) {
@@ -53,7 +56,7 @@ export function Sidebar({
     <aside className={cx("sa-sidebar", className)} style={style}>
       <div className="sa-brand">
         <span className="sa-brand-mark" aria-hidden>
-          {mark ?? "SA"}
+          {mark ?? "מ"}
         </span>
         <span>
           {brand}
@@ -96,6 +99,7 @@ export function Sidebar({
             יציאה
           </NavItem>
         ) : null}
+        {foot}
       </div>
     </aside>
   );

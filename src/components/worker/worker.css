@@ -1,0 +1,83 @@
+/* Worker phone app — layered on the design tokens; everything 48–56px, one action per screen. */
+.wk-root { min-height: 100dvh; background: var(--bg-canvas); display: flex; flex-direction: column; }
+.wk-page { width: 100%; max-width: var(--worker); margin: 0 auto; padding: var(--space-4) var(--space-4) calc(var(--space-6) + 96px); display: flex; flex-direction: column; gap: var(--space-4); flex: 1; }
+.wk-head { display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch); }
+.wk-back { width: var(--touch); height: var(--touch); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-lg); color: var(--text-secondary); flex-shrink: 0; }
+.wk-back:hover { background: var(--bg-muted); color: var(--text-primary); }
+.wk-back svg { width: 22px; height: 22px; }
+.wk-title { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.02em; margin: 0; flex: 1; min-width: 0; }
+.wk-step { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); direction: ltr; }
+.wk-greet { font-size: 26px; line-height: 32px; font-weight: 800; letter-spacing: -0.02em; margin: var(--space-4) 0 0; }
+.wk-sub { font-size: 15px; line-height: 22px; color: var(--text-secondary); margin: 0 0 var(--space-4); }
+.wk-sub button, .wk-link { color: var(--accent-text); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; min-height: var(--touch); display: inline-flex; align-items: center; }
+.wk-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* Fixed bottom bar with the single primary action. */
+.wk-foot { position: fixed; inset-inline: 0; bottom: 0; padding: var(--space-3) var(--space-4) max(var(--space-4), env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg-canvas) 70%, transparent); z-index: 20; }
+.wk-foot > div { max-width: var(--worker); margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Choice rows: tall, white, tappable. */
+.wk-row { width: 100%; min-height: var(--touch-lg); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-lg); text-align: start; font-size: 16px; line-height: 24px; font-weight: 500; color: var(--text-primary); transition: border-color 0.1s, background-color 0.1s; }
+.wk-row:hover { border-color: var(--border-strong); }
+.wk-row:active { background: var(--bg-muted); }
+.wk-row.is-selected { border-color: var(--bg-inverse); box-shadow: 0 0 0 1px var(--bg-inverse) inset; }
+.wk-row-body { flex: 1; min-width: 0; }
+.wk-row-sub { display: block; font-size: 13px; line-height: 18px; color: var(--text-tertiary); font-weight: 400; margin-top: 2px; }
+.wk-row-end { color: var(--text-tertiary); flex-shrink: 0; }
+.wk-row.is-quiet { border-style: dashed; color: var(--text-secondary); justify-content: center; font-weight: 500; }
+
+/* Full-screen picker (big searchable list). */
+.wk-sheet { position: fixed; inset: 0; z-index: 60; background: var(--bg-canvas); display: flex; flex-direction: column; }
+.wk-sheet-inner { width: 100%; max-width: var(--worker); margin: 0 auto; display: flex; flex-direction: column; flex: 1; min-height: 0; padding: var(--space-4); gap: var(--space-3); }
+.wk-sheet-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-6); -webkit-overflow-scrolling: touch; }
+
+/* Line card in the receive / deliver flows. */
+.wk-line { background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-xl); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); box-shadow: var(--shadow-sm); }
+.wk-line-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.wk-line-n { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); direction: ltr; }
+.wk-line-remove { width: var(--touch); height: var(--touch); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-md); color: var(--text-tertiary); margin: calc(var(--space-2) * -1); }
+.wk-line-remove:hover { background: var(--bg-muted); color: var(--danger-text); }
+.wk-line-remove svg { width: 18px; height: 18px; }
+.wk-status { display: flex; align-items: center; gap: var(--space-2); font-size: 14px; line-height: 20px; font-weight: 500; min-height: 24px; }
+.wk-status.is-success { color: var(--success-text); }
+.wk-status.is-warning { color: var(--warning-text); }
+.wk-status.is-muted { color: var(--text-tertiary); font-weight: 400; }
+.wk-status svg { width: 16px; height: 16px; flex-shrink: 0; }
+.wk-qty-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.wk-qty-label { font-size: 14px; color: var(--text-secondary); }
+.wk-qty-row .sa-qty input { width: 84px; }
+
+/* Autocomplete suggestions under the name field. */
+.wk-suggest { display: flex; flex-direction: column; gap: var(--space-1); border: 1px solid var(--border-base); border-radius: var(--radius-lg); background: var(--bg-surface); overflow: hidden; }
+.wk-suggest button { min-height: var(--touch); padding: var(--space-2) var(--space-4); text-align: start; font-size: 15px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.wk-suggest button:hover { background: var(--bg-muted); }
+.wk-suggest button + button { border-top: 1px solid var(--border-subtle); }
+
+/* Photo button + preview. */
+.wk-photo { position: relative; width: 100%; min-height: var(--touch-lg); display: flex; align-items: center; justify-content: center; gap: var(--space-2); border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); font-size: 16px; font-weight: 600; cursor: pointer; }
+.wk-photo:hover { border-color: var(--bg-inverse); }
+.wk-photo input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.wk-photo svg { width: 20px; height: 20px; }
+.wk-preview { width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border-base); overflow: hidden; background: var(--bg-muted); }
+.wk-preview img { display: block; width: 100%; max-height: 220px; object-fit: cover; }
+
+/* Summary. */
+.wk-sum { background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-xl); overflow: hidden; }
+.wk-sum-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); min-height: var(--touch); }
+.wk-sum-row + .wk-sum-row { border-top: 1px solid var(--border-subtle); }
+.wk-sum-k { font-size: 13px; color: var(--text-tertiary); width: 72px; flex-shrink: 0; }
+.wk-sum-v { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.wk-sum-sub { display: block; font-size: 12px; color: var(--text-tertiary); font-weight: 400; }
+.wk-sum-qty { font-family: var(--font-mono); font-size: 20px; font-weight: 600; direction: ltr; unicode-bidi: isolate; letter-spacing: -0.02em; flex-shrink: 0; }
+
+/* Done screen. */
+.wk-done { position: fixed; inset: 0; z-index: 70; background: var(--bg-canvas); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-6); text-align: center; gap: var(--space-4); }
+.wk-done-inner { width: 100%; max-width: var(--worker); display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.wk-done-mark { width: 72px; height: 72px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; }
+.wk-done-mark svg { width: 36px; height: 36px; }
+.wk-done-title { font-size: 32px; line-height: 38px; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+.wk-done-sub { font-size: 15px; color: var(--text-secondary); margin: 0; }
+.wk-done .wk-sum { width: 100%; text-align: start; }
+.wk-done-bar { width: 100%; height: 3px; background: var(--bg-muted); border-radius: var(--radius-full); overflow: hidden; }
+.wk-done-bar span { display: block; height: 100%; background: var(--bg-inverse); animation: wk-drain 4s linear forwards; }
+@keyframes wk-drain { from { width: 100%; } to { width: 0; } }

@@ -1,4 +1,4 @@
-/* Super Admin design system — one entry point. Re-exports every component by file name. */
+/* Inventory design system — one entry point. Re-exports every component by file name. */
 
 export { cx, type ClassValue } from "./cx";
 
@@ -18,6 +18,7 @@ export { Stepper, type StepperProps, type StepItem } from "./Stepper";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { Notice, type NoticeProps } from "./Notice";
 export { Modal, type ModalProps } from "./Modal";
+export { ThemeSettingsButton, type ThemeSettingsButtonProps } from "./ThemeSettings";
 
 // Composites (written alongside; present at integration time)
 export * from "./Card";

@@ -40,7 +40,9 @@ const MAX_HITS = 8;
 
 function activeKey(pathname: string): string {
   if (pathname.startsWith("/inventory")) return "inventory";
+  if (pathname.startsWith("/faults")) return "faults";
   if (pathname.startsWith("/suppliers")) return "suppliers";
+  if (pathname.startsWith("/team")) return "team";
   return "overview";
 }
 
@@ -64,14 +66,22 @@ function ShellInner({ children }: { children: ReactNode }) {
       { key: "overview", label: "סקירה", icon: "grid" as const, href: "/" },
       { key: "inventory", label: "מלאי", icon: "package" as const, href: "/inventory" },
       {
+        key: "faults",
+        label: "תקלות",
+        icon: "alert-triangle" as const,
+        href: "/faults",
+        count: stats.openFaults > 0 ? stats.openFaults : undefined,
+      },
+      {
         key: "suppliers",
         label: "מילון ספקים",
         icon: "book-open" as const,
         href: "/suppliers",
         count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined,
       },
+      { key: "team", label: "צוות", icon: "user" as const, href: "/team" },
     ],
-    [stats.pendingMappings],
+    [stats.pendingMappings, stats.openFaults],
   );
 
   /* ───────── actions ───────── */
