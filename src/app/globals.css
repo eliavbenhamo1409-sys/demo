@@ -93,3 +93,7 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
 .sa-panel-body { padding: var(--space-4) var(--space-5); gap: var(--space-4); }
 .sa-panel-foot { padding: var(--space-3) var(--space-5); }
 .sa-card-body { padding: var(--space-3) var(--space-4); }
+
+/* Top bar menus (actions, search results) float above page content. */
+.sa-topbar { position: relative; z-index: 70; }
+.sa-actionmenu .sa-menu { z-index: 80; }
