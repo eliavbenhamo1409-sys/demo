@@ -31,7 +31,6 @@ export type ActionContext = {
 export type OpenPanel =
   | { type: "action"; kind: ActionKind; ctx: ActionContext }
   | { type: "product"; id: string; tab?: "details" | "history" }
-  | { type: "tasks" }
   | null;
 
 export type Toast = { id: number; tone: "success" | "danger" | "neutral"; title: string; text?: string };
@@ -40,8 +39,6 @@ type Ui = {
   panel: OpenPanel;
   openAction: (kind: ActionKind, ctx?: ActionContext) => void;
   openProduct: (id: string, tab?: "details" | "history") => void;
-  /** The grouped, non-urgent to-do list (below minimum, pending mappings). */
-  openTasks: () => void;
   close: () => void;
   toasts: Toast[];
   notify: (t: Omit<Toast, "id">) => void;
@@ -55,7 +52,6 @@ export function UiProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const openAction = useCallback((kind: ActionKind, ctx: ActionContext = {}) => setPanel({ type: "action", kind, ctx }), []);
   const openProduct = useCallback((id: string, tab?: "details" | "history") => setPanel({ type: "product", id, tab }), []);
-  const openTasks = useCallback(() => setPanel({ type: "tasks" }), []);
   const close = useCallback(() => setPanel(null), []);
   const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const notify = useCallback((t: Omit<Toast, "id">) => {
@@ -63,7 +59,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
     setToasts((list) => [...list, { ...t, id }]);
     setTimeout(() => dismiss(id), 4000);
   }, [dismiss]);
-  const value = useMemo(() => ({ panel, openAction, openProduct, openTasks, close, toasts, notify, dismiss }), [panel, openAction, openProduct, openTasks, close, toasts, notify, dismiss]);
+  const value = useMemo(() => ({ panel, openAction, openProduct, close, toasts, notify, dismiss }), [panel, openAction, openProduct, close, toasts, notify, dismiss]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

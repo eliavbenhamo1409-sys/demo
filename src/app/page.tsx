@@ -5,29 +5,25 @@ import Link from "next/link";
 import { useData, type AttentionEntry, type Movement as MovementRow } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
 import { WeeklyChart } from "@/components/app/WeeklyChart";
+import { AttentionGroups, type GroupedItem } from "@/components/app/AttentionGroups";
 import {
-  Attention,
   Avatar,
-  Badge,
   Button,
   Card,
   EmptyState,
   Movement,
-  Square,
   Stat,
   Table,
-  type AttentionItem,
   type TableColumn,
 } from "@/components/ui";
 import { fmtQty, fmtRelative, fmtSigned, fmtWhen } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 
-const MAX_ATTENTION = 6;
 const RECENT = 12;
 
 export default function OverviewPage() {
   const { state, stats, attention, weekly, product, worker, resolveFault } = useData();
-  const { openAction, openProduct, openTasks, notify } = useUi();
+  const { openAction, openProduct, notify } = useUi();
   const [busyFault, setBusyFault] = useState<string | null>(null);
   const isLoading = state.status === "loading";
 
@@ -69,8 +65,6 @@ export default function OverviewPage() {
       : "אין חריגות פתוחות";
 
   /* ───────── attention ───────── */
-  const urgentCount = useMemo(() => attention.filter((a) => a.severity === "danger").length, [attention]);
-  const taskCount = attention.length - urgentCount;
   const onResolve = useCallback(
     async (entry: AttentionEntry) => {
       if (!entry.faultId || busyFault) return;
@@ -87,10 +81,11 @@ export default function OverviewPage() {
     [resolveFault, notify, busyFault],
   );
 
-  const attentionItems = useMemo<AttentionItem[]>(
+  const attentionItems = useMemo<GroupedItem[]>(
     () =>
-      attention.filter((a) => a.severity === "danger").slice(0, MAX_ATTENTION).map((a) => {
-        const base: AttentionItem = {
+      attention.map((a) => {
+        const base: GroupedItem = {
+          kind: a.kind,
           id: a.id,
           severity: a.severity,
           label: a.label,
@@ -212,34 +207,13 @@ export default function OverviewPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-[var(--space-4)] min-[1100px]:grid-cols-12 min-[1100px]:items-start">
-          <Card
-            className="min-w-0 min-[1100px]:col-span-7"
-            title="דחוף"
-            count={urgentCount}
-            flush
-            actions={
-              <Button variant={taskCount > 0 ? "secondary" : "ghost"} size="sm" icon="layers" onClick={openTasks}>
-                משימות
-                {taskCount > 0 ? <Badge count>{fmtQty(taskCount)}</Badge> : null}
-              </Button>
-            }
-            footer={
-              urgentCount > MAX_ATTENTION ? (
-                <span>
-                  מציג <span className="sa-mono ltr">{MAX_ATTENTION}</span> מתוך <span className="sa-mono ltr">{fmtQty(urgentCount)}</span>
-                </span>
-              ) : undefined
-            }
-          >
-            {urgentCount === 0 ? (
-              <p className="sa-muted m-0 flex items-center gap-[var(--space-2)] px-[var(--space-4)] py-[var(--space-4)] text-[13px]">
-                <Square tone="success" /> אין חריגות דחופות
-                {taskCount > 0 ? <span className="sa-faint">· {fmtQty(taskCount)} משימות ממתינות</span> : null}
-              </p>
-            ) : (
-              <Attention items={attentionItems} />
-            )}
-          </Card>
+          <section className="min-w-0 min-[1100px]:col-span-7" aria-labelledby="attention-title">
+            <div className="mb-[var(--space-3)] flex items-baseline gap-[var(--space-2)]">
+              <h2 id="attention-title" className="sa-section-title">דורש טיפול</h2>
+              {attention.length > 0 ? <span className="sa-faint text-[12px]">{fmtQty(attention.length)} פריטים</span> : null}
+            </div>
+            <AttentionGroups items={attentionItems} />
+          </section>
           <WeeklyChart days={weekly} className="min-w-0 min-[1100px]:col-span-5" />
           </div>
 

@@ -9,10 +9,10 @@ import { ActionMenu, DEFAULT_ACTIONS, type ActionItem } from "@/components/ui/Ac
 import { Notice } from "@/components/ui/Notice";
 import { Square } from "@/components/ui/Mark";
 import { Icon } from "@/components/ui/Icon";
+import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { ProductPanel } from "./ProductPanel";
-import { TasksPanel } from "./TasksPanel";
 import "./app-shell.css";
 
 const SHELL_ACTIONS: ActionItem[] = [
@@ -262,7 +262,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   return (
     <div className={`sa-shell app-shell`}>
-      <Sidebar items={items} active={activeKey(pathname)} brand="Super Admin" brandSub="ניהול מלאי" mark="SA" />
+      <Sidebar items={items} active={activeKey(pathname)} brand="ניהול מלאי" brandSub="לוח ניהול" mark="מ" foot={<ThemeSettingsButton variant="nav" />} />
       <div className="app-main">
         <TopBar
           actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} />}
@@ -280,7 +280,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <>
           <div className={`sa-scrim app-scrim`} onClick={close} aria-hidden />
           <div className="app-panelHost" role="dialog" aria-modal="true">
-            {panel.type === "action" ? <ActionDrawer /> : panel.type === "tasks" ? <TasksPanel /> : <ProductPanel />}
+            {panel.type === "action" ? <ActionDrawer /> : <ProductPanel />}
           </div>
         </>
       ) : null}
