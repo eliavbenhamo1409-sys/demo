@@ -75,3 +75,21 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
 /* Stat tiles: 3 → 2 → 1 columns as the screen narrows. */
 @media (max-width: 899px) { .sa-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .sa-stats { grid-template-columns: 1fr; } .sa-page-title { font-size: 24px; line-height: 30px; } }
+
+/* ── Density: one notch smaller than the spec, so more fits on a laptop screen ── */
+:root {
+  --control-md: 34px;
+  --control-lg: 38px;
+  --row: 40px;
+  --topbar: 52px;
+  --sidebar: 220px;
+  --panel: 420px;
+}
+.sa-stat { padding: var(--space-4) var(--space-5); gap: var(--space-2); }
+.sa-stat-value { font-size: 32px; line-height: 36px; }
+.sa-page-title { font-size: 24px; line-height: 30px; }
+.sa-nav-item { height: 34px; font-size: 13px; }
+.sa-panel-head { padding: var(--space-4) var(--space-5) var(--space-3); }
+.sa-panel-body { padding: var(--space-4) var(--space-5); gap: var(--space-4); }
+.sa-panel-foot { padding: var(--space-3) var(--space-5); }
+.sa-card-body { padding: var(--space-3) var(--space-4); }

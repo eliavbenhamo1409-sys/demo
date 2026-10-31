@@ -1,4 +1,4 @@
-.main {
+.app-main {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -6,7 +6,7 @@
   min-height: 100vh;
 }
 
-.content {
+.app-content {
   width: 100%;
   max-width: var(--content);
   margin: 0 auto;
@@ -15,7 +15,7 @@
 }
 
 /* ── Panel host ─────────────────────────────────────────────── */
-.scrim {
+.app-scrim {
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -24,7 +24,7 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-.panelHost {
+.app-panelHost {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -37,7 +37,7 @@
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.panelHost > * {
+.app-panelHost > * {
   flex: 1;
   min-height: 0;
   height: 100%;
@@ -53,7 +53,7 @@
   to { transform: none; opacity: 1; }
 }
 
-[dir="ltr"] .panelHost {
+[dir="ltr"] .app-panelHost {
   animation-name: slideInLtr;
 }
 @keyframes slideInLtr {
@@ -62,7 +62,7 @@
 }
 
 /* ── Toasts ─────────────────────────────────────────────────── */
-.toasts {
+.app-toasts {
   position: fixed;
   bottom: var(--space-6);
   inset-inline-start: var(--space-6);
@@ -73,7 +73,7 @@
   width: min(380px, calc(100vw - 2 * var(--space-6)));
 }
 
-.toast {
+.app-toast {
   box-shadow: var(--shadow-md);
   animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -84,7 +84,7 @@
 }
 
 /* ── Global search results ──────────────────────────────────── */
-.results {
+.app-results {
   position: absolute;
   top: calc(100% + var(--space-1));
   inset-inline-start: 0;
@@ -97,7 +97,7 @@
   overflow: hidden;
 }
 
-.resultTitle {
+.app-resultTitle {
   display: block;
   font-size: 13px;
   line-height: 18px;
@@ -106,7 +106,7 @@
   white-space: nowrap;
 }
 
-.resultSub {
+.app-resultSub {
   display: block;
   font-size: 12px;
   line-height: 16px;
@@ -114,7 +114,7 @@
 }
 
 /* ── Live indicator ─────────────────────────────────────────── */
-.live {
+.app-live {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -126,24 +126,24 @@
 }
 
 /* ── Loading skeleton ───────────────────────────────────────── */
-.skeletonPage {
+.app-skeletonPage {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
 }
 
-.skeletonRow {
+.app-skeletonRow {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
 }
 
-.skeletonCard {
+.app-skeletonCard {
   height: 112px;
   border-radius: var(--radius-lg);
 }
 
-.skeletonTable {
+.app-skeletonTable {
   height: 320px;
   border-radius: var(--radius-lg);
 }
@@ -166,8 +166,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scrim,
-  .panelHost,
+  .app-scrim,
+  .app-panelHost,
   .toast {
     animation: none;
   }

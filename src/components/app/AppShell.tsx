@@ -12,7 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { ProductPanel } from "./ProductPanel";
-import styles from "./AppShell.module.css";
+import "./app-shell.css";
 
 const SHELL_ACTIONS: ActionItem[] = [
   ...DEFAULT_ACTIONS,
@@ -185,7 +185,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   /* ───────── render ───────── */
   const liveNode = (
-    <span className={styles.live} role="status" aria-live="polite">
+    <span className="app-live" role="status" aria-live="polite">
       <Square tone={state.live ? "success" : "neutral"} />
       {state.live ? "מחובר" : "מסתנכרן"}
     </span>
@@ -193,7 +193,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const searchSlot =
     searchOpen && query.trim() ? (
-      <div ref={searchRef} className={styles.results} role="listbox" aria-label="תוצאות חיפוש">
+      <div ref={searchRef} className="app-results" role="listbox" aria-label="תוצאות חיפוש">
         {hits.length === 0 ? (
           <div className="sa-menu-empty">לא נמצאו תוצאות</div>
         ) : (
@@ -214,8 +214,8 @@ function ShellInner({ children }: { children: ReactNode }) {
                   className="sa-menu-icon"
                 />
                 <span className="min-w-0 flex-1">
-                  <span className={styles.resultTitle}>{h.title}</span>
-                  <span className={h.kind === "product" ? `${styles.resultSub} sa-mono` : styles.resultSub} dir={h.kind === "product" ? "ltr" : undefined}>
+                  <span className="app-resultTitle">{h.title}</span>
+                  <span className={h.kind === "product" ? `app-resultSub sa-mono` : "app-resultSub"} dir={h.kind === "product" ? "ltr" : undefined}>
                     {h.sub}
                   </span>
                 </span>
@@ -229,15 +229,15 @@ function ShellInner({ children }: { children: ReactNode }) {
   let page: ReactNode;
   if (state.status === "loading") {
     page = (
-      <div className={styles.skeletonPage} aria-busy="true" aria-label="טוען נתונים">
+      <div className="app-skeletonPage" aria-busy="true" aria-label="טוען נתונים">
         <span className="sa-skeleton" style={{ width: 220, height: 28 }} />
         <span className="sa-skeleton" style={{ width: 320 }} />
-        <div className={styles.skeletonRow}>
-          <span className={`sa-skeleton ${styles.skeletonCard}`} />
-          <span className={`sa-skeleton ${styles.skeletonCard}`} />
-          <span className={`sa-skeleton ${styles.skeletonCard}`} />
+        <div className="app-skeletonRow">
+          <span className={`sa-skeleton app-skeletonCard`} />
+          <span className={`sa-skeleton app-skeletonCard`} />
+          <span className={`sa-skeleton app-skeletonCard`} />
         </div>
-        <span className={`sa-skeleton ${styles.skeletonTable}`} />
+        <span className={`sa-skeleton app-skeletonTable`} />
       </div>
     );
   } else if (state.status === "error") {
@@ -251,9 +251,9 @@ function ShellInner({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className={`sa-shell ${styles.shell}`}>
+    <div className={`sa-shell app-shell`}>
       <Sidebar items={items} active={activeKey(pathname)} brand="Super Admin" brandSub="ניהול מלאי" mark="SA" />
-      <div className={styles.main}>
+      <div className="app-main">
         <TopBar
           actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} />}
           searchValue={query}
@@ -263,22 +263,22 @@ function ShellInner({ children }: { children: ReactNode }) {
           searchSlot={searchSlot}
           end={liveNode}
         />
-        <main className={styles.content}>{page}</main>
+        <main className="app-content">{page}</main>
       </div>
 
       {panel ? (
         <>
-          <div className={`sa-scrim ${styles.scrim}`} onClick={close} aria-hidden />
-          <div className={styles.panelHost} role="dialog" aria-modal="true">
+          <div className={`sa-scrim app-scrim`} onClick={close} aria-hidden />
+          <div className="app-panelHost" role="dialog" aria-modal="true">
             {panel.type === "action" ? <ActionDrawer /> : <ProductPanel />}
           </div>
         </>
       ) : null}
 
       {ui.toasts.length > 0 ? (
-        <div className={styles.toasts} aria-live="polite">
+        <div className="app-toasts" aria-live="polite">
           {ui.toasts.map((t) => (
-            <Notice key={t.id} tone={t.tone} title={t.title} className={styles.toast} onDismiss={() => ui.dismiss(t.id)}>
+            <Notice key={t.id} tone={t.tone} title={t.title} className="app-toast" onDismiss={() => ui.dismiss(t.id)}>
               {t.text}
             </Notice>
           ))}
