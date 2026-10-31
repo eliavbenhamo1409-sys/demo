@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useData, type AttentionEntry, type Movement as MovementRow } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
 import { WeeklyChart } from "@/components/app/WeeklyChart";
-import { QuickActions } from "@/components/app/QuickActions";
 import {
   Attention,
   Avatar,
@@ -19,6 +18,7 @@ import {
   type TableColumn,
 } from "@/components/ui";
 import { fmtQty, fmtRelative, fmtSigned, fmtWhen } from "@/lib/format";
+import { faultPhotoUrl } from "@/lib/worker-store";
 
 const MAX_ATTENTION = 6;
 const RECENT = 12;
@@ -98,14 +98,17 @@ export default function OverviewPage() {
           case "out":
           case "low":
             return { ...base, action: "קלוט", onAction: () => openAction("receive", { productId: a.productId }) };
-          case "fault":
+          case "fault": {
+            const src = faultPhotoUrl(a.photoPath);
             return {
               ...base,
+              thumb: src ? { src, alt: "תצלום התקלה" } : undefined,
               action: "טפל",
               onAction: () => void onResolve(a),
               secondary: a.productId ? "פרטים" : undefined,
               onSecondary: a.productId ? () => openProduct(a.productId as string) : undefined,
             };
+          }
           case "mapping":
             return {
               ...base,
@@ -261,7 +264,6 @@ export default function OverviewPage() {
         {/* ── right rail ── */}
         <aside className="flex min-w-0 flex-col gap-[var(--space-4)] min-[1100px]:col-span-4">
           <WeeklyChart days={weekly} />
-          <QuickActions />
         </aside>
       </div>
     </div>
