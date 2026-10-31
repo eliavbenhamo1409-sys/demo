@@ -18,7 +18,7 @@ import {
   type TableColumn,
 } from "@/components/ui";
 import { fmtQty, fmtRelative, fmtSigned, fmtWhen } from "@/lib/format";
-import { faultPhotoUrl } from "@/lib/worker-store";
+import { faultPhotoUrl } from "@/lib/fault-photos";
 
 const MAX_ATTENTION = 6;
 const RECENT = 12;

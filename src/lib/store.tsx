@@ -161,6 +161,7 @@ export type AttentionEntry = {
   at: string; // ISO, for sorting
   productId?: string;
   faultId?: string;
+  photoPath?: string;
   supplierItemId?: string;
 };
 
@@ -209,6 +210,7 @@ export type FaultInput = {
   description: string;
   workerId?: string | null;
   qty?: number | null; // if given, also logs a 'fault' movement
+  photoPath?: string | null; // storage path in the fault-photos bucket
 };
 
 type Api = {
@@ -369,7 +371,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: `fault:${f.id}`, kind: "fault", severity: "danger", label: "תקלה",
         title: p ? `${f.description} — ${p.name}` : f.description,
         meta: [w ? `דווח ע"י ${w.name}` : ""].filter(Boolean),
-        at: f.created_at, faultId: f.id, productId: f.product_id ?? undefined,
+        at: f.created_at, faultId: f.id, productId: f.product_id ?? undefined, photoPath: f.photo_path ?? undefined,
       });
     }
     const pending = state.supplierItems.filter((i) => i.status === "pending");
@@ -556,10 +558,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const optimistic: Fault = {
         id: tempId(), product_id: input.productId ?? null, movement_id: movementId, description: input.description,
         reported_by: input.workerId ?? null, status: "open", created_at: new Date().toISOString(), resolved_at: null,
+        photo_path: input.photoPath ?? null,
       };
       return (await insert("faults", {
         product_id: input.productId ?? null, movement_id: movementId, description: input.description,
-        reported_by: input.workerId ?? null,
+        reported_by: input.workerId ?? null, photo_path: input.photoPath ?? null,
       }, optimistic)) as Fault;
     },
     resolveFault: (id) => update("faults", id, { status: "resolved", resolved_at: new Date().toISOString() }),

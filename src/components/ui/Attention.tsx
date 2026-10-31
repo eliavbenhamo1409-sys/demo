@@ -12,6 +12,8 @@ export interface AttentionItem {
   label?: string;
   title: ReactNode;
   meta?: ReactNode[];
+  /** Photo attached to the item (e.g. a worker's fault photo); opens full-size in a new tab. */
+  thumb?: { src: string; alt: string };
   action?: string;
   onAction?: () => void;
   secondary?: string;
@@ -52,6 +54,12 @@ export function Attention({ items, emptyTitle, emptyHint, className }: Attention
         return (
           <li key={it.id ?? i} className={cx("sa-attention-item", `is-${sev}`)}>
             <Badge tone={sev} solid>{it.label ?? SEVERITY_WORD[sev]}</Badge>
+            {it.thumb ? (
+              <a className="sa-attention-thumb" href={it.thumb.src} target="_blank" rel="noreferrer" aria-label="פתח את התמונה">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={it.thumb.src} alt={it.thumb.alt} loading="lazy" />
+              </a>
+            ) : null}
             <div className="sa-attention-body">
               <p className="sa-attention-title">{it.title}</p>
               {it.meta && it.meta.length > 0 ? (

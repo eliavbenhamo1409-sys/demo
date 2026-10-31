@@ -9,6 +9,7 @@ import { useData, type Movement } from "@/lib/store";
 import { useUi } from "./ui-state";
 import { Badge, Button, Fields, Notice, SidePanel, Spinner, Stat, Timeline, type TimelineItem } from "@/components/ui";
 import { fmtDate, fmtQty, fmtRelative, MOVEMENT_LABEL } from "@/lib/format";
+import { faultPhotoUrl } from "@/lib/fault-photos";
 
 type PanelTab = "details" | "history";
 
@@ -191,6 +192,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
 
           {openFaults.map((f) => {
             const w = worker(f.reported_by);
+            const src = faultPhotoUrl(f.photo_path);
             return (
               <Notice
                 key={f.id}
@@ -200,6 +202,12 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
                 onAction={() => void run(`fault:${f.id}`, () => resolveFault(f.id), "התקלה סומנה כטופלה")}
               >
                 {[fmtRelative(f.created_at), w ? `דווח ע"י ${w.name}` : null].filter(Boolean).join(" · ")}
+                {src ? (
+                  <a className="sa-fault-photo" href={src} target="_blank" rel="noreferrer" aria-label="פתח את התמונה">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="תצלום התקלה" loading="lazy" />
+                  </a>
+                ) : null}
               </Notice>
             );
           })}

@@ -18,6 +18,7 @@ export type Database = {
           description: string
           id: string
           movement_id: string | null
+          photo_path: string | null
           product_id: string | null
           reported_by: string | null
           resolved_at: string | null
@@ -28,6 +29,7 @@ export type Database = {
           description: string
           id?: string
           movement_id?: string | null
+          photo_path?: string | null
           product_id?: string | null
           reported_by?: string | null
           resolved_at?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           description?: string
           id?: string
           movement_id?: string | null
+          photo_path?: string | null
           product_id?: string | null
           reported_by?: string | null
           resolved_at?: string | null
