@@ -180,9 +180,7 @@ export default function OverviewPage() {
         {subline ? <p className="sa-page-sub">{subline}</p> : null}
       </header>
 
-      <div className="grid grid-cols-1 gap-[var(--space-4)] min-[1100px]:grid-cols-12">
-        {/* ── main column ── */}
-        <div className="flex min-w-0 flex-col gap-[var(--space-4)] min-[1100px]:col-span-8">
+      <div className="flex min-w-0 flex-col gap-[var(--space-5)]">
           <div className="sa-stats">
             <Stat
               label="מצב מלאי"
@@ -209,7 +207,9 @@ export default function OverviewPage() {
             />
           </div>
 
+          <div className="grid grid-cols-1 gap-[var(--space-4)] min-[1100px]:grid-cols-12 min-[1100px]:items-start">
           <Card
+            className="min-w-0 min-[1100px]:col-span-7"
             title="דורש טיפול"
             count={attention.length}
             flush
@@ -228,6 +228,8 @@ export default function OverviewPage() {
           >
             <Attention items={attentionItems} />
           </Card>
+          <WeeklyChart days={weekly} className="min-w-0 min-[1100px]:col-span-5" />
+          </div>
 
           <Card title="תנועות אחרונות" flush>
             <Table<MovementRow>
@@ -259,12 +261,6 @@ export default function OverviewPage() {
               }
             />
           </Card>
-        </div>
-
-        {/* ── right rail ── */}
-        <aside className="flex min-w-0 flex-col gap-[var(--space-4)] min-[1100px]:col-span-4">
-          <WeeklyChart days={weekly} />
-        </aside>
       </div>
     </div>
   );
