@@ -11,7 +11,7 @@ import { REQUIRED, useForm } from "./useForm";
 type Field = "supplier" | "name";
 
 export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
-  const { state, supplier, createSupplierItem } = useData();
+  const { state, supplier, createSupplierItem, resolveSupplierName } = useData();
   const { close, notify } = useUi();
   const form = useForm<Field>();
   const approvedId = `sa-approved-${useId()}`;
@@ -30,8 +30,8 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
     const errors: Partial<Record<Field, string>> = {};
     if (!supplierId) errors.supplier = REQUIRED;
     if (!trimmed) errors.name = REQUIRED;
-    else if (state.supplierItems.some((i) => i.supplier_id === supplierId && i.external_name.trim() === trimmed)) {
-      errors.name = "שם זה כבר קיים אצל הספק";
+    else if (supplierId && resolveSupplierName(supplierId, trimmed).status !== "unknown") {
+      errors.name = "השם כבר קיים אצל הספק הזה";
     }
     form.setErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -69,6 +69,7 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
         value={externalName}
         onChange={(e) => { setExternalName(e.target.value); form.clearField("name"); }}
         error={form.errors.name}
+        hint="המערכת תזהה את השם הזה אוטומטית בקליטות הבאות"
         autoComplete="off"
       />
       <Input label={'מק"ט חיצוני'} optional mono value={externalSku} onChange={(e) => setExternalSku(e.target.value)} autoComplete="off" spellCheck={false} />

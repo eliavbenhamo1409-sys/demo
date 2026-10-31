@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button, Fields, Modal, Notice, Select } from "@/components/ui";
 import { useData } from "@/lib/store";
+import { fmtRelative } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
 import { productOptions } from "./options";
@@ -12,7 +13,7 @@ type Field = "product";
 
 export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
   const { state, supplier, product, mapSupplierItem, deleteSupplierItem } = useData();
-  const { close, notify } = useUi();
+  const { close, notify, openAction } = useUi();
   const form = useForm<Field>();
 
   const item = useMemo(() => state.supplierItems.find((i) => i.id === ctx.supplierItemId), [state.supplierItems, ctx.supplierItemId]);
@@ -73,9 +74,15 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
           ) : null
         }
         secondary={
-          <Button variant="ghost" onClick={close} disabled={form.busy}>
-            השאר לא מאושר
-          </Button>
+          item ? (
+            <Button variant="ghost" onClick={() => openAction("new-product", { supplierItemId: item.id })} disabled={form.busy}>
+              מוצר חדש מהשם הזה
+            </Button>
+          ) : (
+            <Button variant="ghost" onClick={close} disabled={form.busy}>
+              סגור
+            </Button>
+          )
         }
       >
         {!item ? (
@@ -88,6 +95,15 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
                 { label: "סטטוס", value: item.status === "approved" ? "מאושר" : "לא מאושר" },
                 { label: "שם אצל הספק", value: item.external_name },
                 { label: "מק\"ט חיצוני", value: item.external_sku ?? undefined, num: true },
+                {
+                  label: "נראה",
+                  value: (
+                    <>
+                      <span className="sa-num">{item.times_seen}</span> פעמים
+                      {item.last_seen_at ? <span className="sa-faint"> · {fmtRelative(item.last_seen_at)}</span> : null}
+                    </>
+                  ),
+                },
               ]}
             />
             <div className="sa-field">

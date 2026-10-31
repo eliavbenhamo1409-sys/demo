@@ -8,23 +8,30 @@ import { FormPanel } from "./FormPanel";
 import { UNIT_OPTIONS, supplierOptions } from "./options";
 import { REQUIRED, friendlyDeleteError, parseNum, submitOnEnter, useForm } from "./useForm";
 
-type Field = "name" | "sku" | "minQty" | "qty";
+type Field = "name" | "sku" | "barcode" | "minQty" | "qty";
 
 export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "edit" }) {
-  const { state, product, createProduct, updateProduct, deleteProduct } = useData();
+  const { state, product, supplier, createProduct, updateProduct, deleteProduct, mapSupplierItem } = useData();
   const { close, notify } = useUi();
   const form = useForm<Field>();
   const listId = `sa-cats-${useId()}`;
 
   const editing = mode === "edit" ? product(ctx.productId) : undefined;
-  const [name, setName] = useState(editing?.name ?? "");
+  // "מוצר חדש מהשם הזה": a dictionary entry seeds the new product and is mapped to it once created.
+  const seedItem = useMemo(
+    () => (mode === "new" && ctx.supplierItemId ? state.supplierItems.find((i) => i.id === ctx.supplierItemId) : undefined),
+    [mode, ctx.supplierItemId, state.supplierItems],
+  );
+  const seedSupplier = supplier(seedItem?.supplier_id);
+  const [name, setName] = useState(editing?.name ?? seedItem?.external_name ?? "");
   const [sku, setSku] = useState(editing?.sku ?? "");
+  const [barcode, setBarcode] = useState(editing?.barcode ?? "");
   const [category, setCategory] = useState(editing?.category ?? "");
   const [unit, setUnit] = useState(editing?.unit ?? UNIT_OPTIONS[0]);
   const [minQty, setMinQty] = useState(editing ? String(editing.min_qty) : "0");
   const [qty, setQty] = useState("0");
   const [location, setLocation] = useState(editing?.location ?? "");
-  const [supplierId, setSupplierId] = useState(editing?.primary_supplier_id ?? ctx.supplierId ?? "");
+  const [supplierId, setSupplierId] = useState(editing?.primary_supplier_id ?? seedItem?.supplier_id ?? ctx.supplierId ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -42,12 +49,14 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
   const submit = () => {
     const trimmedName = name.trim();
     const trimmedSku = sku.trim().toUpperCase();
+    const trimmedBarcode = barcode.trim();
     const min = parseNum(minQty);
     const initial = parseNum(qty);
     const errors: Partial<Record<Field, string>> = {};
     if (!trimmedName) errors.name = REQUIRED;
     if (!trimmedSku) errors.sku = REQUIRED;
     else if (state.products.some((p) => p.sku.toUpperCase() === trimmedSku && p.id !== editing?.id)) errors.sku = "מק\"ט קיים";
+    if (trimmedBarcode && state.products.some((p) => p.barcode === trimmedBarcode && p.id !== editing?.id)) errors.barcode = "ברקוד קיים";
     if (minQty.trim() !== "" && (!Number.isFinite(min) || min < 0)) errors.minQty = "הזן מספר 0 ומעלה";
     if (!editing && (!Number.isFinite(initial) || initial < 0)) errors.qty = "הזן מספר 0 ומעלה";
     form.setErrors(errors);
@@ -56,6 +65,7 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
     const patch = {
       name: trimmedName,
       sku: trimmedSku,
+      barcode: trimmedBarcode || null,
       category: category.trim() || null,
       unit: unit || UNIT_OPTIONS[0],
       min_qty: Number.isFinite(min) ? min : 0,
@@ -68,8 +78,13 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
         await updateProduct(editing.id, patch);
         notify({ tone: "success", title: `המוצר ${trimmedName} עודכן` });
       } else {
-        await createProduct({ ...patch, qty: initial });
-        notify({ tone: "success", title: `המוצר ${trimmedName} נוסף` });
+        const created = await createProduct({ ...patch, qty: initial });
+        if (seedItem) {
+          await mapSupplierItem(seedItem.id, created.id);
+          notify({ tone: "success", title: "המוצר נוצר והשם מופה", text: `${seedItem.external_name} ← ${trimmedName}` });
+        } else {
+          notify({ tone: "success", title: `המוצר ${trimmedName} נוסף` });
+        }
       }
       close();
     });
@@ -95,7 +110,11 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
     <>
       <FormPanel
         title={mode === "edit" ? "עריכת מוצר" : "מוצר חדש"}
-        subtitle={editing ? <span className="sa-mono" dir="ltr">{editing.sku}</span> : undefined}
+        subtitle={
+          editing ? <span className="sa-mono" dir="ltr">{editing.sku}</span>
+          : seedItem ? `מהשם "${seedItem.external_name}"${seedSupplier ? ` של ${seedSupplier.name}` : ""}`
+          : undefined
+        }
         onClose={close}
         onSubmit={submit}
         submitLabel="שמור"
@@ -133,6 +152,18 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
               autoComplete="off"
               spellCheck={false}
               style={{ textTransform: "uppercase" }}
+            />
+            <Input
+              label="ברקוד"
+              optional
+              mono
+              inputMode="numeric"
+              value={barcode}
+              onChange={(e) => { setBarcode(e.target.value); form.clearField("barcode"); }}
+              error={form.errors.barcode}
+              hint={form.errors.barcode ? undefined : editing?.barcode ? "ברקוד ייחודי במפעל" : "ריק = המערכת תקצה ברקוד אוטומטית"}
+              autoComplete="off"
+              spellCheck={false}
             />
             <Input label="קטגוריה" optional list={listId} value={category} onChange={(e) => setCategory(e.target.value)} autoComplete="off" />
             <datalist id={listId}>

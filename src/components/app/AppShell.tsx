@@ -88,10 +88,13 @@ function ShellInner({ children }: { children: ReactNode }) {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const out: SearchHit[] = [];
+    const productName = new Map(state.products.map((p) => [p.id, p.name]));
     for (const p of state.products) {
       if (out.length >= MAX_HITS) break;
       if (p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)) {
         out.push({ kind: "product", id: p.id, title: p.name, sub: p.sku });
+      } else if (p.barcode && (p.barcode === q || p.barcode.startsWith(q))) {
+        out.push({ kind: "product", id: p.id, title: p.name, sub: p.barcode });
       }
     }
     for (const s of state.suppliers) {
@@ -101,13 +104,15 @@ function ShellInner({ children }: { children: ReactNode }) {
     const supplierName = new Map(state.suppliers.map((s) => [s.id, s.name]));
     for (const it of state.supplierItems) {
       if (out.length >= MAX_HITS) break;
-      if (it.external_name.toLowerCase().includes(q)) {
+      if (it.external_name.toLowerCase().includes(q) || (it.external_sku ?? "").toLowerCase().includes(q)) {
         const sName = supplierName.get(it.supplier_id);
+        const pName = it.product_id ? productName.get(it.product_id) : undefined;
+        const who = sName ? `שם ספק · ${sName}` : "שם ספק";
         out.push({
           kind: "supplier_item",
           id: it.id,
           title: it.external_name,
-          sub: sName ? `שם חיצוני · ${sName}` : "שם חיצוני",
+          sub: pName ? `${who} → ${pName}` : `${who} · לא ממופה`,
         });
       }
     }

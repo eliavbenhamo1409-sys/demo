@@ -91,7 +91,8 @@ export default function OverviewPage() {
           severity: a.severity,
           label: a.label,
           title: a.title,
-          meta: a.meta.map((m, i) => (i === 0 && a.kind !== "fault" ? <span key={i} className="sa-mono ltr">{m}</span> : m)),
+          // SKUs / external codes are Latin → mono LTR; Hebrew meta (e.g. "ללא מיפוי") stays as text.
+          meta: a.meta.map((m, i) => (i === 0 && a.kind !== "fault" && /^[\x20-\x7E]+$/.test(m) ? <span key={i} className="sa-mono ltr">{m}</span> : m)),
         };
         switch (a.kind) {
           case "out":
@@ -106,7 +107,13 @@ export default function OverviewPage() {
               onSecondary: a.productId ? () => openProduct(a.productId as string) : undefined,
             };
           case "mapping":
-            return { ...base, action: "תקן", onAction: () => openAction("map-supplier-item", { supplierItemId: a.supplierItemId }) };
+            return {
+              ...base,
+              action: "מפה",
+              onAction: () => openAction("map-supplier-item", { supplierItemId: a.supplierItemId }),
+              secondary: a.productId ? "פרטים" : undefined,
+              onSecondary: a.productId ? () => openProduct(a.productId as string) : undefined,
+            };
         }
       }),
     [attention, openAction, openProduct, onResolve],

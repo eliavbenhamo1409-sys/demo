@@ -115,7 +115,7 @@ function InventoryInner() {
     let list = baseProducts;
     if (tab === "low") list = list.filter(isLow);
     else if (tab === "out") list = list.filter(isOut);
-    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.barcode ?? "").includes(q));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       if (sortKey === "qty") return (a.qty - b.qty) * dir;
@@ -169,6 +169,15 @@ function InventoryInner() {
         ),
       },
       { key: "sku", title: 'מק"ט', mono: true, align: "ltr", width: "120px", render: (p) => p.sku },
+      {
+        key: "barcode",
+        title: <span className="max-[1099px]:hidden">ברקוד</span>,
+        mono: true,
+        align: "ltr",
+        muted: true,
+        className: "max-[1099px]:hidden",
+        render: (p) => p.barcode ?? "—",
+      },
       { key: "location", title: "מיקום", muted: true, render: (p) => p.location ?? "—" },
       { key: "supplier", title: "ספק", render: (p) => supplier(p.primary_supplier_id)?.name ?? "—" },
       {
@@ -209,7 +218,7 @@ function InventoryInner() {
       const p = product(m.product_id);
       if (category && p?.category !== category) return false;
       if (q) {
-        const hay = [p?.name, p?.sku, m.reference, m.note, worker(m.worker_id)?.name, supplier(m.supplier_id)?.name]
+        const hay = [p?.name, p?.sku, p?.barcode, m.external_name, m.reference, m.note, worker(m.worker_id)?.name, supplier(m.supplier_id)?.name]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -232,6 +241,9 @@ function InventoryInner() {
             <span className="block min-w-0">
               <span className="sa-cell-primary sa-truncate block">{p.name}</span>
               <span className="sa-cell-sub sa-mono ltr">{p.sku}</span>
+              {m.external_name ? (
+                <span className="sa-cell-sub sa-truncate">בתעודה: &quot;<bdi>{m.external_name}</bdi>&quot;</span>
+              ) : null}
             </span>
           ) : (
             <span className="sa-muted">מוצר שנמחק</span>
@@ -313,7 +325,7 @@ function InventoryInner() {
       </header>
 
       <div className="flex flex-wrap items-center gap-[var(--space-3)]">
-        <SearchBar kbd={false} value={query} onChange={setQuery} placeholder='חיפוש לפי שם או מק"ט' className="min-w-[240px] flex-1" />
+        <SearchBar kbd={false} value={query} onChange={setQuery} placeholder='חיפוש לפי שם, מק"ט או ברקוד' className="min-w-[240px] flex-1" />
         <Select options={categories} value={category} onChange={setCategory} allLabel="כל הקטגוריות" placeholder="קטגוריה" minWidth={160} />
         <Select options={supplierOptions} value={supplierId} onChange={setSupplierId} allLabel="כל הספקים" placeholder="ספק" minWidth={160} />
         {tab === "movements" ? (

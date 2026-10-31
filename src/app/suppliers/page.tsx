@@ -4,13 +4,14 @@ import { Suspense, useCallback, useMemo, useState, type MouseEvent, type ReactNo
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useData, type Supplier, type SupplierItem } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
-import { fmtQty } from "@/lib/format";
+import { fmtQty, fmtRelative } from "@/lib/format";
 import {
   Badge,
   Button,
   EmptyState,
   MappingStatus,
   Modal,
+  Notice,
   SearchBar,
   Select,
   Table,
@@ -101,7 +102,7 @@ function SuppliersView() {
       if (!q) return true;
       const p = product(i.product_id);
       const s = supplier(i.supplier_id);
-      const hay = [i.external_name, i.external_sku ?? "", s?.name ?? "", p?.name ?? "", p?.sku ?? ""].join(" ").toLowerCase();
+      const hay = [i.external_name, i.external_sku ?? "", s?.name ?? "", p?.name ?? "", p?.sku ?? "", p?.barcode ?? ""].join(" ").toLowerCase();
       return hay.includes(q);
     };
     const rank = (i: SupplierItem) => (i.status === "pending" ? 0 : 1);
@@ -191,9 +192,22 @@ function SuppliersView() {
             <span>
               {p.name}
               <span className="sa-cell-sub sa-mono ltr">{p.sku}</span>
+              {p.barcode ? <span className="sa-cell-sub sa-mono ltr">{p.barcode}</span> : null}
             </span>
           );
         },
+      },
+      {
+        key: "times_seen",
+        title: "זיהויים",
+        align: "num",
+        width: "11%",
+        render: (i) => (
+          <span className="block">
+            <span className={i.times_seen === 0 ? "sa-faint" : undefined}>{fmtQty(i.times_seen)}</span>
+            {i.last_seen_at ? <span className="sa-cell-sub">{fmtRelative(i.last_seen_at)}</span> : null}
+          </span>
+        ),
       },
       {
         key: "status",
@@ -346,6 +360,12 @@ function SuppliersView() {
           <Button variant="primary" onClick={() => openAction("new-supplier")}>ספק חדש</Button>
         </div>
       </div>
+
+      {tab === "pending" && pendingCount > 0 ? (
+        <Notice tone="neutral" title="שמות שהגיעו בתעודות משלוח ועדיין לא אושרו">
+          אישור מלמד את המערכת לזהות אותם אוטומטית.
+        </Notice>
+      ) : null}
 
       {tab === "suppliers" ? (
         <Table<Supplier>

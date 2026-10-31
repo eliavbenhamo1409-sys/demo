@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useData, type Movement } from "@/lib/store";
 import { useUi } from "./ui-state";
-import { Button, Fields, Notice, SidePanel, Spinner, Stat, Timeline, type TimelineItem } from "@/components/ui";
+import { Badge, Button, Fields, Notice, SidePanel, Spinner, Stat, Timeline, type TimelineItem } from "@/components/ui";
 import { fmtDate, fmtQty, fmtRelative, MOVEMENT_LABEL } from "@/lib/format";
 
 type PanelTab = "details" | "history";
@@ -65,10 +65,15 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
   const error = failed?.sig === liveSig ? failed.message : null;
   const loading = cached?.sig !== liveSig && !error;
 
-  const pendingItems = useMemo(
-    () => state.supplierItems.filter((i) => i.product_id === id && i.status === "pending"),
+  // Every supplier wording mapped to this product; pending first, then most-used.
+  const supplierNames = useMemo(
+    () =>
+      state.supplierItems
+        .filter((i) => i.product_id === id)
+        .sort((a, b) => (a.status === "pending" ? 0 : 1) - (b.status === "pending" ? 0 : 1) || b.times_seen - a.times_seen),
     [state.supplierItems, id],
   );
+  const pendingItems = useMemo(() => supplierNames.filter((i) => i.status === "pending"), [supplierNames]);
   const openFaults = useMemo(
     () => state.faults.filter((f) => f.product_id === id && f.status === "open"),
     [state.faults, id],
@@ -95,6 +100,18 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
     [notify],
   );
 
+  const copyBarcode = useCallback(
+    async (barcode: string) => {
+      try {
+        await navigator.clipboard.writeText(barcode);
+        notify({ tone: "success", title: "הברקוד הועתק" });
+      } catch {
+        notify({ tone: "danger", title: "ההעתקה נכשלה" });
+      }
+    },
+    [notify],
+  );
+
   if (!p) return null;
 
   const out = p.qty <= 0;
@@ -105,10 +122,16 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
 
   const timelineItems: TimelineItem[] = (rows ?? []).map((m) => {
     const extra = m.note || m.reference;
+    const head = extra ? `${MOVEMENT_LABEL[m.type]} · ${extra}` : MOVEMENT_LABEL[m.type];
     return {
       id: m.id,
       type: m.type,
-      title: extra ? `${MOVEMENT_LABEL[m.type]} · ${extra}` : MOVEMENT_LABEL[m.type],
+      title: m.external_name ? (
+        <>
+          {head}
+          <span className="sa-cell-sub sa-truncate">בתעודה: &quot;<bdi>{m.external_name}</bdi>&quot;</span>
+        </>
+      ) : head,
       when: fmtRelative(m.created_at),
       by: worker(m.worker_id)?.name,
       qty: m.qty,
@@ -183,6 +206,23 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
 
           <Fields
             items={[
+              {
+                label: "ברקוד",
+                value: p.barcode ? (
+                  <span className="inline-flex items-center gap-[var(--space-1)]">
+                    <span className="sa-mono ltr">{p.barcode}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      icon="copy"
+                      aria-label="העתק ברקוד"
+                      title="העתק ברקוד"
+                      onClick={() => void copyBarcode(p.barcode as string)}
+                    />
+                  </span>
+                ) : undefined,
+              },
               { label: "ספק ראשי", value: supplier(p.primary_supplier_id)?.name },
               { label: "יחידה", value: p.unit },
               { label: "קטגוריה", value: p.category },
@@ -194,6 +234,47 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
           {p.notes ? (
             <Fields columns={1} items={[{ label: "הערות", value: <span className="whitespace-pre-wrap">{p.notes}</span> }]} />
           ) : null}
+
+          <section className="flex flex-col gap-[var(--space-2)]" aria-labelledby="supplier-names-title">
+            <h3 id="supplier-names-title" className="sa-card-title m-0 text-[13px] font-medium text-ink-2">
+              שמות אצל ספקים
+              {supplierNames.length > 0 ? <span className="sa-num ms-[var(--space-2)] text-ink-3">{fmtQty(supplierNames.length)}</span> : null}
+            </h3>
+            {supplierNames.length === 0 ? (
+              <p className="sa-muted m-0 text-[13px]">אין שמות ספק ממופים</p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col divide-y divide-line p-0">
+                {supplierNames.map((it) => {
+                  const s = supplier(it.supplier_id);
+                  const approving = busy === `map:${it.id}`;
+                  return (
+                    <li key={it.id} className="flex items-center gap-[var(--space-3)] py-[var(--space-2)]">
+                      <span className="min-w-0 flex-1">
+                        <span className="sa-truncate block text-[14px]">
+                          {s ? <span className="text-ink-2">{s.name} · </span> : null}
+                          <bdi>{it.external_name}</bdi>
+                          {it.external_sku ? <span className="sa-mono ltr ms-[var(--space-2)] text-ink-3">{it.external_sku}</span> : null}
+                        </span>
+                        <span className="sa-muted text-[12px]">
+                          נראה <span className="sa-num">{fmtQty(it.times_seen)}</span> פעמים
+                        </span>
+                      </span>
+                      {it.status === "approved" ? (
+                        <Badge tone="success" dot>מאושר</Badge>
+                      ) : (
+                        <span className="inline-flex items-center gap-[var(--space-1)]">
+                          <Badge tone="warning" solid>לבדיקה</Badge>
+                          <Button variant="link" size="sm" disabled={approving} onClick={() => void run(`map:${it.id}`, () => approveSupplierItem(it.id), "ההתאמה אושרה")}>
+                            {approving ? "מאשר…" : "אשר"}
+                          </Button>
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
         </>
       ) : (
         <>
