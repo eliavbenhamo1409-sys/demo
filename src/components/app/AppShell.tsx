@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { ProductPanel } from "./ProductPanel";
+import { TasksPanel } from "./TasksPanel";
 import "./app-shell.css";
 
 const SHELL_ACTIONS: ActionItem[] = [
@@ -279,7 +280,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <>
           <div className={`sa-scrim app-scrim`} onClick={close} aria-hidden />
           <div className="app-panelHost" role="dialog" aria-modal="true">
-            {panel.type === "action" ? <ActionDrawer /> : <ProductPanel />}
+            {panel.type === "action" ? <ActionDrawer /> : panel.type === "tasks" ? <TasksPanel /> : <ProductPanel />}
           </div>
         </>
       ) : null}

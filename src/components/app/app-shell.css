@@ -28,7 +28,7 @@
   position: fixed;
   top: 0;
   bottom: 0;
-  inset-inline-start: 0;
+  inset-inline-end: 0;
   width: var(--panel);
   max-width: 100%;
   z-index: 100;
@@ -170,5 +170,408 @@
   .app-panelHost,
   .toast {
     animation: none;
+  }
+}
+
+/* ── Supplier dictionary ────────────────────────────────────── */
+.sa-dict-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-dict-row {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: var(--space-3) var(--space-6);
+  align-items: start;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sa-dict-list > .sa-dict-row:last-child {
+  border-bottom: 0;
+}
+
+.sa-dict-row.is-open {
+  background: var(--bg-canvas);
+}
+
+.sa-dict-product {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sa-dict-product-name {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  text-align: start;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.1s ease;
+}
+
+.sa-dict-product-name:hover {
+  color: var(--accent-text);
+}
+
+.sa-dict-product-name:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sa-dict-product-codes {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-1);
+}
+
+.sa-dict-aliases {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sa-dict-none {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+.sa-dict-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+[dir="ltr"] .sa-dict-chip {
+  padding: 0 var(--space-3) 0 var(--space-1);
+}
+
+.sa-dict-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sa-dict-chip-sup {
+  color: var(--text-tertiary);
+}
+
+.sa-dict-chip.is-pending {
+  border-style: dashed;
+  border-color: var(--warning);
+  color: var(--warning-text);
+}
+
+.sa-dict-chip.is-pending .sa-dict-chip-sup {
+  color: var(--warning-text);
+  opacity: 0.8;
+}
+
+.sa-dict-chip .sa-btn.sa-dict-chip-approve {
+  font-size: 12px;
+  line-height: 16px;
+  margin-inline-start: var(--space-1);
+  color: var(--warning-text);
+}
+
+/* Small glyph, full-height hit area (the chip's own height). */
+.sa-dict-chip .sa-btn.sa-dict-chip-x {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+}
+
+.sa-dict-chip .sa-btn.sa-dict-chip-x svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sa-dict-chip:hover .sa-btn.sa-dict-chip-x,
+.sa-dict-chip:focus-within .sa-btn.sa-dict-chip-x {
+  opacity: 1;
+}
+
+/* Touch: always visible, and the chip grows to the system's touch target. */
+@media (hover: none) {
+  .sa-dict-chip,
+  .sa-dict-add {
+    height: var(--touch);
+  }
+
+  .sa-dict-chip .sa-btn.sa-dict-chip-x {
+    width: var(--touch);
+    height: var(--touch);
+    opacity: 1;
+  }
+}
+
+.sa-dict-add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.1s ease, border-color 0.1s ease, background-color 0.1s ease;
+}
+
+.sa-dict-add svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sa-dict-add:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg-muted);
+}
+
+.sa-dict-add:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sa-dict-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.sa-dict-form > .sa-field {
+  width: 200px;
+  flex: 0 1 200px;
+}
+
+.sa-dict-form > .sa-notice {
+  flex: 1 1 100%;
+  order: -1;
+}
+
+.sa-dict-form > .sa-field.is-sku {
+  width: 150px;
+  flex: 0 1 150px;
+}
+
+.sa-dict-form > .sa-field.is-supplier {
+  width: 180px;
+  flex: 0 1 180px;
+}
+
+.sa-dict-form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--control-md);
+}
+
+.sa-dict-form-missing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-md);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sa-dict-skeleton {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: var(--space-3) var(--space-6);
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sa-dict-list > .sa-dict-skeleton:last-child {
+  border-bottom: 0;
+}
+
+.sa-dict-skeleton-chips {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.sa-dict-skeleton-chips .sa-skeleton {
+  height: 28px;
+  border-radius: var(--radius-md);
+}
+
+/* Inbox of pending names */
+.sa-dict-inbox {
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-dict-inbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sa-dict-inbox-row:last-child {
+  border-bottom: 0;
+}
+
+.sa-dict-inbox-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.sa-dict-inbox-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sa-dict-inbox-meta {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+.sa-dict-inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+/* Suppliers panel */
+.sa-dict-suppliers .sa-panel-body {
+  padding: 0;
+  gap: 0;
+}
+
+.sa-dict-suppliers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sa-dict-supplier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-6);
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: none;
+  color: var(--text-primary);
+  text-align: start;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.sa-dict-supplier:hover {
+  background: var(--bg-muted);
+}
+
+.sa-dict-supplier:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+
+.sa-dict-supplier-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sa-dict-supplier-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sa-dict-supplier-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+.sa-dict-supplier-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 599px) {
+  .sa-dict-row,
+  .sa-dict-skeleton {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sa-dict-form > .sa-field,
+  .sa-dict-form > .sa-field.is-sku,
+  .sa-dict-form > .sa-field.is-supplier {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .sa-dict-inbox-actions {
+    width: 100%;
+    margin-inline-start: 0;
+  }
+  .sa-dict-inbox-actions .sa-select {
+    flex: 1 1 100%;
   }
 }

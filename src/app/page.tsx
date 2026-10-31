@@ -8,10 +8,12 @@ import { WeeklyChart } from "@/components/app/WeeklyChart";
 import {
   Attention,
   Avatar,
+  Badge,
   Button,
   Card,
   EmptyState,
   Movement,
+  Square,
   Stat,
   Table,
   type AttentionItem,
@@ -25,7 +27,7 @@ const RECENT = 12;
 
 export default function OverviewPage() {
   const { state, stats, attention, weekly, product, worker, resolveFault } = useData();
-  const { openAction, openProduct, notify } = useUi();
+  const { openAction, openProduct, openTasks, notify } = useUi();
   const [busyFault, setBusyFault] = useState<string | null>(null);
   const isLoading = state.status === "loading";
 
@@ -67,6 +69,8 @@ export default function OverviewPage() {
       : "אין חריגות פתוחות";
 
   /* ───────── attention ───────── */
+  const urgentCount = useMemo(() => attention.filter((a) => a.severity === "danger").length, [attention]);
+  const taskCount = attention.length - urgentCount;
   const onResolve = useCallback(
     async (entry: AttentionEntry) => {
       if (!entry.faultId || busyFault) return;
@@ -85,7 +89,7 @@ export default function OverviewPage() {
 
   const attentionItems = useMemo<AttentionItem[]>(
     () =>
-      attention.slice(0, MAX_ATTENTION).map((a) => {
+      attention.filter((a) => a.severity === "danger").slice(0, MAX_ATTENTION).map((a) => {
         const base: AttentionItem = {
           id: a.id,
           severity: a.severity,
@@ -210,23 +214,31 @@ export default function OverviewPage() {
           <div className="grid grid-cols-1 gap-[var(--space-4)] min-[1100px]:grid-cols-12 min-[1100px]:items-start">
           <Card
             className="min-w-0 min-[1100px]:col-span-7"
-            title="דורש טיפול"
-            count={attention.length}
+            title="דחוף"
+            count={urgentCount}
             flush
+            actions={
+              <Button variant={taskCount > 0 ? "secondary" : "ghost"} size="sm" icon="layers" onClick={openTasks}>
+                משימות
+                {taskCount > 0 ? <Badge count>{fmtQty(taskCount)}</Badge> : null}
+              </Button>
+            }
             footer={
-              attention.length > MAX_ATTENTION ? (
-                <>
-                  <span>
-                    מציג <span className="sa-mono ltr">{MAX_ATTENTION}</span> מתוך <span className="sa-mono ltr">{fmtQty(attention.length)}</span>
-                  </span>
-                  <Link href="/inventory?filter=low" className="sa-btn sa-btn-link sa-btn-sm">
-                    כל החריגות
-                  </Link>
-                </>
+              urgentCount > MAX_ATTENTION ? (
+                <span>
+                  מציג <span className="sa-mono ltr">{MAX_ATTENTION}</span> מתוך <span className="sa-mono ltr">{fmtQty(urgentCount)}</span>
+                </span>
               ) : undefined
             }
           >
-            <Attention items={attentionItems} />
+            {urgentCount === 0 ? (
+              <p className="sa-muted m-0 flex items-center gap-[var(--space-2)] px-[var(--space-4)] py-[var(--space-4)] text-[13px]">
+                <Square tone="success" /> אין חריגות דחופות
+                {taskCount > 0 ? <span className="sa-faint">· {fmtQty(taskCount)} משימות ממתינות</span> : null}
+              </p>
+            ) : (
+              <Attention items={attentionItems} />
+            )}
           </Card>
           <WeeklyChart days={weekly} className="min-w-0 min-[1100px]:col-span-5" />
           </div>
