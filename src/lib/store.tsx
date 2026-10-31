@@ -25,6 +25,7 @@ import {
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/lib/database.types";
+import { fmtQty } from "@/lib/format";
 
 export type Product = Tables<"products">;
 export type Movement = Tables<"movements">;
@@ -256,6 +257,11 @@ const Ctx = createContext<Api | null>(null);
 
 const tempId = () => `tmp_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
 
+/** True while a row only exists optimistically (its DB id has not come back yet). */
+export function isTempId(id: string): boolean {
+  return id.startsWith("tmp_");
+}
+
 function dayKey(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -358,7 +364,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } else if (p.min_qty > 0 && p.qty < p.min_qty) {
         out.push({
           id: `low:${p.id}`, kind: "low", severity: "warning", label: "מינימום",
-          title: `${p.name} — ${p.qty} מתוך מינימום ${p.min_qty}`, meta: [p.sku, p.location ?? ""].filter(Boolean),
+          title: `${p.name} — חסרים ${fmtQty(p.min_qty - p.qty)} ${p.unit} למינימום`,
+          meta: [`במלאי ${fmtQty(p.qty)} · מינימום ${fmtQty(p.min_qty)}`, p.sku, p.location ?? ""].filter(Boolean),
           at: p.updated_at, productId: p.id,
         });
       }
@@ -579,7 +586,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return (await insert("products", input, optimistic)) as Product;
     },
     updateProduct: (id, patch) => update("products", id, patch),
-    deleteProduct: (id) => remove("products", id),
+    deleteProduct: async (id) => {
+      await remove("products", id);
+      // Mirror the DB's `on delete set null` so orphaned supplier names show up for re-mapping right away.
+      for (const item of stateRef.current.supplierItems) {
+        if (item.product_id === id) {
+          const orphan: SupplierItem = { ...item, product_id: null };
+          dispatch({ type: "upsert", table: "supplier_items", row: orphan });
+        }
+      }
+    },
 
     createSupplier: async (input) => {
       const optimistic: Supplier = {
