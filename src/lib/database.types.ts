@@ -69,6 +69,7 @@ export type Database = {
       }
       movements: {
         Row: {
+          external_name: string | null
           created_at: string
           id: string
           note: string | null
@@ -80,6 +81,7 @@ export type Database = {
           worker_id: string | null
         }
         Insert: {
+          external_name?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           worker_id?: string | null
         }
         Update: {
+          external_name?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -127,6 +130,7 @@ export type Database = {
       }
       products: {
         Row: {
+          barcode: string | null
           category: string | null
           created_at: string
           id: string
@@ -141,6 +145,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          barcode?: string | null
           category?: string | null
           created_at?: string
           id?: string
@@ -155,6 +160,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          barcode?: string | null
           category?: string | null
           created_at?: string
           id?: string
@@ -180,6 +186,10 @@ export type Database = {
       }
       supplier_items: {
         Row: {
+          approved_at: string | null
+          last_seen_at: string | null
+          normalized_name: string | null
+          times_seen: number
           created_at: string
           external_name: string
           external_sku: string | null
@@ -190,6 +200,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          last_seen_at?: string | null
+          normalized_name?: string | null
+          times_seen?: number
           created_at?: string
           external_name: string
           external_sku?: string | null
@@ -200,6 +214,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          last_seen_at?: string | null
+          normalized_name?: string | null
+          times_seen?: number
           created_at?: string
           external_name?: string
           external_sku?: string | null
@@ -285,7 +303,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ean13_check: { Args: { digits12: string }; Returns: string }
+      normalize_name: { Args: { t: string }; Returns: string }
     }
     Enums: {
       fault_status: "open" | "resolved"

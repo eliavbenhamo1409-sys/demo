@@ -188,8 +188,22 @@ export type ReceiveInput = {
   workerId?: string | null;
   reference?: string | null;
   note?: string | null;
+  /** The product name as written on the supplier's delivery note. With a supplier, this feeds the dictionary. */
+  externalName?: string | null;
+  externalSku?: string | null;
 };
-export type IssueInput = Omit<ReceiveInput, "supplierId">;
+export type IssueInput = Omit<ReceiveInput, "supplierId" | "externalName" | "externalSku">;
+
+/** Result of translating a supplier's wording into the factory catalogue. */
+export type NameResolution =
+  | { status: "approved"; item: SupplierItem; product: Product }
+  | { status: "pending"; item: SupplierItem; product: Product | null }
+  | { status: "unknown"; item: null; product: null };
+
+/** trim, lowercase, collapse whitespace — same rule as the DB's normalize_name(). */
+export function normalizeName(t: string | null | undefined): string {
+  return (t ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
 export type FaultInput = {
   productId?: string | null;
   description: string;
@@ -225,6 +239,10 @@ type Api = {
   updateWorker: (id: string, patch: TablesUpdate<"workers">) => Promise<void>;
   createSupplierItem: (input: TablesInsert<"supplier_items">) => Promise<SupplierItem>;
   mapSupplierItem: (id: string, productId: string) => Promise<void>; // sets product + approved
+  /** Translate a supplier's product name to the catalogue (exact match on the normalized name). */
+  resolveSupplierName: (supplierId: string | null | undefined, name: string) => NameResolution;
+  /** Dictionary entries of one supplier that match a partial name, most-used first. */
+  suggestSupplierNames: (supplierId: string | null | undefined, query: string, limit?: number) => SupplierItem[];
   approveSupplierItem: (id: string) => Promise<void>;
   unapproveSupplierItem: (id: string) => Promise<void>;
   deleteSupplierItem: (id: string) => Promise<void>;
@@ -472,6 +490,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: tempId(), type, product_id: input.productId, qty: input.qty,
         worker_id: input.workerId ?? null, supplier_id: input.supplierId ?? null,
         reference: input.reference ?? null, note: input.note ?? null, created_at: now,
+        external_name: input.externalName?.trim() || null,
       };
       if (type === "in") bumpProduct(input.productId, input.qty);
       if (type === "out") bumpProduct(input.productId, -input.qty);
@@ -481,6 +500,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           type, product_id: input.productId, qty: input.qty,
           worker_id: input.workerId ?? null, supplier_id: input.supplierId ?? null,
           reference: input.reference || null, note: input.note || null,
+          external_name: input.externalName?.trim() || null,
         }, optimistic)) as Movement;
         return row;
       } catch (e) {
@@ -496,7 +516,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const api = useMemo<Api>(() => ({
     state, reload, product, supplier, worker, attention, stats, weekly,
 
-    receive: (input) => logMovement("in", input),
+    receive: async (input) => {
+      const row = await logMovement("in", input);
+      const name = input.externalName?.trim();
+      if (input.supplierId && name) {
+        const key = normalizeName(name);
+        const existing = stateRef.current.supplierItems.find((i) => i.supplier_id === input.supplierId && normalizeName(i.external_name) === key);
+        if (!existing) {
+          // first time we see this wording: remember it, flagged for the manager's approval
+          const now = new Date().toISOString();
+          const optimistic: SupplierItem = {
+            id: tempId(), supplier_id: input.supplierId, external_name: name, external_sku: input.externalSku?.trim() || null,
+            product_id: input.productId, status: "pending", created_at: now, updated_at: now,
+            normalized_name: key, times_seen: 1, last_seen_at: now, approved_at: null,
+          };
+          await insert("supplier_items", {
+            supplier_id: input.supplierId, external_name: name, external_sku: input.externalSku?.trim() || null,
+            product_id: input.productId, status: "pending", times_seen: 1, last_seen_at: now,
+          }, optimistic).catch(() => undefined); // the movement already landed; a dictionary hiccup must not fail the receive
+        } else {
+          // the DB trigger bumps times_seen; mirror it so the UI is immediate
+          const patch: Partial<SupplierItem> = { times_seen: existing.times_seen + 1, last_seen_at: new Date().toISOString() };
+          if (!existing.product_id) patch.product_id = input.productId;
+          dispatch({ type: "upsert", table: "supplier_items", row: { ...existing, ...patch } });
+          if (!existing.product_id) await update("supplier_items", existing.id, { product_id: input.productId }).catch(() => undefined);
+        }
+      }
+      return row;
+    },
     issue: (input) => logMovement("out", input),
     adjust: (productId, qty, workerId, note) => logMovement("adjust", { productId, qty, workerId, note }),
 
@@ -524,6 +571,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: tempId(), sku: input.sku, name: input.name, category: input.category ?? null, unit: input.unit ?? "יח׳",
         qty: input.qty ?? 0, min_qty: input.min_qty ?? 0, location: input.location ?? null,
         primary_supplier_id: input.primary_supplier_id ?? null, notes: input.notes ?? null, created_at: now, updated_at: now,
+        barcode: input.barcode?.trim() || null, // the DB assigns an EAN-13 when empty
       };
       return (await insert("products", input, optimistic)) as Product;
     },
@@ -551,12 +599,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const optimistic: SupplierItem = {
         id: tempId(), supplier_id: input.supplier_id, external_name: input.external_name, external_sku: input.external_sku ?? null,
         product_id: input.product_id ?? null, status: input.status ?? "pending", created_at: now, updated_at: now,
+        normalized_name: normalizeName(input.external_name), times_seen: 0, last_seen_at: null,
+        approved_at: input.status === "approved" ? now : null,
       };
       return (await insert("supplier_items", input, optimistic)) as SupplierItem;
     },
-    mapSupplierItem: (id, productId) => update("supplier_items", id, { product_id: productId, status: "approved" }),
-    approveSupplierItem: (id) => update("supplier_items", id, { status: "approved" }),
-    unapproveSupplierItem: (id) => update("supplier_items", id, { status: "pending" }),
+    mapSupplierItem: (id, productId) => update("supplier_items", id, { product_id: productId, status: "approved", approved_at: new Date().toISOString() }),
+    approveSupplierItem: (id) => update("supplier_items", id, { status: "approved", approved_at: new Date().toISOString() }),
+    unapproveSupplierItem: (id) => update("supplier_items", id, { status: "pending", approved_at: null }),
+    resolveSupplierName: (supplierId, name) => {
+      const key = normalizeName(name);
+      if (!supplierId || !key) return { status: "unknown", item: null, product: null };
+      const item = stateRef.current.supplierItems.find((i) => i.supplier_id === supplierId && normalizeName(i.external_name) === key);
+      if (!item) return { status: "unknown", item: null, product: null };
+      const prod = item.product_id ? productMap.get(item.product_id) ?? null : null;
+      if (item.status === "approved" && prod) return { status: "approved", item, product: prod };
+      return { status: "pending", item, product: prod };
+    },
+    suggestSupplierNames: (supplierId, query, limit = 8) => {
+      if (!supplierId) return [];
+      const q = normalizeName(query);
+      return stateRef.current.supplierItems
+        .filter((i) => i.supplier_id === supplierId && (!q || normalizeName(i.external_name).includes(q) || (i.external_sku ?? "").toLowerCase().includes(q)))
+        .sort((a, b) => b.times_seen - a.times_seen || a.external_name.localeCompare(b.external_name, "he"))
+        .slice(0, limit);
+    },
     deleteSupplierItem: (id) => remove("supplier_items", id),
 
     fetchProductHistory: async (productId) => {
@@ -564,7 +631,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw new Error(error.message);
       return data ?? [];
     },
-  }), [state, reload, product, supplier, worker, attention, stats, weekly, logMovement, insert, update, remove, sb]);
+  }), [state, reload, product, supplier, worker, attention, stats, weekly, logMovement, insert, update, remove, sb, productMap]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
