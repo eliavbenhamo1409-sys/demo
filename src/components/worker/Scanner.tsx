@@ -70,7 +70,7 @@ function ResultRow({ line, identified }: { line: ReadLine; identified?: Product 
 
 const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
 
-export function Scanner({ scan, docName, unit, identify, onContinue, onManual, onRetake, onCancel }: {
+export function Scanner({ scan, docName, unit, identify, onContinue, onManual, onRetake, onCancel, needsDocument }: {
   scan: Scan;
   /** The document, with its article: התעודה, הקבלה. */
   docName: string;
@@ -82,6 +82,8 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
   onManual: () => void;
   onRetake: (file: File | undefined) => void;
   onCancel: () => void;
+  /** A photo with nothing on it is only retaken. A failed reading still goes on by hand, so an outage doesn't stop the work. */
+  needsDocument?: boolean;
 }): ReactElement | null {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const settled = scan.status !== "idle" && scan.status !== "reading";
@@ -148,14 +150,16 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
           <div className="wk-scan-sheet-head">
             <h2 ref={headingRef} tabIndex={-1} className="wk-scan-sheet-title">{scan.status === "empty" ? "לא נמצאו שורות במסמך" : "הקריאה לא הצליחה"}</h2>
             <p className="wk-scan-sheet-lead">
-              {scan.status === "empty"
-                ? "לצלם שוב מקרוב, או להקליד ידנית"
-                : "לצלם שוב, או להקליד ידנית"}
+              {scan.status === "failed"
+                ? "לצלם שוב, או להקליד ידנית"
+                : needsDocument ? "לצלם שוב מקרוב" : "לצלם שוב מקרוב, או להקליד ידנית"}
             </p>
           </div>
           <div className="wk-scan-actions">
             <CameraButton label="צילום מחדש" onFile={onRetake} />
-            <Button variant="secondary" size="touch" onClick={onManual}>הקלדה ידנית</Button>
+            {scan.status === "empty" && needsDocument
+              ? <Button variant="secondary" size="touch" onClick={onCancel}>ביטול</Button>
+              : <Button variant="secondary" size="touch" onClick={onManual}>הקלדה ידנית</Button>}
           </div>
         </div>
       ) : null}

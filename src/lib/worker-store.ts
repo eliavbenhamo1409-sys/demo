@@ -170,12 +170,8 @@ export function useOpenOrders() {
 }
 
 /** The order left the warehouse: the database posts its movements and releases the hold, or throws its own message. */
-export async function deliverOrder(orderId: string, workerId: string, documentId: string | null): Promise<void> {
-  const { error } = await supabase().rpc("deliver_order", {
-    target_order: orderId,
-    by_worker: workerId,
-    ...(documentId ? { receipt: documentId } : {}),
-  });
+export async function deliverOrder(orderId: string, workerId: string, documentId: string): Promise<void> {
+  const { error } = await supabase().rpc("deliver_order", { target_order: orderId, by_worker: workerId, receipt: documentId });
   if (error) throw new Error(error.message);
 }
 

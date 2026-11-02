@@ -148,6 +148,7 @@ export type Database = {
       movements: {
         Row: {
           document_id: string | null
+          exit_pass: string | null
           external_name: string | null
           created_at: string
           id: string
@@ -161,6 +162,7 @@ export type Database = {
         }
         Insert: {
           document_id?: string | null
+          exit_pass?: string | null
           external_name?: string | null
           created_at?: string
           id?: string
@@ -174,6 +176,7 @@ export type Database = {
         }
         Update: {
           document_id?: string | null
+          exit_pass?: string | null
           external_name?: string | null
           created_at?: string
           id?: string
@@ -602,9 +605,26 @@ export type Database = {
         Args: { by_worker?: string; receipt?: string; target_order: string }
         Returns: Database["public"]["Tables"]["orders"]["Row"]
       }
+      deliver_order_no_receipt: {
+        Args: { target_order: string; why: string }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
+      }
       ean13_check: { Args: { digits12: string }; Returns: string }
       normalize_name: { Args: { t: string }; Returns: string }
       recount_reserved: { Args: { ids: string[] }; Returns: undefined }
+      remove_without_receipt: {
+        Args: {
+          amount: number
+          by_worker?: string
+          customer?: string
+          kind: Database["public"]["Enums"]["movement_type"]
+          product: string
+          ref?: string
+          why: string
+        }
+        Returns: undefined
+      }
+      super_admin_phone: { Args: never; Returns: string }
     }
     Enums: {
       document_kind: "in" | "out"

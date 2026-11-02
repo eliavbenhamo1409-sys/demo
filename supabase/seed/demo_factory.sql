@@ -51,6 +51,9 @@ begin
     (s_center,'פרופיל 40X40 אנודייז',null,p3,'pending',null,1,d0 - interval '3 days' + interval '9 hours'),
     (s_shahar,'אטם EPDM שחור 6',null,null,'pending',null,1,d0 - interval '5 days' + interval '8 hours');
 
+  -- A made-up history has no receipts to show, so the receipt gate steps aside for it.
+  alter table movements disable trigger movements_guard;
+
   -- opening count, 8 days ago
   insert into movements(type,product_id,qty,worker_id,note,created_at) values
     ('adjust',p1,30,w_noam,'ספירת פתיחה',d0 - interval '8 days' + interval '7 hours'),
@@ -86,6 +89,8 @@ begin
     ('fault',p2,1,w_michal,'פינה מקופלת, הופרד בצד',d0 + interval '7 hours 40 minutes');
   insert into faults(product_id,movement_id,description,reported_by,status,created_at)
     select p2, id, 'לוח הגיע עם פינה מקופלת, הופרד בצד', w_michal, 'open', created_at from movements where type='fault' and product_id=p2;
+
+  alter table movements enable trigger movements_guard;
 end $$;
 
 -- Catalogue: the field agents, and what customers read about each product.

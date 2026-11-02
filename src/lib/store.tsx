@@ -695,8 +695,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: tempId(), type, product_id: input.productId, qty: input.qty,
         worker_id: input.workerId ?? null, supplier_id: input.supplierId ?? null,
         reference: input.reference ?? null, note: input.note ?? null, created_at: now,
-        external_name: input.externalName?.trim() || null, document_id: input.documentId ?? null,
+        external_name: input.externalName?.trim() || null, document_id: input.documentId ?? null, exit_pass: null,
       };
+      const counted = stateRef.current.products.find((p) => p.id === input.productId)?.qty;
       if (type === "in") bumpProduct(input.productId, input.qty);
       if (type === "out") bumpProduct(input.productId, -input.qty);
       if (type === "adjust") bumpProduct(input.productId, null, input.qty);
@@ -712,6 +713,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // roll back the optimistic quantity
         if (type === "in") bumpProduct(input.productId, -input.qty);
         if (type === "out") bumpProduct(input.productId, input.qty);
+        if (type === "adjust" && counted !== undefined) bumpProduct(input.productId, null, counted);
         throw e;
       }
     },

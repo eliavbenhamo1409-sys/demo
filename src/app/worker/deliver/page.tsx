@@ -33,6 +33,8 @@ const routedTitle = (l: Line) => l.proposedName ?? l.hint ?? "";
 const routedSub = (l: Line) => (l.route === "new" ? "מוצר חדש, אצל המנהל" : "אצל המנהל");
 /** The database refuses in Hebrew; anything else is the connection talking. */
 const HEBREW = /[א-ת]/;
+/** Nothing leaves without its receipt, so a photo that didn't land stops the save. */
+const RECEIPT_NOT_SAVED = "הקבלה לא עלתה. לבדוק אינטרנט וללחוץ שוב.";
 
 /** The worker asks to add a product to the warehouse dictionary; the manager approves it later. */
 function AddToDictionary({ initialName, initialNote, onSubmit, onClose }: { initialName: string; initialNote: string; onSubmit: (name: string, note: string) => void; onClose: () => void }) {
@@ -171,14 +173,14 @@ export default function DeliverPage() {
   const identify = (l: ReadLine) => (l.match.status === "sure" ? product(l.match.productId) : undefined);
 
   const submit = async () => {
-    if (!worker) return;
+    if (!worker || !photo) return;
     setBusy(true);
     setError(null);
-    const documentId = photo ? await receipt.save(photo.file, { customer: name, workerId: worker.id }) : null;
-    const photoNote = documentId ? " · קבלה צולמה" : photo ? " · קבלה צולמה (ההעלאה נכשלה)" : "";
-    const note = `ללקוח: ${name}${photoNote}${servicesNote}`;
     setProgress(saved.current.size);
     try {
+      const documentId = await receipt.save(photo.file, { customer: name, workerId: worker.id });
+      if (!documentId) throw new Error(RECEIPT_NOT_SAVED);
+      const note = `ללקוח: ${name} · קבלה צולמה${servicesNote}`;
       for (const l of valid) {
         if (saved.current.has(l.id)) continue;
         const p = product(l.productId)!;
@@ -208,11 +210,12 @@ export default function DeliverPage() {
 
   /** The database posts the whole order in one call, so there are no lines to guard on a retry. */
   const submitOrder = async () => {
-    if (!worker || !chosen) return;
+    if (!worker || !chosen || !photo) return;
     setBusy(true);
     setError(null);
     try {
-      const documentId = photo ? await receipt.save(photo.file, { customer: name, reference: `הזמנה ${chosen.number}`, workerId: worker.id }) : null;
+      const documentId = await receipt.save(photo.file, { customer: name, reference: `הזמנה ${chosen.number}`, workerId: worker.id });
+      if (!documentId) throw new Error(RECEIPT_NOT_SAVED);
       await deliverOrder(chosen.id, worker.id, documentId);
       remember(name);
       setResult({ issued: orderLines(chosen), routed: [] });
@@ -269,7 +272,7 @@ export default function DeliverPage() {
           onSubmit={(proposed, note) => { patch(addFor, { productId: null, route: "new", proposedName: proposed, workerNote: note || undefined, hint: addLine.hint ?? proposed }); setAddFor(null); }}
         />
       ) : null}
-      <Scanner scan={scan} docName="הקבלה" unit={{ one: "שורה", many: "שורות" }} identify={identify} onContinue={takeReading} onManual={fillByHand} onRetake={onPhoto} onCancel={() => { closeScan(); setPhoto(null); }} />
+      <Scanner scan={scan} docName="הקבלה" unit={{ one: "שורה", many: "שורות" }} identify={identify} onContinue={takeReading} onManual={fillByHand} onRetake={onPhoto} onCancel={() => { closeScan(); setPhoto(null); }} needsDocument />
     </>
   );
 
@@ -285,9 +288,9 @@ export default function DeliverPage() {
         title="למי מסרת את הסחורה?"
         overlay={overlay}
         foot={{
-          label: chosen ? "המשך לאישור" : photo ? "המשך לשורות" : "המשך בלי קבלה",
+          label: chosen ? "המשך לאישור" : "המשך לשורות",
           onClick: () => { startUpload(); go(chosen ? "summary" : "lines"); },
-          blocked: name ? null : { reason: "חסר שם לקוח", onTap: () => pointAt("customer") },
+          blocked: !name ? { reason: "חסר שם לקוח", onTap: () => pointAt("customer") } : !photo ? { reason: "חסר צילום קבלה", onTap: () => pointAt("receipt") } : null,
         }}
       >
         <Section id="customer" title="שם הלקוח" need="required" done={!!name}>
@@ -313,7 +316,7 @@ export default function DeliverPage() {
             </div>
           </Section>
         ) : null}
-        <Section id="receipt" title="צילום הקבלה" need="optional" done={!!photo} lead={chosen ? undefined : "השורות יתמלאו לבד"}>
+        <Section id="receipt" title="צילום הקבלה" need="required" done={!!photo} lead={chosen ? undefined : "השורות יתמלאו לבד"}>
           {!name ? (
             <button type="button" className="wk-photo is-locked" onClick={() => pointAt("customer")}>קודם שם לקוח</button>
           ) : photo ? (
@@ -456,7 +459,7 @@ export default function DeliverPage() {
       overlay={overlay}
       foot={{ label: chosen || valid.length ? "אישור ההוצאה" : "העברה למנהל", onClick: chosen ? submitOrder : submit, busy: busy ? (total > 1 ? `שומר ${Math.min(progress + 1, total)} מתוך ${total}` : "שומר") : null }}
     >
-      {error ? <Hint tone="attention" title={chosen && HEBREW.test(error) ? error : "לא נשמר. לבדוק אינטרנט וללחוץ שוב."} /> : null}
+      {error ? <Hint tone="attention" title={HEBREW.test(error) ? error : "לא נשמר. לבדוק אינטרנט וללחוץ שוב."} /> : null}
       {anyOver ? <Hint tone="attention" title="הכמות גדולה מהמלאי" /> : null}
       <Summary
         heading="פרטי ההוצאה"
