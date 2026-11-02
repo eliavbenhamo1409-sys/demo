@@ -80,9 +80,9 @@ const ROLL_LINE_GAP = 0.1;
 const CANISTER = { w: 0.42, h: 0.58, d: 0.3, gap: 0.06 };
 const CARTON = { w: 0.62, h: 0.36, d: 0.46, gap: 0.03 };
 
-/** Steps down from the full size, so one piece more or less doesn't resize a whole rack. The last is about real size. */
+/** Steps down from the full size, so one piece more or less doesn't resize a whole rack. The last still stacks 2000 sheets on one shelf, the most a product draws, so a count is never cut. */
 const SCALE_STEP = 0.9;
-const SMALLEST_SCALE = 0.15;
+const SMALLEST_SCALE = 0.008;
 
 const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), high);
 
