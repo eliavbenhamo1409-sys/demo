@@ -7,7 +7,7 @@ import { Dot } from "@/components/ui/Dot";
 import { Icon } from "@/components/ui/Icon";
 import { cx } from "@/components/ui/cx";
 import type { Product } from "@/lib/store";
-import { fmtQty } from "@/lib/format";
+import { fmtName, fmtQty } from "@/lib/format";
 import type { ReadLine, Scan, ScanDoc, ScanStage } from "@/lib/worker/scan";
 import { CameraButton, useBackToClose, useTakingLong } from "@/components/worker";
 
@@ -16,6 +16,11 @@ const STAGES: { key: ScanStage; label: string }[] = [
   { key: "read", label: "קורא את הכתוב במסמך" },
   { key: "match", label: "משווה למוצרים במחסן" },
 ];
+
+/** One line of the sheet. `fine` ticks it; otherwise it waits for the worker. */
+export type ComparedRow = { key: string; name: string; sub: string; qty?: number; product?: Product; fine: boolean };
+/** How a reading stands against an order, for the sheet to show in place of the reading itself. */
+export type Compared = { title: string; lead?: string; cta: string; rows: ComparedRow[] };
 
 function Document({ doc }: { doc: ScanDoc | null }): ReactElement {
   return (
@@ -36,7 +41,7 @@ function Document({ doc }: { doc: ScanDoc | null }): ReactElement {
   );
 }
 
-function Stages({ stage }: { stage: ScanStage }): ReactElement {
+function Stages({ stage, checking }: { stage: ScanStage; checking?: boolean }): ReactElement {
   const now = STAGES.findIndex((s) => s.key === stage);
   const long = useTakingLong(true, 9000);
   return (
@@ -45,7 +50,7 @@ function Stages({ stage }: { stage: ScanStage }): ReactElement {
         {STAGES.map((s, i) => (
           <li key={s.key} className={cx("wk-scan-stage-row", i < now && "is-done", i === now && "is-active")} aria-current={i === now ? "step" : undefined}>
             <span className="wk-scan-tick" aria-hidden="true">{i < now ? <Icon name="check" size={18} /> : i === now ? <span className="wk-scan-spin" /> : null}</span>
-            {s.label}
+            {s.key === "match" && checking ? "משווה להזמנה" : s.label}
           </li>
         ))}
       </ol>
@@ -56,23 +61,23 @@ function Stages({ stage }: { stage: ScanStage }): ReactElement {
   );
 }
 
-function ResultRow({ line, identified }: { line: ReadLine; identified?: Product }): ReactElement {
+function ResultRow({ name, sub, qty, product, fine }: Omit<ComparedRow, "key">): ReactElement {
   return (
     <li className="wk-read">
-      <span className="wk-read-tick" aria-hidden="true">{identified ? <Icon name="check" size={18} /> : <Dot tone="warning" />}</span>
-      <ProductThumb product={identified} small />
+      <span className="wk-read-tick" aria-hidden="true">{fine ? <Icon name="check" size={18} /> : <Dot tone="warning" />}</span>
+      <ProductThumb product={product} small />
       <span className="wk-read-body">
-        <span className="wk-read-name">{line.externalName}</span>
-        <span className="wk-read-sub">{identified ? `זוהה: ${identified.name}` : "מחכה לתשובה שלך"}</span>
+        <span className="wk-read-name">{name}</span>
+        <span className="wk-read-sub">{sub}</span>
       </span>
-      <span className="wk-read-qty">{fmtQty(line.qty)}</span>
+      {qty !== undefined ? <span className="wk-read-qty">{fmtQty(qty)}</span> : null}
     </li>
   );
 }
 
 const count = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
 
-export function Scanner({ scan, docName, unit, identify, onContinue, onManual, onRetake, onCancel, needsDocument }: {
+export function Scanner({ scan, docName, unit, identify, onContinue, onManual, onRetake, onCancel, needsDocument, checking, compared }: {
   scan: Scan;
   /** The document, with its article: התעודה, הקבלה. */
   docName: string;
@@ -86,6 +91,9 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
   onCancel: () => void;
   /** A photo with nothing on it is only retaken. A failed reading still goes on by hand, so an outage doesn't stop the work. */
   needsDocument?: boolean;
+  /** The reading is checked against an order, so a failed one goes on unchecked rather than by hand. */
+  checking?: boolean;
+  compared?: Compared | null;
 }): ReactElement | null {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const settled = scan.status !== "idle" && scan.status !== "reading";
@@ -111,7 +119,7 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
       </div>
       {scan.status === "reading" ? (
         <>
-          <Stages stage={scan.stage} />
+          <Stages stage={scan.stage} checking={checking} />
           <button type="button" className="wk-scan-cancel" onClick={onCancel}>ביטול</button>
         </>
       ) : null}
@@ -120,16 +128,23 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
         <div className="wk-scan-sheet">
           <div className="wk-scan-sheet-head">
             <h2 ref={headingRef} tabIndex={-1} className="wk-scan-sheet-title">
-              {scan.goods.length ? `נקראו ${count(scan.goods.length, `${unit.one} אחת`, unit.many)}` : "לא נמצאו שורות סחורה במסמך"}
+              {compared ? compared.title : scan.goods.length ? `נקראו ${count(scan.goods.length, `${unit.one} אחת`, unit.many)}` : "לא נמצאו שורות סחורה במסמך"}
             </h2>
-            <p className="wk-scan-sheet-lead">
-              {scan.goods.length
-                ? open === 0 ? "הכל זוהה" : `${known ? `${count(known, "אחת זוהתה", "זוהו")} · ` : ""}${count(open, "אחת מחכה", "מחכות")} לך`
-                : "יש במסמך רק עבודות"}
-            </p>
+            {!compared || compared.lead ? (
+              <p className="wk-scan-sheet-lead">
+                {compared ? compared.lead : scan.goods.length
+                  ? open === 0 ? "הכל זוהה" : `${known ? `${count(known, "אחת זוהתה", "זוהו")} · ` : ""}${count(open, "אחת מחכה", "מחכות")} לך`
+                  : "יש במסמך רק עבודות"}
+              </p>
+            ) : null}
           </div>
           <ul className="wk-scan-list">
-            {scan.goods.map((l, i) => <ResultRow key={`${l.externalName}-${i}`} line={l} identified={identify(l)} />)}
+            {compared
+              ? compared.rows.map(({ key, ...row }) => <ResultRow key={key} {...row} />)
+              : scan.goods.map((l, i) => {
+                  const p = identify(l);
+                  return <ResultRow key={`${l.externalName}-${i}`} name={l.externalName} sub={p ? `זוהה: ${fmtName(p.name)}` : "מחכה לתשובה שלך"} qty={l.qty} product={p} fine={!!p} />;
+                })}
             {scan.services.map((sv, i) => (
               <li key={`${sv.externalName}-${i}`} className="wk-read">
                 <span className="wk-read-tick" aria-hidden="true" />
@@ -142,7 +157,7 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
             ))}
           </ul>
           <div className="wk-scan-actions">
-            <Button variant="primary" size="touch" onClick={onContinue}>המשך לבדיקה</Button>
+            <Button variant="primary" size="touch" onClick={onContinue}>{compared?.cta ?? "המשך לבדיקה"}</Button>
             <CameraButton quiet label="צילום מחדש" onFile={onRetake} />
           </div>
         </div>
@@ -154,7 +169,7 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
             <h2 ref={headingRef} tabIndex={-1} className="wk-scan-sheet-title">{scan.status === "empty" ? "לא נמצאו שורות במסמך" : "הקריאה לא הצליחה"}</h2>
             <p className="wk-scan-sheet-lead">
               {scan.status === "failed"
-                ? "לצלם שוב, או להקליד ידנית"
+                ? checking ? "לצלם שוב, או להמשיך בלי בדיקה" : "לצלם שוב, או להקליד ידנית"
                 : needsDocument ? "לצלם שוב מקרוב" : "לצלם שוב מקרוב, או להקליד ידנית"}
             </p>
           </div>
@@ -162,7 +177,7 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
             <CameraButton label="צילום מחדש" onFile={onRetake} />
             {scan.status === "empty" && needsDocument
               ? <Button variant="secondary" size="touch" onClick={onCancel}>ביטול</Button>
-              : <Button variant="secondary" size="touch" onClick={onManual}>הקלדה ידנית</Button>}
+              : <Button variant="secondary" size="touch" onClick={onManual}>{checking ? "המשך בלי בדיקה" : "הקלדה ידנית"}</Button>}
           </div>
         </div>
       ) : null}

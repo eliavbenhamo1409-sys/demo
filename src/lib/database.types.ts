@@ -285,6 +285,7 @@ export type Database = {
       orders: {
         Row: {
           agent_id: string
+          changes: Json
           closed_at: string | null
           created_at: string
           customer: string
@@ -293,11 +294,13 @@ export type Database = {
           note: string | null
           number: number
           promised_on: string | null
+          receipt_read: boolean | null
           request_id: string
           status: Database["public"]["Enums"]["order_status"]
         }
         Insert: {
           agent_id: string
+          changes?: Json
           closed_at?: string | null
           created_at?: string
           customer: string
@@ -306,11 +309,13 @@ export type Database = {
           note?: string | null
           number?: never
           promised_on?: string | null
+          receipt_read?: boolean | null
           request_id: string
           status?: Database["public"]["Enums"]["order_status"]
         }
         Update: {
           agent_id?: string
+          changes?: Json
           closed_at?: string | null
           created_at?: string
           customer?: string
@@ -319,6 +324,7 @@ export type Database = {
           note?: string | null
           number?: never
           promised_on?: string | null
+          receipt_read?: boolean | null
           request_id?: string
           status?: Database["public"]["Enums"]["order_status"]
         }
@@ -661,6 +667,10 @@ export type Database = {
       day_summary: { Args: { target: string }; Returns: Json }
       deliver_order: {
         Args: { by_worker?: string; receipt?: string; target_order: string }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
+      }
+      deliver_order_checked: {
+        Args: { by_worker: string; diffs?: Json; receipt: string; target_order: string; was_read: boolean }
         Returns: Database["public"]["Tables"]["orders"]["Row"]
       }
       deliver_order_no_receipt: {

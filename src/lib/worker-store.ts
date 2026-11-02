@@ -11,6 +11,7 @@ import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { byPromise } from "@/lib/format";
 import { useData, type DocumentInput } from "@/lib/store";
+import type { OrderChange } from "@/lib/worker/order-check";
 
 const WORKER_KEY = "worker.id";
 const CUSTOMERS_KEY = "worker.customers";
@@ -170,9 +171,9 @@ export function useOpenOrders() {
   return { orders, refresh };
 }
 
-/** The order left the warehouse: the database posts its movements and releases the hold, or throws its own message. */
-export async function deliverOrder(orderId: string, workerId: string, documentId: string): Promise<void> {
-  const { error } = await supabase().rpc("deliver_order", { target_order: orderId, by_worker: workerId, receipt: documentId });
+/** The order left the warehouse as the worker found it against the receipt: the database posts what really left, keeps the differences and releases the hold, or throws its own message. */
+export async function deliverOrder(orderId: string, workerId: string, documentId: string, wasRead: boolean, changes: OrderChange[]): Promise<void> {
+  const { error } = await supabase().rpc("deliver_order_checked", { target_order: orderId, by_worker: workerId, receipt: documentId, was_read: wasRead, diffs: changes });
   if (error) throw new Error(error.message);
 }
 
