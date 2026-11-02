@@ -2,98 +2,89 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { available, dayKey, useData, type AttentionEntry, type Movement as MovementRow, type Order } from "@/lib/store";
+import { available, useData, type AttentionEntry, type AttentionKind, type Movement as MovementRow } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
-import { WeeklyChart } from "@/components/app/WeeklyChart";
 import { AttentionGroups, type GroupedItem } from "@/components/app/AttentionGroups";
-import { CountUp, ProductThumb, SparkBars, StockBar } from "@/components/app/Viz";
+import { OpenOrders, RunningOut, Shekels, ShelfPicture, type Check, type CheckTone } from "@/components/app/Snapshot";
+import { CountUp, ProductThumb } from "@/components/app/Viz";
 import {
   Button,
   Card,
   EmptyState,
   Movement,
   MovementQty,
+  Notice,
   PageHead,
   Showing,
   Stat,
   Table,
   type TableColumn,
 } from "@/components/ui";
-import { fmtName, fmtQty, fmtToday, fmtWhen } from "@/lib/format";
+import { daysUntil, fmtName, fmtPrice, fmtQty, fmtRelative, fmtToday, fmtWhen } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { useDismissedAlerts } from "@/lib/dismissed-alerts";
+import { midnight, useMovementsInRange } from "@/lib/movements-range";
+import { movedWorth, PACE_DAYS, runway, shelfWorth, type Runway } from "@/lib/snapshot";
 
-const RECENT = 12;
+const RECENT = 6;
 
 /** The open orders listed here; the orders page has the rest. */
 const OPEN_ORDERS = 6;
 
-/** Phones keep the product, its action and its quantity; the time and worker columns go. */
-const PHONE_RECENT = "max-[600px]:[&_:is(td,th):is(:nth-child(4),:nth-child(5))]:hidden";
+/** The products closest to running out; the inventory page has the rest. */
+const RUNNING_OUT = 5;
 
-/** Phones keep the customer, the order's number and when it came; the order panel has the rest. */
-const PHONE_ORDERS = "max-[600px]:[&_:is(td,th):is(:nth-child(2),:nth-child(3))]:hidden";
+/** Phones keep the product and its quantity, with the action a word under the figure; the name gets the room. A tablet gives up the worker for it. */
+const PHONE_RECENT = "max-[600px]:[&_:is(td,th):is(:nth-child(2),:nth-child(4),:nth-child(5))]:hidden min-[601px]:max-[1099px]:[&_:is(td,th):nth-child(4)]:hidden";
 
 /** On phones this cell takes what the other two leave, so a long name truncates instead of scrolling the table sideways. */
 const PHONE_MAIN_CELL = "max-[600px]:w-full max-[600px]:max-w-0";
 
-/** From 1100px a table clips instead of scrolling (minimal.css), so this cell gives way before מועד is cut off. */
-const WIDE_PRODUCTS_CELL = "min-[1100px]:w-[30%] min-[1100px]:max-w-0";
+/** From 1100px a table clips instead of scrolling (minimal.css), so a long name truncates and the columns after it keep their width. */
+const WIDE_NAME_CELL = "min-[1100px]:max-[1499px]:w-full min-[1100px]:max-[1499px]:max-w-0";
 
 const count = (n: number, one: string, many: string) => `${fmtQty(n)} ${n === 1 ? one : many}`;
 
+const answer = ([text, tone]: [string, CheckTone]) => ({ answer: text, tone });
+
+/** Stock has its own list on this screen, with the days each product has left. */
+const isStock = (a: { kind: AttentionKind }) => a.kind === "out" || a.kind === "low";
+
 export default function OverviewPage() {
-  const { state, stats, attention, weekly, product, worker, agent, linesOf, resolveFault } = useData();
-  const { openAction, openProduct, openOrder, notify } = useUi();
+  const { state, stats, attention, product, worker, linesOf, resolveFault } = useData();
+  const { openAction, openProduct, notify } = useUi();
   const { dismissed, dismiss } = useDismissedAlerts();
   const [busyFault, setBusyFault] = useState<string | null>(null);
   const isLoading = state.status === "loading";
 
-  /* ───────── stats ───────── */
-  const stockNote =
-    stats.out > 0 && stats.low > 0
-      ? `${count(stats.out, "אזל", "אזלו")} · ${fmtQty(stats.low)} מתחת למינימום`
-      : stats.out > 0
-        ? `${count(stats.out, "אזל", "אזלו")} מהמלאי`
-        : stats.low > 0
-          ? `${fmtQty(stats.low)} מתחת למינימום`
-          : stats.short > 0
-            ? `${fmtQty(stats.short)} חסר להזמנות`
-            : stats.products > 0
-              ? "כל המוצרים מעל המינימום"
-              : undefined;
+  // The week's worth and the pace of goods out both need days the store may no longer hold.
+  const since = useMemo(() => midnight(1 - PACE_DAYS), []);
+  const { rows: month, isLoading: monthLoading, failed: monthFailed, retry: retryMonth } = useMovementsInRange(since, null);
 
-  const delta =
-    stats.movementsYesterday > 0 && stats.movementsToday > 0
-      ? Math.round(((stats.movementsToday - stats.movementsYesterday) / stats.movementsYesterday) * 100)
-      : undefined;
+  /* ───────── worth ───────── */
+  const worth = useMemo(() => shelfWorth(state.products), [state.products]);
 
-  // An empty shelf that orders still hold counts once, as short, so the note adds up to the exceptions figure.
-  const stockAlerts = attention.filter((a) => a.kind === "out" || a.kind === "low").length;
+  const flow = useMemo(() => {
+    const week = midnight(-6), weekBefore = midnight(-13);
+    const moved = (type: "in" | "out", from: number, to = Number.POSITIVE_INFINITY) => movedWorth(month, type, from, to, product);
+    return {
+      outWeek: moved("out", week),
+      outWeekBefore: moved("out", weekBefore, week),
+      inWeek: moved("in", week),
+      inWeekBefore: moved("in", weekBefore, week),
+    };
+  }, [month, product]);
 
-  const exceptionsNote =
-    stats.exceptions > 0
-      ? [
-          stats.openFaults > 0 ? count(stats.openFaults, "תקלה", "תקלות") : "",
-          stats.short > 0 ? `${fmtQty(stats.short)} חסר להזמנות` : "",
-          stats.pendingRequests > 0 ? count(stats.pendingRequests, "בקשה", "בקשות") : "",
-          stats.pendingMappings > 0 ? count(stats.pendingMappings, "התאמה", "התאמות") : "",
-          stockAlerts > 0 ? count(stockAlerts, "מוצר", "מוצרים") : "",
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : undefined;
+  const latest = state.movements[0];
 
-  // Orders placed on each of the week's days, in the same seven days as the movements.
-  const ordersByDay = useMemo(() => {
-    const days = new Map(weekly.map((d, i) => [d.day, i]));
-    const counts = weekly.map(() => 0);
-    for (const o of state.orders) {
-      const i = days.get(dayKey(o.created_at));
-      if (i !== undefined) counts[i] += 1;
-    }
-    return counts;
-  }, [weekly, state.orders]);
+  /* ───────── what runs out first ───────── */
+  const soon = useMemo(() => {
+    // A removed stock alert remembers what was available, so a new reservation brings it back.
+    const removed = (r: Runway) => (r.state === "out" || r.state === "low") && dismissed[`${r.state}:${r.product.id}`] === r.free;
+    return runway(state.products, month).filter((r) => (r.days !== null || r.state !== "ok") && !removed(r));
+  }, [state.products, month, dismissed]);
+
+  const onRemoveAlert = useCallback((r: Runway) => dismiss(`${r.state}:${r.product.id}`, r.free), [dismiss]);
 
   /* ───────── attention ───────── */
   const onResolve = useCallback(
@@ -112,23 +103,9 @@ export default function OverviewPage() {
     [resolveFault, notify, busyFault],
   );
 
-  // A removed stock alert remembers what was available, so a new reservation brings it back.
-  const availableFor = useCallback(
-    (entry: AttentionEntry) => {
-      const p = product(entry.productId);
-      return p ? available(p) : 0;
-    },
-    [product],
-  );
-
-  const openAttention = useMemo(
-    () => attention.filter((a) => !(a.kind === "out" || a.kind === "low") || dismissed[a.id] !== availableFor(a)),
-    [attention, dismissed, availableFor],
-  );
-
-  const attentionItems = useMemo<GroupedItem[]>(
+  const workItems = useMemo<GroupedItem[]>(
     () =>
-      openAttention.map((a) => {
+      attention.filter((a) => !isStock(a)).map((a) => {
         const base: GroupedItem = {
           kind: a.kind,
           id: a.id,
@@ -139,15 +116,6 @@ export default function OverviewPage() {
           meta: a.meta.map((m, i) => (i === 0 && a.kind !== "fault" && /^[\x20-\x7E]+$/.test(m) ? <span key={i} className="sa-mono ltr">{m}</span> : m)),
         };
         switch (a.kind) {
-          case "out":
-          case "low":
-            return {
-              ...base,
-              onOpen: () => openProduct(a.productId as string),
-              onDismiss: () => dismiss(a.id, availableFor(a)),
-            };
-          case "short":
-            return { ...base, onOpen: () => openProduct(a.productId as string) };
           case "fault": {
             const src = faultPhotoUrl(a.photoPath);
             return {
@@ -162,54 +130,53 @@ export default function OverviewPage() {
             return { ...base, onOpen: () => openAction("review-item-request", { requestId: a.requestId }) };
           case "mapping":
             return { ...base, onOpen: () => openAction("map-supplier-item", { supplierItemId: a.supplierItemId }) };
+          default:
+            return { ...base, onOpen: () => openProduct(a.productId as string) };
         }
       }),
-    [openAttention, openAction, openProduct, onResolve, dismiss, availableFor],
+    [attention, openAction, openProduct, onResolve],
   );
 
-  /* ───────── open orders ───────── */
-  // state.orders is newest first; the oldest has waited longest, so it leads here.
-  const openOrders = useMemo(() => state.orders.filter((o) => o.status === "open").reverse(), [state.orders]);
+  /* ───────── the worries ───────── */
+  const promises = useMemo(() => {
+    const open = state.orders.filter((o) => o.status === "open");
+    const short = (id: string) => {
+      const p = product(id);
+      return p ? available(p) < 0 : false;
+    };
+    return {
+      open: open.length,
+      uncovered: open.filter((o) => linesOf(o.id).some((l) => short(l.product_id))).length,
+      late: open.filter((o) => o.promised_on && daysUntil(o.promised_on) < 0).length,
+    };
+  }, [state.orders, linesOf, product]);
 
-  const orderColumns = useMemo<TableColumn<Order>[]>(
-    () => [
-      {
-        key: "customer",
-        title: "לקוח",
-        className: PHONE_MAIN_CELL,
-        render: (o) => <span className="sa-cell-primary sa-truncate block max-w-[240px] max-[600px]:max-w-none" title={o.customer}>{o.customer}</span>,
-      },
-      {
-        key: "products",
-        title: "מוצרים",
-        className: WIDE_PRODUCTS_CELL,
-        render: (o) => {
-          const lines = linesOf(o.id);
-          const first = product(lines[0]?.product_id);
-          return (
-            <span className="sa-thumbed">
-              <ProductThumb product={first} small />
-              <span className="flex min-w-0 items-baseline gap-[var(--space-2)]">
-                <span className="sa-truncate" title={first?.name}>{first ? fmtName(first.name) : "—"}</span>
-                {lines.length > 1 ? <span className="sa-mono ltr text-ink-3">+{lines.length - 1}</span> : null}
-              </span>
-            </span>
-          );
-        },
-      },
-      {
-        key: "agent",
-        title: "סוכן",
-        render: (o) => {
-          const name = agent(o.agent_id)?.name;
-          return <span className="sa-truncate block max-w-[140px]" title={name}>{name ?? "—"}</span>;
-        },
-      },
-      { key: "number", title: "מספר", width: "88px", mono: true, muted: true },
-      { key: "created_at", title: "מועד", width: "128px", mono: true, muted: true, render: (o) => fmtWhen(o.created_at) },
-    ],
-    [agent, product, linesOf],
-  );
+  const pending = stats.pendingRequests + stats.pendingMappings;
+  const toRefill = soon.filter((r) => r.state === "out" || r.state === "low").length;
+
+  const checks: Check[] = [
+    {
+      key: "faults",
+      label: "תקלות",
+      icon: "alert-circle",
+      href: "/faults",
+      ...answer(stats.openFaults > 0 ? [count(stats.openFaults, "פתוחה", "פתוחות"), "bad"] : ["אין פתוחות", "ok"]),
+    },
+    {
+      key: "approvals",
+      label: "אישורים",
+      icon: "clipboard-check",
+      href: pending > 0 ? "#ov-work" : "/suppliers",
+      ...answer(pending > 0 ? [count(pending, "ממתין", "ממתינים"), "warn"] : ["אין ממתינים", "ok"]),
+    },
+    {
+      key: "stock",
+      label: "מלאי",
+      icon: "package",
+      href: stats.low > 0 ? "/inventory?filter=low" : stats.out > 0 ? "/inventory?filter=out" : "/inventory",
+      ...answer(toRefill > 0 ? [`${fmtQty(toRefill)} להשלמה`, "warn"] : ["אין מה להשלים", "ok"]),
+    },
+  ];
 
   /* ───────── recent movements ───────── */
   const recent = useMemo(() => state.movements.slice(0, RECENT), [state.movements]);
@@ -219,14 +186,14 @@ export default function OverviewPage() {
       {
         key: "product_id",
         title: "מוצר",
-        className: PHONE_MAIN_CELL,
+        className: `${PHONE_MAIN_CELL} ${WIDE_NAME_CELL}`,
         render: (m) => {
           const p = product(m.product_id);
           return (
             <span className="sa-thumbed">
               <ProductThumb product={p} />
               <span className="flex min-w-0 flex-col">
-                <span className="block truncate text-ink">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
+                <span className="sa-cell-primary sa-truncate block">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
                 {p ? <span className="sa-cell-sub sa-mono ltr self-start">{p.sku}</span> : null}
               </span>
             </span>
@@ -239,7 +206,12 @@ export default function OverviewPage() {
         title: "כמות",
         width: "96px",
         align: "num",
-        render: (m) => <MovementQty qty={m.qty} type={m.type} />,
+        render: (m) => (
+          <>
+            <MovementQty qty={m.qty} type={m.type} />
+            <span className="sa-cell-sub min-[601px]:hidden! [&_svg]:hidden"><Movement type={m.type} /></span>
+          </>
+        ),
       },
       {
         key: "worker_id",
@@ -259,95 +231,55 @@ export default function OverviewPage() {
     <div className="sa-page">
       <PageHead title="סקירה" sub={fmtToday()} />
 
+      <ShelfPicture worth={worth} products={stats.products} orders={promises} checks={checks} />
+
+      {monthFailed ? (
+        <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
+          הסכומים מחושבים רק לפי מה שנטען
+        </Notice>
+      ) : null}
+
+      {workItems.length > 0 ? (
+        <div id="ov-work" className="min-w-0">
+          <Card title="דורש טיפול" count={workItems.length} flush>
+            <AttentionGroups items={workItems} />
+          </Card>
+        </div>
+      ) : null}
+
       <div className="sa-stats ov-stats">
         <Stat
-          label="מצב מלאי"
-          icon="package"
-          href="/inventory"
-          value={<CountUp value={stats.products} />}
-          unit="מוצרים"
-          note={stockNote}
-          tone={stats.out > 0 || stats.low > 0 || stats.short > 0 ? "warning" : undefined}
-          viz={
-            <StockBar
-              label={stockNote ?? "מצב המלאי"}
-              parts={[
-                { tone: "ok", value: Math.max(0, stats.products - stats.low - stats.out - stats.short) },
-                { tone: "low", value: stats.low },
-                { tone: "out", value: stats.out + stats.short },
-              ]}
-            />
-          }
+          label="יצא השבוע"
+          icon="arrow-up-right"
+          href="/movements?period=week"
+          value={<Shekels value={flow.outWeek} />}
+          note={`במחירון · שבוע קודם ${fmtPrice(Math.round(flow.outWeekBefore))}`}
         />
         <Stat
-          label="הזמנות פתוחות"
-          icon="inbox"
-          href="/orders"
-          value={<CountUp value={stats.openOrders} />}
-          note={stats.reservedProducts > 0 ? count(stats.reservedProducts, "מוצר משוריין", "מוצרים משוריינים") : undefined}
-          viz={<SparkBars values={ordersByDay} label="הזמנות בשבעת הימים האחרונים" />}
+          label="נכנס השבוע"
+          icon="arrow-down-left"
+          href="/movements?period=week"
+          value={<Shekels value={flow.inWeek} />}
+          note={`במחירון · שבוע קודם ${fmtPrice(Math.round(flow.inWeekBefore))}`}
         />
         <Stat
-          label="תנועות היום"
+          label="היום במחסן"
           icon="activity"
           href="/movements?period=today"
           value={<CountUp value={stats.movementsToday} />}
-          delta={delta}
-          deltaUnit={delta != null ? "%" : undefined}
-          note={stats.movementsYesterday > 0 ? "לעומת אתמול" : stats.movementsToday > 0 ? "אין תנועות אתמול" : undefined}
-          viz={<SparkBars values={weekly.map((d) => d.total)} label="תנועות בשבעת הימים האחרונים" />}
-        />
-        <Stat
-          label="חריגות פתוחות"
-          icon="alert-circle"
-          value={<CountUp value={stats.exceptions} />}
-          note={exceptionsNote}
-          tone={stats.openFaults > 0 ? "danger" : stats.exceptions > 0 ? "warning" : undefined}
-          viz={
-            <StockBar
-              label={exceptionsNote ?? "אין חריגות"}
-              parts={[
-                { tone: "out", value: stats.openFaults + stats.short },
-                { tone: "low", value: stockAlerts },
-                { tone: "other", value: stats.pendingRequests + stats.pendingMappings },
-              ]}
-            />
-          }
+          unit={stats.movementsToday === 1 ? "תנועה" : "תנועות"}
+          note={latest ? `אחרונה ${fmtRelative(latest.created_at)}` : undefined}
         />
       </div>
 
       <div className="ov-split">
-        <Card title="דורש טיפול" count={openAttention.length || undefined} flush className="min-w-0">
-          <AttentionGroups items={attentionItems} />
-        </Card>
-        <WeeklyChart days={weekly} className="min-w-0" />
+        <RunningOut rows={soon} shown={RUNNING_OUT} isLoading={isLoading || monthLoading} onDismiss={onRemoveAlert} />
+        <OpenOrders shown={OPEN_ORDERS} isLoading={isLoading} />
       </div>
-
-      <Card title="הזמנות פתוחות" count={openOrders.length || undefined} flush>
-        <Table<Order>
-          className={PHONE_ORDERS}
-          columns={orderColumns}
-          data={openOrders.slice(0, OPEN_ORDERS)}
-          isLoading={isLoading}
-          caption="ההזמנות הפתוחות, הוותיקה ראשונה"
-          onRowClick={(o) => openOrder(o.id)}
-          empty={<EmptyState title="אין הזמנות פתוחות" hint="הזמנה של סוכן תופיע כאן" />}
-          footer={
-            openOrders.length > 0 ? (
-              <>
-                {openOrders.length > OPEN_ORDERS ? <Showing shown={OPEN_ORDERS} total={openOrders.length} /> : null}
-                <Link href="/orders" className="sa-btn sa-btn-link sa-btn-sm ms-auto">
-                  כל ההזמנות
-                </Link>
-              </>
-            ) : undefined
-          }
-        />
-      </Card>
 
       <Card title="תנועות אחרונות" flush>
         <Table<MovementRow>
-          className={PHONE_RECENT}
+          className={`ov-recent ${PHONE_RECENT}`}
           columns={columns}
           data={recent}
           isLoading={isLoading}

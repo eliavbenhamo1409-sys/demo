@@ -87,6 +87,40 @@ export function daysAgo(iso: string, now: number): number {
   return Math.round((Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
 }
 
+/** Whole days from today to a date with no hour: 0 is today, below zero has passed. */
+export function daysUntil(day: string, now: number = Date.now()): number {
+  const [y, m, d] = day.split("-").map(Number);
+  const n = new Date(now);
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
+}
+
+/** "05.11", for a date with no hour. */
+export function fmtPlainDay(day: string): string {
+  return day.slice(5).split("-").reverse().join(".");
+}
+
+/** The delivery an agent promised, as it stands today: "היום" / "מחר" / "05.11", or how late it is. */
+export function fmtPromised(day: string, now: number = Date.now()): string {
+  const days = daysUntil(day, now);
+  if (days === 0) return "היום";
+  if (days === 1) return "מחר";
+  if (days === -1) return "באיחור של יום";
+  if (days < 0) return `באיחור של ${-days} ימים`;
+  return fmtPlainDay(day);
+}
+
+const weekdayFmt = new Intl.DateTimeFormat("he-IL", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+
+/** "יום חמישי, 5 בנובמבר": a promise to a customer is made in days of the week. */
+export function fmtWeekday(day: string): string {
+  return weekdayFmt.format(new Date(`${day}T00:00:00Z`));
+}
+
+/** Nearest promise first; an order with no date goes after them. */
+export function byPromise(a: { promised_on: string | null }, b: { promised_on: string | null }): number {
+  return (a.promised_on ?? "9").localeCompare(b.promised_on ?? "9");
+}
+
 /** "היום" / "אתמול" / "28.10", and "28.10.25" once the date is in another year. */
 export function fmtDayWord(iso: string, now: number = Date.now()): string {
   const days = daysAgo(iso, now);

@@ -244,7 +244,6 @@ export type Stats = {
   low: number;
   out: number;
   movementsToday: number;
-  movementsYesterday: number;
   inToday: number;
   outToday: number;
   openFaults: number;
@@ -253,7 +252,6 @@ export type Stats = {
   openOrders: number;
   reservedProducts: number;
   short: number;
-  exceptions: number;
 };
 
 /* ─────────────────────────── mutations API ─────────────────────────── */
@@ -583,32 +581,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const stats = useMemo<Stats>(() => {
     const today = dayKey(new Date().toISOString());
-    const y = new Date();
-    y.setDate(y.getDate() - 1);
-    const yesterday = dayKey(y.toISOString());
-    let movementsToday = 0, movementsYesterday = 0, inToday = 0, outToday = 0;
+    let movementsToday = 0, inToday = 0, outToday = 0;
     for (const m of state.movements) {
-      const k = dayKey(m.created_at);
-      if (k === today) {
-        movementsToday++;
-        if (m.type === "in") inToday += m.qty;
-        if (m.type === "out") outToday += m.qty;
-      } else if (k === yesterday) movementsYesterday++;
+      if (dayKey(m.created_at) !== today) continue;
+      movementsToday++;
+      if (m.type === "in") inToday += m.qty;
+      if (m.type === "out") outToday += m.qty;
     }
     const short = state.products.filter((p) => available(p) < 0).length;
     const low = state.products.filter((p) => p.qty > 0 && available(p) >= 0 && p.min_qty > 0 && available(p) < p.min_qty).length;
     const out = state.products.filter((p) => p.qty <= 0).length;
-    // An empty shelf that orders still hold is one exception, listed once as short.
-    const outAndShort = state.products.filter((p) => p.qty <= 0 && available(p) < 0).length;
     const openFaults = state.faults.filter((f) => f.status === "open").length;
     const pendingMappings = state.supplierItems.filter((i) => i.status === "pending").length;
     const pendingRequests = state.itemRequests.filter((r) => r.status === "pending").length;
     const openOrders = state.orders.filter((o) => o.status === "open").length;
     const reservedProducts = state.products.filter((p) => p.reserved > 0).length;
     return {
-      products: state.products.length, low, out, movementsToday, movementsYesterday, inToday, outToday,
+      products: state.products.length, low, out, movementsToday, inToday, outToday,
       openFaults, pendingMappings, pendingRequests, openOrders, reservedProducts, short,
-      exceptions: out - outAndShort + short + low + openFaults + pendingMappings + pendingRequests,
     };
   }, [state.products, state.movements, state.faults, state.supplierItems, state.itemRequests, state.orders]);
 

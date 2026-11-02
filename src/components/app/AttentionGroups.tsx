@@ -2,9 +2,9 @@
 
 /**
  * "דורש טיפול": danger items sit in a plain always-open list on top; the rest
- * fall into collapsible groups, one row per kind of problem (stock, supplier
- * dictionary). Only kinds with open items are shown; each row shows a quiet
- * count and opens in place to list its items.
+ * fall into collapsible groups, one row per kind of problem. Only kinds with
+ * open items are shown; each row shows a quiet count and opens in place to
+ * list its items. Stock has its own list on the overview.
  */
 import { useId, useState } from "react";
 import { Attention, Icon, type AttentionItem, type IconName } from "@/components/ui";
@@ -12,7 +12,7 @@ import type { AttentionKind } from "@/lib/store";
 import { fmtQty } from "@/lib/format";
 import "./overview.css";
 
-export type GroupKey = "request" | "stock" | "mapping";
+export type GroupKey = "request" | "mapping";
 
 export type GroupedItem = AttentionItem & { kind: AttentionKind };
 
@@ -20,7 +20,6 @@ type GroupDef = { key: GroupKey; title: string; hint: string; icon: IconName; ki
 
 const GROUPS: GroupDef[] = [
   { key: "request", title: "בקשות", hint: "ממתינים לאישור", icon: "book-open", kinds: ["request"] },
-  { key: "stock", title: "מלאי", hint: "מתחת למינימום", icon: "package", kinds: ["low"] },
   { key: "mapping", title: "מילון ספקים", hint: "ממתינים לאישור", icon: "truck", kinds: ["mapping"] },
 ];
 

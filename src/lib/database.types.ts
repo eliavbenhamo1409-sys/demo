@@ -268,6 +268,7 @@ export type Database = {
           id: string
           note: string | null
           number: number
+          promised_on: string | null
           request_id: string
           status: Database["public"]["Enums"]["order_status"]
         }
@@ -280,6 +281,7 @@ export type Database = {
           id?: string
           note?: string | null
           number?: never
+          promised_on?: string | null
           request_id: string
           status?: Database["public"]["Enums"]["order_status"]
         }
@@ -292,6 +294,7 @@ export type Database = {
           id?: string
           note?: string | null
           number?: never
+          promised_on?: string | null
           request_id?: string
           status?: Database["public"]["Enums"]["order_status"]
         }

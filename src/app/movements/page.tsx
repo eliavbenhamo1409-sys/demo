@@ -4,9 +4,10 @@
  * תנועות — every stock movement, narrowed by date, hours, who did it and the rest.
  * The store keeps only the latest rows, so a period that reaches past them is read from the database.
  */
-import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { RECENT_MOVEMENTS, useData, type Movement as MovementRow, type MovementType } from "@/lib/store";
+import { useData, type Movement as MovementRow, type MovementType } from "@/lib/store";
+import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import {
@@ -53,11 +54,6 @@ function periodFromParams(params: URLSearchParams): Period {
   return PERIODS.find((p) => p.value === value)?.value ?? DEFAULT_PERIOD;
 }
 
-/** Local midnight, `offset` days from `day`. */
-function midnight(offset = 0, day = new Date()): number {
-  return new Date(day.getFullYear(), day.getMonth(), day.getDate() + offset).getTime();
-}
-
 /** The yyyy-mm-dd a date input holds. */
 function dayValue(t: number): string {
   const d = new Date(t);
@@ -93,54 +89,6 @@ function inHours(iso: string, from: string, to: string): boolean {
   const t = fmtTime(iso);
   if (from && to && from > to) return t >= from || t <= to;
   return (!from || t >= from) && (!to || t <= to);
-}
-
-/** Every movement in the range, newest first: the store's live rows on top of whatever had to come from the database. */
-function useMovementsInRange(from: number | null, to: number | null) {
-  const { state, fetchMovements } = useData();
-  const [older, setOlder] = useState<{ key: string; rows: MovementRow[] } | null>(null);
-  const [failedKey, setFailedKey] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-
-  const key = `${from}|${to}`;
-  const oldest = state.movements[state.movements.length - 1];
-  const complete = state.movements.length < RECENT_MOVEMENTS || (from !== null && from >= Date.parse(oldest.created_at));
-
-  useEffect(() => {
-    if (complete) return;
-    let current = true;
-    fetchMovements(from, to).then(
-      (rows) => {
-        if (current) setOlder({ key, rows });
-      },
-      () => {
-        if (current) setFailedKey(key);
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [complete, key, from, to, attempt, fetchMovements]);
-
-  const fetched = !complete && older?.key === key ? older.rows : null;
-
-  const rows = useMemo(() => {
-    const byId = new Map<string, MovementRow>();
-    for (const m of fetched ?? []) byId.set(m.id, m);
-    for (const m of state.movements) {
-      const t = Date.parse(m.created_at);
-      if ((from === null || t >= from) && (to === null || t < to)) byId.set(m.id, m);
-    }
-    return [...byId.values()].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
-  }, [fetched, state.movements, from, to]);
-
-  const failed = !complete && !fetched && failedKey === key;
-  const retry = useCallback(() => {
-    setFailedKey(null);
-    setAttempt((n) => n + 1);
-  }, []);
-
-  return { rows, isLoading: !complete && !fetched && !failed, failed, retry };
 }
 
 export default function MovementsPage() {
