@@ -100,7 +100,6 @@ export default function ReceivePage() {
   const [supplierId, setSupplierId] = useState("");
   const [pickSupplier, setPickSupplier] = useState(false);
   const [addSupplier, setAddSupplier] = useState(false);
-  const [reference, setReference] = useState("");
   const [mode, setMode] = useState<"photo" | "manual" | null>(null);
   const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null);
   /** How many lines the last reading produced; null when nothing was read. */
@@ -231,7 +230,7 @@ export default function ReceivePage() {
     setBusy(true);
     setError(null);
     const servicesNote = services.length ? `עבודות: ${services.map((sv) => `${sv.externalName}${sv.qty !== 1 ? ` ×${sv.qty}` : ""}`).join(", ")}` : "";
-    const documentId = photo ? await receipt.save(photo.file, { supplierId, reference: reference.trim() || null, workerId: worker.id }) : null;
+    const documentId = photo ? await receipt.save(photo.file, { supplierId, workerId: worker.id }) : null;
     const photoNote = documentId ? "תעודה צולמה" : photo ? "תעודה צולמה (ההעלאה נכשלה)" : "";
     const note = [photoNote, servicesNote].filter(Boolean).join(" · ") || null;
     setProgress(saved.current.size);
@@ -246,7 +245,7 @@ export default function ReceivePage() {
           const part = each[i];
           const mark = `${l.id}#${i}`;
           if (savedParts.current.has(mark)) continue;
-          await receive({ productId: p.id, qty: part?.qty ?? l.qty, supplierId, workerId: worker.id, reference: reference.trim() || null, note, externalName: l.externalName.trim(), documentId, place: part?.place ?? null });
+          await receive({ productId: p.id, qty: part?.qty ?? l.qty, supplierId, workerId: worker.id, note, externalName: l.externalName.trim(), documentId, place: part?.place ?? null });
           savedParts.current.add(mark);
         }
         saved.current.set(l.id, { key: l.id, title: fmtName(p.name), sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p });
@@ -383,9 +382,6 @@ export default function ReceivePage() {
             <CameraButton quiet={mode === "manual"} label="צילום תעודת המשלוח" onFile={onPhoto} />
           )}
           {supplier ? <Row title="הקלדה ידנית" selected={mode === "manual"} onClick={() => setMode("manual")} /> : null}
-        </Section>
-        <Section id="reference" title="מספר תעודה" need="optional">
-          <Input size="touch" aria-label="מספר תעודה" mono inputMode="numeric" placeholder="123456" value={reference} onChange={(e) => setReference(e.target.value)} />
         </Section>
       </Flow>
     );
@@ -592,7 +588,6 @@ export default function ReceivePage() {
         heading="פרטי הקליטה"
         meta={[
           { k: "ספק", v: supplier?.name },
-          ...(reference.trim() ? [{ k: "תעודה", v: <span className="sa-num">{reference.trim()}</span> }] : []),
           ...(photo ? [{ k: "תמונה", v: "צולמה" }] : []),
         ]}
         lines={[]}
