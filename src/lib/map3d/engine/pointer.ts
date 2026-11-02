@@ -63,6 +63,8 @@ export class PointerInput {
 
   private down(event: PointerEvent): void {
     this.press = { x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY, travelled: false };
+    // Nothing else holds the pointer in walk view, and a release over a label would leave the look running.
+    if (this.rig.walking) this.canvas.setPointerCapture(event.pointerId);
     if (this.editing && event.button === 0) this.startDrag(event);
   }
 
@@ -111,6 +113,7 @@ export class PointerInput {
       this.rig.holdInput(false);
       this.canvas.style.cursor = "";
       if (press?.travelled) this.events.onDragObject?.(drag.id, drag.x, drag.z, true);
+      else this.events.onPick({ objectId: drag.id, level: null });
       return;
     }
     if (!press || press.travelled || event.button !== 0) return;

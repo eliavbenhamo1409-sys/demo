@@ -42,5 +42,15 @@ export function readPalette(): ScenePalette | null {
     studio: Number(token("--scene-studio")),
     metal: Number(token("--scene-metal")),
     contact: Number(token("--scene-contact")),
+    forklift: token("--scene-forklift"),
+    stock: {
+      natural: token("--scene-stock-natural"),
+      black: token("--scene-stock-black"),
+      white: token("--scene-stock-white"),
+      bronze: token("--scene-stock-bronze"),
+      roll: token("--scene-stock-roll"),
+      canister: token("--scene-stock-canister"),
+      carton: token("--scene-stock-carton"),
+    },
   };
 }

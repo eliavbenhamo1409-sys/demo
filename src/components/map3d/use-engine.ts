@@ -36,6 +36,8 @@ export function useMapEngine(host: RefObject<HTMLDivElement | null>, events: Req
             },
             { reducedMotion: window.matchMedia(REDUCED_MOTION).matches, coarse: window.matchMedia(COARSE_POINTER).matches },
           );
+          const palette = readPalette();
+          if (palette) created.setPalette(palette);
           setEngine(created);
         } catch {
           setFailed(true);

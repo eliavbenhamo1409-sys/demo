@@ -42,6 +42,14 @@
   text-overflow: ellipsis;
 }
 
+/* On a phone the value takes its own line, in space and not behind a rule. */
+@media (max-width: 899px) {
+  [data-theme^="minimal"] .m3d-summary > div:last-child:nth-child(3) {
+    margin-block-start: var(--space-3);
+    border-block-start: 0;
+  }
+}
+
 /* Inside an object's sheet it is part of that sheet. */
 [data-theme^="minimal"] .m3d-card .m3d-summary {
   grid-template-columns: repeat(3, auto);
@@ -60,6 +68,7 @@
 [data-theme^="minimal"] .m3d-side > .sa-tabs {
   display: flex;
   flex-shrink: 0;
+  align-self: stretch;
 }
 
 [data-theme^="minimal"] .m3d-side > .sa-tabs > .sa-tab {
@@ -417,6 +426,18 @@
     padding: 2px 7px;
     font-size: var(--t-13);
     line-height: var(--l-18);
+  }
+}
+
+/* The ledger's name column is narrow beside the scene: a long name takes a third line before it is cut. */
+[data-theme^="minimal"] .m3d-line-name {
+  -webkit-line-clamp: 3;
+}
+
+/* On a phone three racks stand closer than three tags. The figure stays and the code returns on a tap. */
+@media (max-width: 600px) {
+  [data-theme^="minimal"] .m3d-label.is-attention:not(.is-selected, .is-hover) .m3d-tag-code {
+    display: none;
   }
 }
 

@@ -118,7 +118,7 @@ export class Rig {
     private readonly tracker: Tracker,
     private readonly ease: Easing,
     private readonly options: { reducedMotion: boolean; coarse: boolean },
-    onChange: () => void,
+    private readonly onChange: () => void,
   ) {
     const controls = new OrbitControls(this.camera, canvas);
     controls.enableDamping = true;
@@ -219,6 +219,7 @@ export class Rig {
     this.yaw -= dx * LOOK_SPEED * 1.25;
     this.pitch = MathUtils.clamp(this.pitch - dy * LOOK_SPEED, -PITCH_LIMIT, PITCH_LIMIT);
     this.writeWalk();
+    this.onChange();
   }
 
   floorPoint(ndcX: number, ndcY: number, into: Vector3): Vector3 | null {

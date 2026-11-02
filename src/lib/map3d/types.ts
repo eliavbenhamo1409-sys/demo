@@ -106,6 +106,9 @@ export interface ScenePalette {
   metal: number;
   /** Opacity of the soft pool under what stands on the floor. */
   contact: number;
+  /** Stock and forklift colours for a theme that sets its own. Empty: the engine's. */
+  forklift: string;
+  stock: Readonly<Record<StockFinish | "roll" | "canister" | "carton", string>>;
 }
 
 /* ───────── engine ───────── */
@@ -173,6 +176,8 @@ export interface MapEngine {
   setRoutes(routes: readonly MapRoute[]): void;
   /** A line drawn once along the floor and faded, for one real movement. */
   trace(route: MapRoute): void;
+  /** Stands the forklift at this object, forks to it. Null: its own spot. `animate`: it drives there along the aisles. */
+  setForklift(objectId: string | null, options?: { animate?: boolean }): void;
   /** CSS pixels of the stage covered by UI, so the model centres in what is left. */
   setInsets(insets: Insets): void;
   setLabels(labels: readonly LabelAnchor[]): void;

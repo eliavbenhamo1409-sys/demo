@@ -168,6 +168,11 @@ export class Stock {
       if (moving && before) this.compare(object, before, after);
       this.packed.set(object.id, after);
     }
+    // With nothing sliding no step will ever settle these, so the old skids must not wait for one.
+    if (this.motions.size === 0) {
+      this.leaving.length = 0;
+      this.outgoing.length = 0;
+    }
     this.startedAt = now;
     this.rebuild();
     this.flush();
@@ -216,7 +221,8 @@ export class Stock {
         if (was && now) {
           now.forEach((placed, part) => {
             const from = was[part];
-            if (from.x !== placed.x || from.y !== placed.y || from.z !== placed.z) this.motions.set(placed, { kind: "glide", from, travel: 0 });
+            if (!from) this.motions.set(placed, { kind: "arrive", travel: travel(placed) });
+            else if (from.x !== placed.x || from.y !== placed.y || from.z !== placed.z) this.motions.set(placed, { kind: "glide", from, travel: 0 });
           });
         } else if (now) {
           for (const placed of now) this.motions.set(placed, { kind: "arrive", travel: travel(placed) });

@@ -17,6 +17,8 @@ import { Shell } from "./shell";
 import { Stage } from "./stage";
 import { Stock } from "./stock";
 
+const wallsFor = (view: ViewMode) => (view === "top" ? "down" : view === "walk" ? "up" : "auto");
+
 export const createMapEngine: CreateMapEngine = (container, events, options) => {
   const tracker = new Tracker();
   const ease = readEase();
@@ -33,7 +35,7 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
   const contact = new ContactShadows(model, tracker);
   const racks = new Racks(model, stage.set, tracker, unitBox);
   const machines = new Machines(model, stage.set, tracker);
-  const forklift = new Forklift(model, stage.set, tracker);
+  const forklift = new Forklift(model, stage.set, tracker, ease);
   const stock = new Stock(stage, tracker, ease, reducedMotion, emphasis.tierOf, unitBox);
   const overlays = new Overlays(model, tracker, ease, reducedMotion);
   const picker = new Picker();
@@ -48,6 +50,7 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
   let objects: readonly MapObject[] = [];
   let layoutMark = "";
   let editing = false;
+  let view: ViewMode = "orbit";
   let viewBeforeEdit: ViewMode = "orbit";
   let selection: PickHit | null = null;
   let calls = 0;
@@ -109,6 +112,11 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
       stage.invalidateShadows();
       busy = true;
     }
+    if (forklift.step(now)) {
+      rig.setObjects(objects, [forklift.footprint]);
+      stage.invalidateShadows();
+      busy = true;
+    }
     busy = overlays.step(now) || busy;
 
     const fade = emphasis.step(now);
@@ -164,8 +172,8 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
       if (mark === layoutMark) return;
       layoutMark = mark;
       objects = list;
-      const parked = forklift.place(list, { minX: stage.floor.min.x, minZ: stage.floor.min.z, maxX: stage.floor.max.x, maxZ: stage.floor.max.z });
-      rig.setObjects(list, [parked]);
+      forklift.setObjects(list, { minX: stage.floor.min.x, minZ: stage.floor.min.z, maxX: stage.floor.max.x, maxZ: stage.floor.max.z });
+      rig.setObjects(list, [forklift.footprint]);
       pointer.setObjects(list);
       picker.setObjects(list);
       shell.setObjects(list);
@@ -185,9 +193,10 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
       invalidate();
     },
 
-    setView(view) {
-      rig.setView(view, performance.now());
-      shell.setMode(view === "top" ? "down" : view === "walk" ? "up" : "auto");
+    setView(next) {
+      view = next;
+      rig.setView(next, performance.now());
+      shell.setMode(wallsFor(next));
       invalidate();
     },
 
@@ -196,7 +205,7 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
       const now = performance.now();
       if (object) rig.flyTo(object, target?.shelf === true, now);
       else if (!target) rig.home(now);
-      shell.setMode(object || !rig.walking ? "auto" : "up");
+      shell.setMode(wallsFor(view));
       invalidate();
     },
 
@@ -224,6 +233,13 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
 
     trace(route) {
       overlays.trace(route, performance.now());
+      invalidate();
+    },
+
+    setForklift(objectId, forkliftOptions) {
+      if (!forklift.goTo(objectId, forkliftOptions?.animate === true && !reducedMotion, performance.now())) return;
+      rig.setObjects(objects, [forklift.footprint]);
+      stage.invalidateShadows();
       invalidate();
     },
 

@@ -34,8 +34,13 @@ const EXPOSURE = 1.35;
 const SHADOW_MARGIN = 9;
 const BUILDING_HEIGHT = 7.6;
 
-/** Stock keeps its colours in every theme: it is the one thing the eye should find first. */
+/** Stock is the one thing the eye should find first. These hold unless a theme sets its own. */
 const FINISH: Record<StockFinish, string> = { natural: "#b8c5cb", black: "#4b555c", white: "#e0e6e4", bronze: "#9e8d75" };
+const ROLL = "#465057";
+const CANISTER = "#8fb3b5";
+const CARTON = "#c9b99f";
+const FORKLIFT = "#62656d";
+const FINISHES: readonly StockFinish[] = ["natural", "black", "white", "bronze"];
 
 export interface SceneLooks {
   slab: Look;
@@ -87,16 +92,16 @@ function createLooks(looks: Looks): SceneLooks {
     shelfEdge: themed(0.7),
     machine: themed(0.6),
     machineDetail: themed(0.6),
-    forkliftBody: looks.add({ color: "#62656d", roughness: 0.55, recede: "whole" }),
+    forkliftBody: looks.add({ color: FORKLIFT, roughness: 0.55, recede: "whole" }),
     forkliftDark: looks.add({ color: "#33353a", roughness: 0.7, recede: "whole" }),
     bar: finishes(0.5),
     sheet: finishes(0.55),
     skid: looks.add({ color: "#8d958e", roughness: 0.75 }),
-    roll: looks.add({ color: "#465057", roughness: 0.7 }),
+    roll: looks.add({ color: ROLL, roughness: 0.7 }),
     core: looks.add({ color: "#d9dcd5", roughness: 0.8 }),
-    canister: looks.add({ color: "#8fb3b5", roughness: 0.5 }),
+    canister: looks.add({ color: CANISTER, roughness: 0.5 }),
     canisterCap: looks.add({ color: "#394a43", roughness: 0.6 }),
-    carton: looks.add({ color: "#c9b99f", roughness: 0.85 }),
+    carton: looks.add({ color: CARTON, roughness: 0.85 }),
   };
 }
 
@@ -180,6 +185,14 @@ export class Stage {
     set.shelfEdge.setColor(palette.shelfEdge);
     set.machine.setColor(palette.machine);
     set.machineDetail.setColor(palette.machineDetail);
+    set.forkliftBody.setColor(palette.forklift || FORKLIFT);
+    for (const finish of FINISHES) {
+      set.bar[finish].setColor(palette.stock[finish] || FINISH[finish]);
+      set.sheet[finish].setColor(palette.stock[finish] || FINISH[finish]);
+    }
+    set.roll.setColor(palette.stock.roll || ROLL);
+    set.canister.setColor(palette.stock.canister || CANISTER);
+    set.carton.setColor(palette.stock.carton || CARTON);
     looks.setCanvas(palette.canvas);
     looks.write();
   }

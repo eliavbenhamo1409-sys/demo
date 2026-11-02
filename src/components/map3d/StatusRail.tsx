@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { StockMeter } from "@/components/app/Viz";
@@ -8,11 +9,11 @@ import { fmtDateTime, fmtName, fmtQty, fmtRelative } from "@/lib/format";
 import { formatPlace } from "@/lib/map3d/place";
 import type { PastQty } from "@/lib/map3d/trail";
 import type { StockState } from "@/lib/map3d/types";
-import { stockState, useData, type Movement as MovementRow, type Product } from "@/lib/store";
+import { stockState, useData, type Fault, type Movement as MovementRow, type Product } from "@/lib/store";
 import { minimumShare, percentText } from "./measure";
 import { PlaceConfirm, RailRow, RailSection, type PlaceChange } from "./parts";
 import type { MapView } from "./view";
-import { STATE_NUM } from "./words";
+import { STATE_NUM, STATE_WORD } from "./words";
 
 const FEED = 20;
 
@@ -48,12 +49,15 @@ export function StatusRail({ map, past, at }: { map: MapView; past: ReadonlyMap<
 
   const urgent = lines.filter((line) => line.state !== "ok");
   const fine = lines.filter((line) => line.state === "ok");
+  const faults = state.faults.filter((f) => f.status === "open");
+  const needing = urgent.length + faults.length;
 
   return (
     <>
       <div className="m3d-ledger" role="table" aria-label="מלאי מול מינימום">
         <LedgerHead />
-        {urgent.length > 0 ? <p className="m3d-group" role="row">דורש טיפול <span className="sa-mono m3d-count">{fmtQty(urgent.length)}</span></p> : null}
+        {needing > 0 ? <p className="m3d-group" role="row">דורש טיפול <span className="sa-mono m3d-count">{fmtQty(needing)}</span></p> : null}
+        {faults.map((fault) => <FaultLine key={fault.id} map={map} fault={fault} />)}
         {urgent.map((line) => <LedgerLine key={line.product.id} map={map} line={line} />)}
         {fine.length > 0 ? <p className="m3d-group" role="row">תקין <span className="sa-mono m3d-count">{fmtQty(fine.length)}</span></p> : null}
         {fine.map((line) => <LedgerLine key={line.product.id} map={map} line={line} />)}
@@ -76,13 +80,44 @@ function LedgerHead({ qty = "במלאי" }: { qty?: string }) {
   );
 }
 
+/** An open fault stands with the rest of what needs a hand, wherever it is reported. */
+function FaultLine({ map, fault }: { map: MapView; fault: Fault }) {
+  const { product } = useData();
+  const { openProduct } = useUi();
+  const router = useRouter();
+  const p = product(fault.product_id);
+  const asset = map.objects.find((o) => o.id === fault.asset)?.id ?? null;
+  const place = asset ?? (fault.product_id ? map.placeOf(fault.product_id) : null);
+  const open = () => {
+    if (place) map.select(place);
+    else if (p) openProduct(p.id);
+    else router.push("/faults");
+  };
+
+  return (
+    <button type="button" role="row" className="m3d-line" onClick={open}>
+      <span className="m3d-line-text" role="cell">
+        <span className="m3d-line-name">{fault.description}</span>
+        {p ? <span className="m3d-line-unit sa-truncate">{fmtName(p.name)}</span> : null}
+      </span>
+      <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
+      <span role="cell" />
+      <span className="m3d-line-share" role="cell"><span className="m3d-line-percent m3d-num-out">תקלה</span></span>
+    </button>
+  );
+}
+
 function LedgerLine({ map, line }: { map: MapView; line: Line }) {
   const { openProduct } = useUi();
   const { product: p, state, place, share } = line;
 
   return (
     <button type="button" role="row" className="m3d-line" onClick={() => (place ? map.select(place) : openProduct(p.id))}>
-      <span className="m3d-line-name" role="cell">{fmtName(p.name)}</span>
+      <span className="m3d-line-text" role="cell">
+        <span className="m3d-line-name">{fmtName(p.name)}</span>
+        {/* The percent counts what is free, so a full shelf that orders have taken says why it reads low. */}
+        {p.reserved > 0 ? <span className={cx("m3d-line-unit", state === "short" && STATE_NUM.short)}>{fmtQty(p.reserved)} משוריינים להזמנות</span> : null}
+      </span>
       <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
       <span className="m3d-num" role="cell">
         <span className="m3d-line-qty">{fmtQty(p.qty)}</span>
@@ -90,7 +125,7 @@ function LedgerLine({ map, line }: { map: MapView; line: Line }) {
       </span>
       <span className="m3d-line-share" role="cell">
         {share === null ? (
-          <span className="m3d-line-unit">ללא מינימום</span>
+          state === "ok" ? <span className="m3d-line-unit">ללא מינימום</span> : <span className={cx("m3d-line-percent", STATE_NUM[state])}>{STATE_WORD[state]}</span>
         ) : (
           <>
             <span className={cx("m3d-line-percent", STATE_NUM[state])}>{percentText(share)}</span>

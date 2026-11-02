@@ -1,6 +1,9 @@
 import { Group, Mesh, TorusGeometry, type BufferGeometry, type Object3D } from "three";
-import type { MapObject } from "../types";
+import { insideFootprint } from "../layout";
+import { routeBetween } from "../route";
+import type { MapObject, MapPoint } from "../types";
 import type { Tracker } from "./dispose";
+import type { Easing } from "./ease";
 import { arc, box, drumX, drumY, merge, prismX, rounded, strut, tyre, type Profile } from "./shapes";
 import type { SceneLooks } from "./stage";
 
@@ -15,6 +18,14 @@ const MAST_TILT = -0.05;
 /** Where it stands and how far off square, as a driver leaves it. */
 const PARKED_ANGLE = 0.32;
 const CLEARANCE = 1.6;
+const BODY_WIDTH = 2;
+const BODY_LENGTH = 4.6;
+/** From its centre to the face of a rack, with the tips of the forks just inside. */
+const REACH = 2.5;
+const DRIVE_SPEED = 14;
+const DRIVE_MS = { least: 700, most: 2400 };
+/** How long a turn takes to settle, as a time constant in milliseconds. */
+const TURN_MS = 110;
 
 function hull(): BufferGeometry {
   const profile: Profile = [
@@ -140,11 +151,53 @@ function parking(objects: readonly MapObject[], floor: { minX: number; minZ: num
   return [floor.minX + 3, floor.maxZ - 3];
 }
 
-/** Graphite, modelled and parked. It has no data behind it, so it never moves. */
+interface Spot {
+  x: number;
+  z: number;
+  /** Rotation about y: 0 has the forks to -z. */
+  turn: number;
+}
+
+/** The side of an object it can stand at, forks to it: the front first, as the view of the floor comes from there. */
+function spotBeside(target: MapObject, objects: readonly MapObject[]): Spot | null {
+  const sides = [
+    { x: target.x, z: target.z + target.d / 2 + REACH, turn: 0, w: BODY_WIDTH, d: BODY_LENGTH },
+    { x: target.x + target.w / 2 + REACH, z: target.z, turn: Math.PI / 2, w: BODY_LENGTH, d: BODY_WIDTH },
+    { x: target.x - target.w / 2 - REACH, z: target.z, turn: -Math.PI / 2, w: BODY_LENGTH, d: BODY_WIDTH },
+    { x: target.x, z: target.z - target.d / 2 - REACH, turn: Math.PI, w: BODY_WIDTH, d: BODY_LENGTH },
+  ];
+  const clear = (side: (typeof sides)[number], o: MapObject) =>
+    o.id === target.id || (o.kind !== "rack" && o.kind !== "machine") || Math.abs(side.x - o.x) >= (side.w + o.w) / 2 || Math.abs(side.z - o.z) >= (side.d + o.d) / 2;
+  return sides.find((side) => insideFootprint(side.x, side.z, side.w, side.d) && objects.every((o) => clear(side, o))) ?? null;
+}
+
+const shortest = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+
+interface Drive {
+  points: readonly MapPoint[];
+  /** Distance from the start at each point. */
+  marks: number[];
+  start: number;
+  length: number;
+  ms: number;
+  turn: number;
+  last: number;
+}
+
+/** Stands where the last goods were loaded, and moves only when a new movement says so. It has no telemetry behind it. */
 export class Forklift {
   private readonly group = new Group();
+  private objects: readonly MapObject[] = [];
+  private home: Spot = { x: 0, z: 0, turn: PARKED_ANGLE };
+  private target: string | null = null;
+  private drive: Drive | null = null;
 
-  constructor(parent: Object3D, looks: SceneLooks, tracker: Tracker) {
+  constructor(
+    parent: Object3D,
+    looks: SceneLooks,
+    tracker: Tracker,
+    private readonly ease: Easing,
+  ) {
     const add = (parts: BufferGeometry[], material: Mesh["material"]) => {
       const mesh = new Mesh(tracker.add(merge(parts)), material);
       mesh.castShadow = true;
@@ -154,14 +207,73 @@ export class Forklift {
     };
     add(bodyParts(), looks.forkliftBody.base);
     add(darkParts(), looks.forkliftDark.base);
-    this.group.rotation.y = PARKED_ANGLE;
     parent.add(this.group);
   }
 
-  /** Returns the box a person walking the floor must go around. */
-  place(objects: readonly MapObject[], floor: { minX: number; minZ: number; maxX: number; maxZ: number }): { x: number; z: number; w: number; d: number } {
+  /** The box a person walking the floor must go around. */
+  get footprint(): { x: number; z: number; w: number; d: number } {
+    const { x, z } = this.group.position;
+    return { x, z, w: BODY_WIDTH, d: BODY_LENGTH };
+  }
+
+  setObjects(objects: readonly MapObject[], floor: { minX: number; minZ: number; maxX: number; maxZ: number }): void {
+    this.objects = objects;
     const [x, z] = parking(objects, floor);
+    this.home = { x, z, turn: PARKED_ANGLE };
+    this.drive = null;
+    this.stand(this.spotOf(this.target));
+  }
+
+  /** Returns whether anything changed. */
+  goTo(objectId: string | null, animate: boolean, now: number): boolean {
+    if (objectId === this.target) return false;
+    this.target = objectId;
+    const spot = this.spotOf(objectId);
+    const { x, z } = this.group.position;
+    const route = animate ? routeBetween(this.objects, [x, z], [spot.x, spot.z]) : [];
+    this.drive = null;
+    if (route.length < 2) {
+      this.stand(spot);
+      return true;
+    }
+    const points: MapPoint[] = [[x, z], ...route, [spot.x, spot.z]];
+    const marks = [0];
+    for (let i = 1; i < points.length; i++) marks.push(marks[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]));
+    const length = marks[marks.length - 1];
+    const ms = Math.min(Math.max((length / DRIVE_SPEED) * 1000, DRIVE_MS.least), DRIVE_MS.most);
+    this.drive = { points, marks, start: now, length, ms, turn: spot.turn, last: now };
+    return true;
+  }
+
+  /** True while it drives, and on the frame it stops: the shadow map follows. */
+  step(now: number): boolean {
+    const { drive } = this;
+    if (!drive) return false;
+    const t = Math.min((now - drive.start) / drive.ms, 1);
+    const at = this.ease(t) * drive.length;
+    const leg = Math.max(drive.marks.findIndex((mark) => mark >= at), 1);
+    const [ax, az] = drive.points[leg - 1];
+    const [bx, bz] = drive.points[leg];
+    const span = drive.marks[leg] - drive.marks[leg - 1];
+    const along = span > 0 ? (at - drive.marks[leg - 1]) / span : 1;
+    this.group.position.set(ax + (bx - ax) * along, 0, az + (bz - az) * along);
+    const heading = span > 0 && leg < drive.points.length - 1 ? Math.atan2(ax - bx, az - bz) : drive.turn;
+    const settle = 1 - Math.exp(-(now - drive.last) / TURN_MS);
+    drive.last = now;
+    this.group.rotation.y += shortest(heading - this.group.rotation.y) * settle;
+    if (t < 1) return true;
+    this.group.rotation.y = drive.turn;
+    this.drive = null;
+    return true;
+  }
+
+  private spotOf(objectId: string | null): Spot {
+    const object = this.objects.find((candidate) => candidate.id === objectId);
+    return (object && spotBeside(object, this.objects)) ?? this.home;
+  }
+
+  private stand({ x, z, turn }: Spot): void {
     this.group.position.set(x, 0, z);
-    return { x, z, w: 2, d: 4.6 };
+    this.group.rotation.y = turn;
   }
 }

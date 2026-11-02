@@ -43,33 +43,42 @@
   --scene-sky: 1.1;
   --scene-sun: 1.7;
 }
-/* The aluminium style: brushed metal on a pale silver floor, in a soft studio. The stage is the desk itself, so the
-   building floats on the same silver as the rail and the sidebar. */
+/* The default style. The stage is the desk itself, so the building floats on the same silver as the rail and the
+   sidebar. In light, colour tells things apart: a warm floor, blue frames with orange beams as on a real rack, and
+   stock in its own tones, never the shelf's. */
 [data-theme="minimal"] {
   --scene-canvas: var(--bg-canvas);
-  --scene-slab: #dadbe1;
-  --scene-grid: #c8c9d1;
-  --scene-wall: #dfe0e6;
-  --scene-wall-top: #f4f4f7;
-  --scene-column: #9b9ea7;
-  --scene-door: #b4b6be;
-  --scene-upright: #8b8e97;
-  --scene-shelf: #a6a9b1;
-  --scene-shelf-edge: #c6c8cf;
-  --scene-machine: #9a9da6;
-  --scene-machine-detail: #dedfe4;
-  --scene-lane: #c9cbd3;
-  --scene-lane-mark: #f4f4f7;
-  --scene-zone: #cfd1d8;
-  --scene-zone-line: #f4f4f7;
+  --scene-slab: #cbc5b8;
+  --scene-grid: #bcb5a6;
+  --scene-wall: #ebe7de;
+  --scene-wall-top: #f8f6f1;
+  --scene-column: #8f9aa8;
+  --scene-door: #5b84a6;
+  --scene-upright: #35679c;
+  --scene-shelf: #7f8995;
+  --scene-shelf-edge: #d68a3e;
+  --scene-machine: #4f8c82;
+  --scene-machine-detail: #ece9e2;
+  --scene-lane: #a2baa0;
+  --scene-lane-mark: #e6c35a;
+  --scene-zone: #b4c9dd;
+  --scene-zone-line: #e0b84e;
   --scene-ground-shadow: 0.12;
-  --scene-sky: 0.9;
-  --scene-sun: 2.1;
-  --scene-sun-color: #fffcf6;
-  --scene-bounce: #b9bcc6;
-  --scene-studio: 0.35;
-  --scene-metal: 0.6;
-  --scene-contact: 0.34;
+  --scene-sky: 1.5;
+  --scene-sun: 2.2;
+  --scene-sun-color: #fffaf0;
+  --scene-bounce: #c2bcae;
+  --scene-studio: 0.45;
+  --scene-metal: 0.15;
+  --scene-contact: 0.28;
+  --scene-forklift: #dca63c;
+  --scene-stock-natural: #a4c1d6;
+  --scene-stock-black: #39434d;
+  --scene-stock-white: #f0f2f0;
+  --scene-stock-bronze: #b6824c;
+  --scene-stock-roll: #2c363d;
+  --scene-stock-canister: #2f9bb0;
+  --scene-stock-carton: #d4b27c;
 }
 [data-theme="minimal-dark"] {
   --scene-canvas: var(--bg-canvas);
@@ -1007,7 +1016,7 @@
     justify-content: flex-end;
   }
   .m3d-corner .m3d-bar,
-  .m3d-corner .sa-btn {
+  .m3d-corner .m3d-fullscreen {
     display: none;
   }
   .m3d-summary {

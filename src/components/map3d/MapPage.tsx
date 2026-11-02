@@ -10,9 +10,9 @@ import { buildMapModel } from "@/lib/map3d/model";
 import { placeKey, resolvePlace } from "@/lib/map3d/place";
 import { routeBetween } from "@/lib/map3d/route";
 import { buildTrail, qtyAt, TRAIL_WINDOW, type PastQty } from "@/lib/map3d/trail";
-import type { MapObject, MapRoute, PickHit, ViewMode } from "@/lib/map3d/types";
+import type { MapObject, MapObjectKind, MapRoute, PickHit, ViewMode } from "@/lib/map3d/types";
 import { useLayout } from "@/lib/map3d/use-layout";
-import { useData, type Product } from "@/lib/store";
+import { isTempId, stockState, useData, type Product } from "@/lib/store";
 import { CountRail } from "./CountRail";
 import { labelViews } from "./label-views";
 import { Labels } from "./Labels";
@@ -38,6 +38,13 @@ type RailTab = "status" | "orders" | "moves" | "count" | "value";
 
 const TAB_LABEL: Record<RailTab, string> = { status: "מלאי", orders: "הזמנות", moves: "תנועות", count: "ספירה", value: "שווי" };
 const TAB_VALUES = Object.keys(TAB_LABEL) as RailTab[];
+
+const LEAVE_WORD: Record<MapObjectKind, string> = {
+  rack: "יציאה מהמתקן",
+  floor: "יציאה מהאזור",
+  machine: "יציאה מהמכונה",
+  zone: "יציאה מהאזור",
+};
 
 const CLOCK_MS = 60_000;
 const MARK_MARGIN = 0.45;
@@ -206,6 +213,24 @@ export function MapPage() {
 
   const flashes = useLiveStock({ engine, slots: model.slots, pastSlots: past?.slots ?? null, objects, placeOf });
 
+  // The forklift stands where goods were last loaded: the latest movement that really took stock on or off a shelf.
+  const lastLoaded = useMemo(() => {
+    const rows = at === null ? state.movements : recent.rows.filter((m) => Date.parse(m.created_at) <= at);
+    for (const m of rows) {
+      if (isTempId(m.id) || (m.type !== "in" && m.type !== "out")) continue;
+      const place = placeOf(m.product_id);
+      if (place) return place;
+    }
+    return null;
+  }, [at, state.movements, recent.rows, placeOf]);
+
+  const forkliftSet = useRef(false);
+  useEffect(() => {
+    if (!engine) return;
+    engine.setForklift(lastLoaded, { animate: forkliftSet.current && at === null });
+    forkliftSet.current = true;
+  }, [engine, lastLoaded, at]);
+
   useEffect(() => {
     engine?.setEditing(editing);
     if (!editing) engine?.setView(viewMode);
@@ -327,6 +352,13 @@ export function MapPage() {
     editor.start();
   };
 
+  // One button out of any close view, on the map itself, named for what it leaves.
+  const leaveWord = selectedObject ? LEAVE_WORD[selectedObject.kind] : viewMode === "walk" ? "יציאה מהסיור" : null;
+  const leave = () => {
+    if (selectedObject) setSelected(null);
+    else setChosenView("orbit");
+  };
+
   const tabs = TAB_VALUES.map((value) => ({
     value,
     label: TAB_LABEL[value],
@@ -341,19 +373,12 @@ export function MapPage() {
       <><span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>
     );
 
-  const openFaults = faultObjects.size;
+  // The same rows the rail lists under דורש טיפול, so the figure and the list can't disagree.
   const needing = useMemo(() => {
-    let worst = 0;
-    let count = 0;
-    for (const stock of model.byObject.values()) {
-      for (const item of stock.items) {
-        if (item.state === "ok") continue;
-        count++;
-        if (item.state !== "low") worst = 1;
-      }
-    }
-    return { count: count + openFaults, danger: worst === 1 || openFaults > 0 };
-  }, [model, openFaults]);
+    const states = state.products.map(stockState);
+    const faults = state.faults.filter((f) => f.status === "open").length;
+    return { count: states.filter((s) => s !== "ok").length + faults, danger: faults > 0 || states.some((s) => s === "out" || s === "short") };
+  }, [state.products, state.faults]);
 
   return (
     <div className="sa-page m3d-page">
@@ -417,8 +442,9 @@ export function MapPage() {
             <div className="m3d-corner">
               <MapSearch placeOf={placeOf} onPick={onSearchPick} />
               <div className="m3d-views">
+                {leaveWord ? <Button variant="primary" size="sm" icon="x" onClick={leave}>{leaveWord}</Button> : null}
                 {fullscreen.available ? (
-                  <Button variant="secondary" size="sm" onClick={fullscreen.toggle}>{fullscreen.active ? "יציאה ממסך מלא" : "מסך מלא"}</Button>
+                  <Button variant="secondary" size="sm" className="m3d-fullscreen" onClick={fullscreen.toggle}>{fullscreen.active ? "יציאה ממסך מלא" : "מסך מלא"}</Button>
                 ) : null}
                 <ViewSwitch view={viewMode} walk={!coarse} onView={setChosenView} />
               </div>

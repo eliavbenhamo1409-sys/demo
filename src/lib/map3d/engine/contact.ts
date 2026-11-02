@@ -3,7 +3,7 @@ import type { MapObject } from "../types";
 import type { Tracker } from "./dispose";
 
 /** Metres the pool reaches past a footprint, and as far in it comes to its full strength. */
-const REACH = 0.8;
+const REACH = 0.6;
 /** Over the painted floor and under what is drawn on it. */
 const POOL_Y = 0.036;
 const TEXTURE_SIZE = 64;

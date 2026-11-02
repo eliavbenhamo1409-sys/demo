@@ -23,9 +23,13 @@ const countText = (n: number) => `${fmtQty(n)} מוצרים`;
 function pastView(base: LabelView, stock: ObjectStock | undefined, past: PastStock): LabelView {
   const present = stock?.items.filter((i) => past.get(i.product.id)?.kind !== "absent") ?? [];
   if (present.length === 0) return base;
-  if (present.length > 1) return { ...base, quiet: false, text: countText(present.length) };
-  const qty = past.get(present[0].product.id);
-  return { ...base, quiet: false, text: qty?.kind === "known" ? fmtQty(qty.qty) : "לא ידוע" };
+  const known = present.flatMap((i) => {
+    const qty = past.get(i.product.id);
+    return qty?.kind === "known" ? [qty.qty] : [];
+  });
+  // An unknown quantity draws as an empty shelf, so the label is what tells it from a real zero.
+  if (known.length < present.length) return { ...base, quiet: false, text: "לא ידוע" };
+  return { ...base, quiet: false, text: present.length > 1 ? countText(present.length) : fmtQty(known[0]) };
 }
 
 /** The tightest product in a place speaks for it, the same percent the rail shows. */
@@ -44,9 +48,10 @@ function stockView(base: LabelView, stock: ObjectStock | undefined, money: boole
   // Only what needs a hand speaks up; the rest of the map stays in the background.
   const shared = { ...base, quiet: !attention, attention, more };
   if (money) return { ...shared, quiet: false, text: stock && stock.value > 0 ? fmtPrice(stock.value) : undefined };
+  // A state with no percent behind it speaks as a word: the figure and its colour always come from the same product.
+  if (state === "out" || state === "short") return { ...shared, text: STATE_WORD[state], textClass: STATE_NUM[state], more: items.length > 1 ? countText(items.length) : undefined };
   const share = tightest(items);
-  const text = state === "out" && items.length === 1 ? STATE_WORD.out : share !== null ? percentText(share) : fmtQty(items[0].product.qty);
-  return { ...shared, text, textClass: STATE_NUM[state], more: state === "out" && items.length === 1 ? undefined : more };
+  return { ...shared, text: share !== null ? percentText(share) : undefined, textClass: STATE_NUM[state] };
 }
 
 /** One selector for every figure on the map: all of them come from the same model the rail reads. */

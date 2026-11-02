@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, type FocusEvent, type KeyboardEvent } from "react";
-import { Icon, SearchBar } from "@/components/ui";
+import { ProductThumb } from "@/components/app/Viz";
+import { SearchBar } from "@/components/ui";
 import { placeKey } from "@/lib/map3d/place";
 import { useData, type Product } from "@/lib/store";
 
@@ -82,7 +83,7 @@ export function MapSearch({ placeOf, onPick }: MapSearchProps) {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => pick(p)}
                 >
-                  <Icon name="package" size={16} />
+                  <ProductThumb product={p} small />
                   <span className="m3d-result-text">
                     <span className="app-resultTitle">{p.name}</span>
                     <span className="app-resultSub">

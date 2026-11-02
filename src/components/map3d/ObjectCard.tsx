@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useUi } from "@/components/app/ui-state";
+import { ProductThumb } from "@/components/app/Viz";
 import { Button, Count, Fields, Select, type SelectOption } from "@/components/ui";
 import { fmtName, fmtPrice, fmtQty, fmtRelative, isToday } from "@/lib/format";
 import { DISPATCH_ZONE, RACK_LEVELS, RECEIVING_ZONE } from "@/lib/map3d/layout";
@@ -83,6 +84,9 @@ function StockBody({ map, object, past }: { map: MapView; object: MapObject; pas
     return sorted.map((p) => ({ value: p.id, label: `${p.name} · ${p.sku}` }));
   }, [items, state.products, map]);
 
+  const here = new Set(items?.map((i) => i.product.id));
+  const faults = dated ? [] : state.faults.filter((f) => f.status === "open" && (f.asset === object.id || (!f.asset && f.product_id !== null && here.has(f.product_id))));
+
   const assign = (productId: string) => {
     const product = state.products.find((p) => p.id === productId);
     if (product) setChange({ product, location: formatPlace(object.id, null) });
@@ -91,6 +95,11 @@ function StockBody({ map, object, past }: { map: MapView; object: MapObject; pas
   return (
     <>
       <StockHead object={object} stock={stock} past={dated} />
+      {faults.length > 0 ? (
+        <ul className="m3d-list">
+          {faults.map((f) => <FaultRow key={f.id} fault={f} />)}
+        </ul>
+      ) : null}
       {items && items.length > 0 ? (
         items.map((item) => (
           <ItemBlock key={item.product.id} map={map} item={item} object={object} past={past?.get(item.product.id) ?? null} dated={dated} onLevel={setChange} />
@@ -127,9 +136,12 @@ function ItemBlock({ map, item, object, past, dated, onLevel }: ItemBlockProps) 
 
   return (
     <section className="m3d-item" aria-label={p.name}>
-      <div>
-        <button type="button" className="m3d-name" title={p.name} onClick={() => ui.openProduct(p.id)}>{fmtName(p.name)}</button>
-        <span className="sa-cell-sub"><span className="sa-mono ltr">{p.sku}</span></span>
+      <div className="sa-thumbed">
+        <ProductThumb product={p} />
+        <div>
+          <button type="button" className="m3d-name" title={p.name} onClick={() => ui.openProduct(p.id)}>{fmtName(p.name)}</button>
+          <span className="sa-cell-sub"><span className="sa-mono ltr">{p.sku}</span></span>
+        </div>
       </div>
       {dated ? (
         <p className="m3d-qty">
@@ -261,7 +273,9 @@ function MachineBody({ object, past }: { object: MapObject; past: boolean }) {
   return (
     <>
       <Head object={object} />
-      {faults.length > 0 ? (
+      {past ? (
+        <p className="m3d-empty">תקלות מוצגות להיום בלבד</p>
+      ) : faults.length > 0 ? (
         <ul className="m3d-list">
           {faults.map((f) => <FaultRow key={f.id} fault={f} />)}
         </ul>

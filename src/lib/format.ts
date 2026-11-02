@@ -82,7 +82,7 @@ export function fmtRelative(iso: string, now: number = Date.now()): string {
 }
 
 /** Calendar days back from now: 0 is today, 1 is yesterday. */
-function daysAgo(iso: string, now: number): number {
+export function daysAgo(iso: string, now: number): number {
   const d = new Date(iso), n = new Date(now);
   return Math.round((Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) - Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
 }
