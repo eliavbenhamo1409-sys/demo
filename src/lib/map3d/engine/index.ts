@@ -117,14 +117,17 @@ export const createMapEngine: CreateMapEngine = (container, events, options) => 
       stage.invalidateShadows();
       busy = true;
     }
+    if (forklift.fade(rig.sliceAmount)) stage.invalidateShadows();
     busy = overlays.step(now) || busy;
 
     const fade = emphasis.step(now);
-    if (fade !== "idle") {
-      stage.looks.write(emphasis.amounts);
-      if (fade === "settled") tiers();
-      else busy = true;
-    }
+    if (stage.looks.setAlone(rig.sliceAmount) || fade !== "idle") stage.looks.write(emphasis.amounts);
+    if (fade === "settled") {
+      tiers();
+      if (rig.sliceAmount === 1) stage.invalidateShadows();
+    } else if (fade === "fading") busy = true;
+    picker.only = rig.sliceAmount === 1 ? rig.slicedId : null;
+    contact.setOnly(picker.only);
 
     draw();
     if (busy) invalidate();

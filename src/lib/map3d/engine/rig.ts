@@ -15,6 +15,8 @@ const WALK_NEAR = 0.1;
 const WALK_FAR = 220;
 /** From a high three-quarter corner: the panel's measured camera, kept as a direction so the distance can fit the stage. */
 const HOME_DIRECTION = new Vector3(62, 88, 96).normalize();
+/** A rack from its front corner and a little above, so its stock shows both its length and its ends. */
+const SHELF_DIRECTION = new Vector3().setFromSphericalCoords(1, MathUtils.degToRad(75), MathUtils.degToRad(43));
 const BUILDING_TOP = 7.2;
 const FIT_PADDING = 1.04;
 const TOP_PHI = 0.001;
@@ -161,6 +163,15 @@ export class Rig {
 
   get moving(): boolean {
     return this.flight !== null;
+  }
+
+  /** 1 when a rack stands alone in shelf view, 0 with the whole model. */
+  get sliceAmount(): number {
+    return this.slice;
+  }
+
+  get slicedId(): string | null {
+    return this.sliced?.id ?? null;
   }
 
   resize(width: number, height: number): void {
@@ -358,9 +369,12 @@ export class Rig {
   }
 
   private shelfPose(o: MapObject): Pose {
-    const { h, v } = this.spans(SHELF_FOV);
-    const radius = Math.max((o.h / 2 + SHELF_MARGIN) / v, (o.w / 2 + SHELF_MARGIN) / h) + o.d / 2;
-    return { target: new Vector3(o.x, o.h / 2, o.z), radius, theta: 0, phi: Math.PI / 2, fov: SHELF_FOV };
+    const target = new Vector3(o.x, o.h / 2, o.z);
+    const box = new Box3(new Vector3(o.x - o.w / 2, 0, o.z - o.d / 2), new Vector3(o.x + o.w / 2, o.h, o.z + o.d / 2));
+    box.expandByScalar(SHELF_MARGIN);
+    spherical.setFromVector3(SHELF_DIRECTION);
+    const { theta, phi } = spherical;
+    return { target, radius: this.fit(box, target, SHELF_DIRECTION, new Vector3(0, 1, 0), SHELF_FOV), theta, phi, fov: SHELF_FOV };
   }
 
   private objectPose(o: MapObject): Pose {

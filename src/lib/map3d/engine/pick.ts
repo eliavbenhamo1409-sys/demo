@@ -16,6 +16,8 @@ const hit = new Vector3();
 
 /** One box per rack level and per object. No readback, no scene raycast: a click costs a short loop. */
 export class Picker {
+  /** In a rack's close view nothing else stands on the floor to be clicked. */
+  only: string | null = null;
   private targets: Target[] = [];
   private readonly raycaster = new Raycaster();
 
@@ -35,6 +37,7 @@ export class Picker {
     let nearest: Target | null = null;
     let best = reach;
     for (const target of this.targets) {
+      if (this.only !== null && target.objectId !== this.only) continue;
       if (!ray.intersectBox(target.box, hit)) continue;
       const distance = hit.distanceTo(ray.origin);
       if (distance < best) {

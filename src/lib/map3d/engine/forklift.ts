@@ -1,4 +1,4 @@
-import { Group, Mesh, TorusGeometry, type BufferGeometry, type Object3D } from "three";
+import { Group, Mesh, TorusGeometry, type BufferGeometry, type MeshStandardMaterial, type Object3D } from "three";
 import { insideFootprint } from "../layout";
 import { routeBetween } from "../route";
 import type { MapObject, MapPoint } from "../types";
@@ -187,6 +187,7 @@ interface Drive {
 /** Stands where the last goods were loaded, and moves only when a new movement says so. It has no telemetry behind it. */
 export class Forklift {
   private readonly group = new Group();
+  private readonly skins: readonly MeshStandardMaterial[];
   private objects: readonly MapObject[] = [];
   private home: Spot = { x: 0, z: 0, turn: PARKED_ANGLE };
   private target: string | null = null;
@@ -207,6 +208,7 @@ export class Forklift {
     };
     add(bodyParts(), looks.forkliftBody.base);
     add(darkParts(), looks.forkliftDark.base);
+    this.skins = [looks.forkliftBody.base, looks.forkliftDark.base];
     parent.add(this.group);
   }
 
@@ -242,6 +244,15 @@ export class Forklift {
     const length = marks[marks.length - 1];
     const ms = Math.min(Math.max((length / DRIVE_SPEED) * 1000, DRIVE_MS.least), DRIVE_MS.most);
     this.drive = { points, marks, start: now, length, ms, turn: spot.turn, last: now };
+    return true;
+  }
+
+  /** It stands in front of the rack it loaded, so it fades out of a rack's close view. True when the shadow map must follow. */
+  fade(gone: number): boolean {
+    for (const skin of this.skins) skin.opacity = 1 - gone;
+    const visible = gone < 1;
+    if (visible === this.group.visible) return false;
+    this.group.visible = visible;
     return true;
   }
 

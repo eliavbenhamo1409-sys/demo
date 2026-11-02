@@ -51,10 +51,14 @@ export class Look {
     for (const tier of TIERS) this.materials[tier].metalness = value;
   }
 
-  write(amounts: Amounts, canvas: Color): void {
+  write(amounts: Amounts, canvas: Color, alone: number): void {
     if (this.recede === "fixed") this.base.color.copy(this.color);
     else if (this.recede === "whole") this.base.color.copy(this.color).lerp(canvas, RECEDE * amounts.dim);
-    else for (const tier of TIERS) this.materials[tier].color.copy(this.color).lerp(canvas, RECEDE * amounts[tier]);
+    else {
+      const recede = RECEDE + (1 - RECEDE) * alone;
+      for (const tier of TIERS) this.materials[tier].color.copy(this.color).lerp(canvas, recede * amounts[tier]);
+      this.materials.dim.visible = alone < 1;
+    }
   }
 }
 
@@ -64,6 +68,7 @@ export class Looks {
   private readonly looks: Look[] = [];
   private readonly canvas = new Color("#eef0ec");
   private amounts: Amounts = AT_REST;
+  private alone = 0;
 
   constructor(private readonly tracker: Tracker) {}
 
@@ -77,9 +82,16 @@ export class Looks {
     this.canvas.set(value);
   }
 
+  /** At 1 what has receded has reached the canvas and leaves, so a rack's close view holds no cut pieces of its neighbours. */
+  setAlone(alone: number): boolean {
+    if (alone === this.alone) return false;
+    this.alone = alone;
+    return true;
+  }
+
   /** Writes every colour again, after a palette change or on each step of a fade. */
   write(amounts: Amounts = this.amounts): void {
     this.amounts = amounts;
-    for (const look of this.looks) look.write(amounts, this.canvas);
+    for (const look of this.looks) look.write(amounts, this.canvas, this.alone);
   }
 }

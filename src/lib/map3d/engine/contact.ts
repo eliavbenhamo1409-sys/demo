@@ -7,6 +7,8 @@ const REACH = 0.6;
 /** Over the painted floor and under what is drawn on it. */
 const POOL_Y = 0.036;
 const TEXTURE_SIZE = 64;
+/** Nine quads to a pool. */
+const POOL_INDICES = 54;
 
 const STANDS: ReadonlySet<MapObject["kind"]> = new Set(["rack", "machine"]);
 
@@ -41,6 +43,7 @@ const SLICE_UV = [0, 0.5, 0.5, 1];
  */
 export class ContactShadows {
   private readonly mesh: Mesh<BufferGeometry, MeshBasicMaterial>;
+  private standing: readonly MapObject[] = [];
 
   constructor(parent: Object3D, private readonly tracker: Tracker) {
     const material = tracker.add(new MeshBasicMaterial({ map: tracker.add(softSquare()), transparent: true, depthWrite: false, toneMapped: false, opacity: 0 }));
@@ -56,8 +59,16 @@ export class ContactShadows {
     this.mesh.visible = opacity > 0;
   }
 
+  /** One object's pool, for a rack that stands alone, or all of them. */
+  setOnly(id: string | null): void {
+    const at = this.standing.findIndex((o) => o.id === id);
+    if (at < 0) this.mesh.geometry.setDrawRange(0, Infinity);
+    else this.mesh.geometry.setDrawRange(at * POOL_INDICES, POOL_INDICES);
+  }
+
   setObjects(objects: readonly MapObject[]): void {
     const standing = objects.filter((o) => STANDS.has(o.kind));
+    this.standing = standing;
     const positions = new Float32Array(standing.length * 16 * 3);
     const uvs = new Float32Array(standing.length * 16 * 2);
     const index: number[] = [];
