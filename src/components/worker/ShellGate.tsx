@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
+import { ThumbZoom } from "@/components/app/ThumbZoom";
 import { DataProvider } from "@/lib/store";
 
 const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
@@ -15,6 +16,7 @@ export function ShellGate({ children }: { children: ReactNode }) {
   return (
     <DataProvider>
       <AppShell>{children}</AppShell>
+      <ThumbZoom />
     </DataProvider>
   );
 }

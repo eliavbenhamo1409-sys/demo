@@ -1,0 +1,40 @@
+/* Above drawers and dialogs; white in every theme, because the product shots are on white. */
+.sa-thumb-zoom {
+  position: fixed;
+  z-index: 120;
+  overflow: hidden;
+  pointer-events: none;
+  border: var(--hair) solid var(--border-base);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-modal);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+}
+
+.sa-thumb-zoom.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.sa-thumb-zoom img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@supports (corner-shape: squircle) {
+  .sa-thumb-zoom { corner-shape: squircle; }
+}
+
+/* Dimmed like the thumbnails, or a white shot would be the brightest thing on a dark sheet. */
+[data-theme$="dark"] .sa-thumb-zoom {
+  filter: brightness(0.86);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-thumb-zoom { transition: none; }
+}
