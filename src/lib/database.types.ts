@@ -36,6 +36,24 @@ export type Database = {
         }
         Relationships: []
       }
+      day_closings: {
+        Row: {
+          closed_at: string
+          day: string
+          summary: Json
+        }
+        Insert: {
+          closed_at?: string
+          day: string
+          summary: Json
+        }
+        Update: {
+          closed_at?: string
+          day?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
@@ -601,6 +619,7 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["orders"]["Row"]
       }
+      day_summary: { Args: { target: string }; Returns: Json }
       deliver_order: {
         Args: { by_worker?: string; receipt?: string; target_order: string }
         Returns: Database["public"]["Tables"]["orders"]["Row"]

@@ -1,6 +1,6 @@
 # ניהול מלאי — build brief (read fully before writing code)
 
-Hebrew, RTL, nine pages only: **סקירה** (`/`), **מלאי** (`/inventory`), **3D** (`/3d`), **הזמנות** (`/orders`), **תנועות** (`/movements`), **תקלות** (`/faults`), **תיעוד** (`/documentation`), **מילון ספקים** (`/suppliers`), **צוות** (`/team`). Do not add pages; new workflows go into tabs or side panels of these. **תיעוד** and **צוות** have no sidebar row: they open from the settings dialog (`SETTINGS_PAGES` in `AppShell.tsx`).
+Hebrew, RTL, ten pages only: **סקירה** (`/`), **סגירת יום** (`/closing`), **מלאי** (`/inventory`), **3D** (`/3d`), **הזמנות** (`/orders`), **תנועות** (`/movements`), **תקלות** (`/faults`), **תיעוד** (`/documentation`), **מילון ספקים** (`/suppliers`), **צוות** (`/team`). Do not add pages; new workflows go into tabs or side panels of these. **תיעוד** and **צוות** have no sidebar row: they open from the settings dialog (`SETTINGS_PAGES` in `AppShell.tsx`).
 Stack: Next.js 16 App Router (`src/app`), React 19, TypeScript strict, Tailwind v4 (`src/app/globals.css`), Supabase JS.
 All pages are **client components** driven by `useData()` from `src/lib/store.tsx` (realtime + optimistic writes) and `useUi()` from `src/components/app/ui-state.tsx`.
 **No demo/mock data anywhere.** If a table is empty, render a quiet `EmptyState` that says what to do. Never hardcode names, numbers or rows.
@@ -60,6 +60,8 @@ orders(id, number, request_id, agent_id, customer, customer_phone, note, status 
 order_lines(id, order_id, product_id, qty, unit_price, movement_id) — unit_price is the price when ordered and may be null; movement_id is set on delivery.
 
 **Orders are written only through RPCs.** `orders` and `order_lines` are read-only to clients. The catalogue site places an order with `create_order`, which holds its stock. The admin closes one with `deliver_order` (one out movement per line, the order closed, the hold released) or `cancel_order` (the order closed, the hold released, the stock never moved). Each is atomic and raises a Hebrew message; show it as it is.
+
+**A closed day doesn't change.** `day_summary(date)` works out one Israeli calendar day as JSON, including what stood open when it ended, for the signed-in admin only. The `day-closing` job (pg_cron, hourly) stores every ended day in `day_closings`, which no client can write. `/closing` reads a closed day from that table and today from the function, so both show the same thing.
 
 `useData()` returns: `state.{products,movements,suppliers,supplierItems,faults,workers,agents,orders,orderLines,status,error,live}`, lookups `product(id)`, `supplier(id)`, `worker(id)`, `agent(id)`, `order(id)`, `linesOf(orderId)`, derived `attention` (sorted AttentionEntry[]), `stats`, `weekly` (7 DayPoint), and writes: receive, issue, adjust, reportFault, resolveFault, reopenFault, createProduct, updateProduct, deleteProduct, createSupplier, updateSupplier, deleteSupplier, createWorker, updateWorker, createAgent, updateAgent, deliverOrder, cancelOrder, createSupplierItem, mapSupplierItem, approveSupplierItem, unapproveSupplierItem, deleteSupplierItem, fetchProductHistory. All writes return promises and throw `Error(message)` on failure — show the error in a `Notice tone="danger"` next to the form, and `notify({tone:"success", …})` on success. The store also exports `available(p)` and `orderTotal(lines)`.
 

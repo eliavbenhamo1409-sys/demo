@@ -55,6 +55,7 @@ const HIT_ICON: Record<SearchHit["kind"], IconName> = { product: "package", orde
 const MAX_HITS = 8;
 
 function activeKey(pathname: string): string {
+  if (pathname.startsWith("/closing")) return "closing";
   if (pathname.startsWith("/inventory")) return "inventory";
   if (pathname.startsWith("/3d")) return "map";
   if (pathname.startsWith("/orders")) return "orders";
@@ -84,6 +85,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const items = useMemo(
     () => [
       { key: "overview", label: "סקירה", href: "/", icon: "grid" as const },
+      { key: "closing", label: "סגירת יום", href: "/closing", icon: "calendar" as const },
       { key: "inventory", label: "מלאי", href: "/inventory", icon: "package" as const },
       { key: "map", label: "3D", href: "/3d", icon: "layers" as const },
       { key: "orders", label: "הזמנות", href: "/orders", icon: "inbox" as const, count: stats.openOrders > 0 ? stats.openOrders : undefined },

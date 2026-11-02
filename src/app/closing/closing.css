@@ -1,0 +1,31 @@
+/* סגירת יום. The money answers lead; what is still open sits under them. */
+.sa-stats.dc-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.dc-stats > :nth-child(-n + 2) { grid-column: span 3; }
+.dc-stats > :nth-child(n + 3) { grid-column: span 2; }
+
+.dc-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap, var(--space-5)); align-items: start; }
+@media (min-width: 1100px) { .dc-split { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* The tiles jump here, so the block lands clear of the sticky top bar. */
+.dc-block { min-width: 0; scroll-margin-top: 88px; }
+
+.dc-fig { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: end; }
+.dc-fig-n { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dc-fig-word { font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dc-fig-word.is-short { color: var(--short); }
+.dc-fig-word.is-out { color: var(--danger-text); }
+.dc-fig-word.is-low, .dc-flag { color: var(--warning-text); }
+.dc-flag { font-weight: 500; }
+/* A worry with nothing wrong answers in a green word. */
+.dc-calm { color: var(--success-text); }
+
+.dc-note { margin: 0; padding: var(--space-3) var(--inset, var(--space-4)); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* A phone gives each answer its own row, and the day buttons their own line under the title. */
+@media (max-width: 600px) {
+  .sa-stats.dc-stats { grid-template-columns: minmax(0, 1fr); }
+  .dc-stats > :nth-child(n) { grid-column: auto; }
+  [data-theme^="minimal"] .dc-page > .sa-pagehead { grid-template: "title" 44px "sub" var(--l-22) "actions" auto / minmax(0, 1fr); }
+  [data-theme^="minimal"] .dc-page .sa-pagehead-actions { margin-block-start: var(--space-3); }
+  [data-theme^="minimal"] .dc-page .sa-pagehead-actions > .sa-btn { flex: 1; }
+}
