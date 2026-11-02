@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { ProductThumb } from "@/components/app/Viz";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
@@ -356,10 +357,14 @@ export function CameraButton({ label, onFile, quiet }: { label: string; onFile: 
   );
 }
 
+/** A row that stands for a product leads with its photo. */
+type Photographed = Pick<Product, "image_path">;
+
 /* ── Tall choice row ─────────────────────────────────────────── */
-export function Row({ title, sub, end, selected, quiet, onClick }: { title: ReactNode; sub?: ReactNode; end?: ReactNode; selected?: boolean; quiet?: boolean; onClick: () => void }): ReactElement {
+export function Row({ product, title, sub, end, selected, quiet, onClick }: { product?: Photographed; title: ReactNode; sub?: ReactNode; end?: ReactNode; selected?: boolean; quiet?: boolean; onClick: () => void }): ReactElement {
   return (
     <button type="button" className={cx("wk-row", selected && "is-selected", quiet && "is-quiet")} onClick={onClick}>
+      {product ? <ProductThumb product={product} /> : null}
       <span className="wk-row-body">
         <span className="wk-row-title">{title}</span>
         {sub ? <span className="wk-row-sub">{sub}</span> : null}
@@ -370,7 +375,7 @@ export function Row({ title, sub, end, selected, quiet, onClick }: { title: Reac
 }
 
 /* ── Full-screen searchable picker ───────────────────────────── */
-export type PickItem = { id: string; title: string; sub?: ReactNode; keywords?: string; end?: ReactNode };
+export type PickItem = { id: string; title: string; sub?: ReactNode; keywords?: string; end?: ReactNode; product?: Photographed };
 
 /** A warehouse product as a picker row. `stock` shows how much is on hand, for the flows that take from it. */
 export function productPick(p: Product, stock = false): PickItem {
@@ -380,6 +385,7 @@ export function productPick(p: Product, stock = false): PickItem {
     sub: <span className="sa-num">{p.sku}</span>,
     keywords: `${p.sku} ${p.barcode ?? ""}`,
     end: stock ? <span>במלאי <span className="sa-num">{fmtQty(p.qty)}</span> {p.unit}</span> : undefined,
+    product: p,
   };
 }
 
@@ -418,7 +424,7 @@ export function Picker({ title, context, items, onPick, onClose, placeholder = "
         <div className="wk-sheet-list">
           {filtered.length === 0 ? <EmptyState title={emptyTitle} /> : (
             <div className="wk-group">
-              {filtered.map((it) => <Row key={it.id} title={it.title} sub={it.sub} end={it.end} onClick={() => onPick(it.id)} />)}
+              {filtered.map((it) => <Row key={it.id} product={it.product} title={it.title} sub={it.sub} end={it.end} onClick={() => onPick(it.id)} />)}
             </div>
           )}
           {extra ? <Row quiet title={extra.label} end={extra.icon ? <Icon name={extra.icon} size={20} /> : undefined} onClick={extra.onClick} /> : null}
@@ -429,7 +435,7 @@ export function Picker({ title, context, items, onPick, onClose, placeholder = "
 }
 
 /* ── Summary list ────────────────────────────────────────────── */
-export type SummaryLine = { key: string; title: string; sub?: string; qty: number; unit?: string };
+export type SummaryLine = { key: string; title: string; sub?: string; qty: number; unit?: string; product?: Photographed };
 
 export function Summary({ heading, meta = [], lines, direction }: {
   heading?: string;
@@ -439,6 +445,8 @@ export function Summary({ heading, meta = [], lines, direction }: {
   direction?: "in" | "out";
 }): ReactElement | null {
   if (!meta.length && !lines.length) return null;
+  // A line sent to the manager has no product yet: beside photos it keeps an empty frame, so the names keep one edge.
+  const photos = lines.some((l) => l.product);
   return (
     <div className="wk-sum">
       {heading ? <p className="wk-sum-heading">{heading}</p> : null}
@@ -451,6 +459,7 @@ export function Summary({ heading, meta = [], lines, direction }: {
         ))}
         {lines.map((l) => (
           <div key={l.key} className="wk-sum-row">
+            {photos ? <ProductThumb product={l.product} /> : null}
             <span className="wk-sum-v">
               {l.title}
               {l.sub ? <span className="wk-sum-sub">{l.sub}</span> : null}

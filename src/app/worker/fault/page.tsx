@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ProductThumb } from "@/components/app/Viz";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
@@ -81,7 +82,7 @@ export default function FaultPage() {
 
   if (!ready || !worker) return <Boot />;
 
-  const lines: SummaryLine[] = p && withQty ? [{ key: "q", title: p.name, qty, unit: p.unit }] : [];
+  const lines: SummaryLine[] = p && withQty ? [{ key: "q", title: p.name, qty, unit: p.unit, product: p }] : [];
   if (step === "done" && done) {
     return <Done title="הדיווח הועבר למנהל" sub={photoError ? "התמונה לא הועלתה, התקלה דווחה" : undefined} lines={lines.map((l) => ({ ...l, sub: "ייגרע מהמלאי כפגום" }))} />;
   }
@@ -121,7 +122,7 @@ export default function FaultPage() {
           ) : <CameraButton quiet label="צילום התקלה" onFile={onPhoto} />}
         </Section>
         <Section title="מוצר קשור" need="optional" done={!!p}>
-          <Row title={p ? p.name : "בחירת מוצר"} sub={p ? <span className="sa-num">{p.sku}</span> : undefined} selected={!!p} end={<Icon name="chevron-left" size={20} />} onClick={() => setPick(true)} />
+          <Row product={p} title={p ? p.name : "בחירת מוצר"} sub={p ? <span className="sa-num">{p.sku}</span> : undefined} selected={!!p} end={<Icon name="chevron-left" size={20} />} onClick={() => setPick(true)} />
           {p ? (
             <>
               <button type="button" className="wk-textlink is-start" onClick={() => { setProductId(null); setWithQty(false); }}>הסרת המוצר</button>
@@ -161,7 +162,7 @@ export default function FaultPage() {
         heading="פרטי הדיווח"
         meta={[
           { k: "תקלה", v: description.trim() },
-          { k: "מוצר", v: p ? p.name : "ללא" },
+          { k: "מוצר", v: p ? <span className="sa-thumbed"><ProductThumb product={p} small /><span>{p.name}</span></span> : "ללא" },
           // eslint-disable-next-line @next/next/no-img-element
           ...(photo ? [{ k: "תמונה", v: <img src={photo.url} alt="תצלום התקלה" className="wk-sum-photo" /> }] : []),
         ]}

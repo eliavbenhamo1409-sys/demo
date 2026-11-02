@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, type CSSProperties, type ReactElement } from "react";
+import { ProductThumb } from "@/components/app/Viz";
 import { Button } from "@/components/ui/Button";
 import { Dot } from "@/components/ui/Dot";
 import { Icon } from "@/components/ui/Icon";
@@ -59,6 +60,7 @@ function ResultRow({ line, identified }: { line: ReadLine; identified?: Product 
   return (
     <li className="wk-read">
       <span className="wk-read-tick" aria-hidden="true">{identified ? <Icon name="check" size={18} /> : <Dot tone="warning" />}</span>
+      <ProductThumb product={identified} small />
       <span className="wk-read-body">
         <span className="wk-read-name">{line.externalName}</span>
         <span className="wk-read-sub">{identified ? `זוהה: ${identified.name}` : "מחכה לתשובה שלך"}</span>
@@ -131,6 +133,7 @@ export function Scanner({ scan, docName, unit, identify, onContinue, onManual, o
             {scan.services.map((sv, i) => (
               <li key={`${sv.externalName}-${i}`} className="wk-read">
                 <span className="wk-read-tick" aria-hidden="true" />
+                <ProductThumb small />
                 <span className="wk-read-body">
                   <span className="wk-read-name">{sv.externalName}</span>
                   <span className="wk-read-sub">עבודה, לא נוגעת במלאי</span>

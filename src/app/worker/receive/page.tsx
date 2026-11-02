@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ProductThumb } from "@/components/app/Viz";
 import { Badge } from "@/components/ui/Badge";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
@@ -188,7 +189,7 @@ export default function ReceivePage() {
         if (saved.current.has(l.id)) continue;
         const p = effectiveProduct(l)!;
         await receive({ productId: p.id, qty: l.qty, supplierId, workerId: worker.id, reference: reference.trim() || null, note, externalName: l.externalName.trim(), documentId });
-        saved.current.set(l.id, { key: l.id, title: p.name, sub: l.externalName.trim() !== p.name ? l.externalName.trim() : undefined, qty: l.qty, unit: p.unit });
+        saved.current.set(l.id, { key: l.id, title: p.name, sub: l.externalName.trim() !== p.name ? l.externalName.trim() : undefined, qty: l.qty, unit: p.unit, product: p });
         setProgress(saved.current.size);
       }
       for (const l of toReview) {
@@ -364,8 +365,11 @@ export default function ReceivePage() {
                   <div className="wk-suggest" role="listbox" aria-label="הצעות מהמילון">
                     {suggestions.map((s) => (
                       <button key={s.id} type="button" role="option" aria-selected={false} onClick={() => patch(l.id, { externalName: s.external_name, productId: null, unknown: false })}>
-                        <span className="sa-truncate">{s.external_name}</span>
-                        <span className="wk-suggest-sub sa-truncate">{product(s.product_id)?.name ?? ""}</span>
+                        <ProductThumb product={product(s.product_id)} small />
+                        <span className="wk-suggest-text">
+                          <span className="sa-truncate">{s.external_name}</span>
+                          <span className="wk-suggest-sub sa-truncate">{product(s.product_id)?.name ?? ""}</span>
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -374,6 +378,7 @@ export default function ReceivePage() {
                 {!name ? null : prod ? (
                   <>
                     <div className="wk-status">
+                      <ProductThumb product={prod} small />
                       <span>זוהה: {prod.name}</span>
                       {r.status === "pending" && !l.productId ? <Badge tone="warning">ממתין לאישור</Badge> : null}
                     </div>
@@ -390,7 +395,7 @@ export default function ReceivePage() {
                     <div className="wk-group">
                       {candidates.map((c) => {
                         const match = product(c.productId);
-                        return match ? <Row key={c.productId} title={match.name} sub={c.alias && c.alias !== match.name ? `במילון: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id, unknown: false })} /> : null;
+                        return match ? <Row key={c.productId} product={match} title={match.name} sub={c.alias && c.alias !== match.name ? `במילון: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id, unknown: false })} /> : null;
                       })}
                       <Row title={candidates.length ? "זה מוצר אחר מהמחסן" : "יש כזה במחסן"} end={<Icon name="chevron-left" size={20} />} onClick={() => setPickProductFor(l.id)} />
                       <Row title="העברה למנהל" end={<Icon name="user" size={20} />} onClick={() => patch(l.id, { productId: null, unknown: true })} />
@@ -422,7 +427,7 @@ export default function ReceivePage() {
   }
 
   /* ── step 3: summary ── */
-  const receivedLines: SummaryLine[] = toReceive.map((l) => { const p = effectiveProduct(l)!; return { key: l.id, title: p.name, sub: l.externalName.trim() !== p.name ? l.externalName.trim() : undefined, qty: l.qty, unit: p.unit }; });
+  const receivedLines: SummaryLine[] = toReceive.map((l) => { const p = effectiveProduct(l)!; return { key: l.id, title: p.name, sub: l.externalName.trim() !== p.name ? l.externalName.trim() : undefined, qty: l.qty, unit: p.unit, product: p }; });
   const reviewLines: SummaryLine[] = toReview.map((l) => ({ key: l.id, title: l.externalName.trim(), qty: l.qty }));
   const total = toReceive.length + toReview.length;
   return (

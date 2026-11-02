@@ -152,7 +152,7 @@ export default function DeliverPage() {
   };
   const orderLines = (order: OpenOrder): SummaryLine[] => order.order_lines.map((l) => {
     const p = product(l.product_id);
-    return { key: l.id, title: p ? fmtName(p.name) : "—", sub: p?.sku, qty: l.qty, unit: p?.unit };
+    return { key: l.id, title: p ? fmtName(p.name) : "—", sub: p?.sku, qty: l.qty, unit: p?.unit, product: p };
   });
 
   /** Reading finished and the worker agreed: the lines land on the items step. */
@@ -185,7 +185,7 @@ export default function DeliverPage() {
         if (saved.current.has(l.id)) continue;
         const p = product(l.productId)!;
         await issue({ productId: p.id, qty: l.qty, workerId: worker.id, note, documentId });
-        saved.current.set(l.id, { key: l.id, title: fmtName(p.name), sub: p.sku, qty: l.qty, unit: p.unit });
+        saved.current.set(l.id, { key: l.id, title: fmtName(p.name), sub: p.sku, qty: l.qty, unit: p.unit, product: p });
         setProgress(saved.current.size);
       }
       for (const l of routed) {
@@ -382,6 +382,7 @@ export default function DeliverPage() {
                   </div>
                 ) : (
                   <Row
+                    product={p}
                     title={p ? fmtName(p.name) : "בחירת מוצר"}
                     sub={p ? <><span className="sa-num">{p.sku}</span>{l.hint ? ` · בקבלה: ${l.hint}` : ""}</> : undefined}
                     selected={!!p}
@@ -395,7 +396,7 @@ export default function DeliverPage() {
                     <div className="wk-group">
                       {l.candidates?.map((c) => {
                         const match = product(c.productId);
-                        return match ? <Row key={c.productId} title={match.name} sub={c.alias && c.alias !== match.name ? `במילון: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id })} /> : null;
+                        return match ? <Row key={c.productId} product={match} title={match.name} sub={c.alias && c.alias !== match.name ? `במילון: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id })} /> : null;
                       })}
                       <Row title={l.candidates?.length ? "זה מוצר אחר מהמחסן" : "יש כזה במחסן"} end={<Icon name="chevron-left" size={20} />} onClick={() => setPickFor(l.id)} />
                       <Row title="העברה למנהל" end={<Icon name="user" size={20} />} onClick={() => patch(l.id, { route: "manager" })} />
@@ -442,7 +443,7 @@ export default function DeliverPage() {
     );
   }
 
-  const issuedLines: SummaryLine[] = chosen ? orderLines(chosen) : valid.map((l) => { const p = product(l.productId)!; return { key: l.id, title: fmtName(p.name), sub: p.sku, qty: l.qty, unit: p.unit }; });
+  const issuedLines: SummaryLine[] = chosen ? orderLines(chosen) : valid.map((l) => { const p = product(l.productId)!; return { key: l.id, title: fmtName(p.name), sub: p.sku, qty: l.qty, unit: p.unit, product: p }; });
   const routedLines: SummaryLine[] = chosen ? [] : routed.map((l) => ({ key: l.id, title: routedTitle(l), sub: routedSub(l), qty: l.qty }));
   const leaving = chosen ? chosen.order_lines.map((l) => ({ productId: l.product_id, qty: l.qty })) : valid;
   const anyOver = leaving.some((l) => { const p = product(l.productId); return p ? l.qty > p.qty : false; });

@@ -172,7 +172,8 @@
 .wk-status { display: flex; align-items: flex-start; flex-wrap: wrap; gap: var(--space-1) var(--space-2); font-size: var(--t-16); line-height: var(--l-24); color: var(--text-primary); overflow-wrap: anywhere; }
 .wk-status.is-muted { color: var(--text-secondary); }
 .wk-status > .sa-dot { margin-top: 9px; }
-.wk-status > span:not(.sa-dot):not(.sa-badge) { flex: 1; min-width: 0; }
+.wk-status > span:not(.sa-dot):not(.sa-badge):not(.sa-thumb) { flex: 1; min-width: 0; }
+.wk-status:has(> .sa-thumb) { align-items: center; }
 .wk-receipt { display: flex; flex-direction: column; gap: 2px; }
 .wk-receipt-k { font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); }
 .wk-receipt-name { font-size: 18px; line-height: 26px; font-weight: 500; overflow-wrap: anywhere; }
@@ -187,6 +188,7 @@
 /* Autocomplete suggestions under the name field. */
 .wk-suggest { display: flex; flex-direction: column; border: var(--hair) solid var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); overflow: hidden; }
 .wk-suggest button { min-height: var(--touch); padding: var(--space-2) var(--space-4); text-align: start; font-size: var(--t-16); line-height: var(--l-24); display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.wk-suggest-text { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .wk-suggest-sub { font-size: var(--t-15); line-height: var(--l-22); color: var(--text-tertiary); }
 .wk-suggest button:active { background: var(--bg-muted); }
 .wk-suggest button + button { border-top: var(--hair) solid var(--border-subtle); }
@@ -210,6 +212,7 @@
 .wk-sum { border-bottom: var(--hair) solid var(--border-base); }
 .wk-sum-heading { margin: 0; padding-bottom: var(--space-2); font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); }
 .wk-sum-row { display: flex; align-items: baseline; gap: var(--space-3); padding-block: var(--space-3); border-top: var(--hair) solid var(--border-base); }
+.wk-sum-row:has(.sa-thumb) { align-items: center; }
 .wk-sum-k { font-size: var(--t-15); line-height: var(--l-24); color: var(--text-secondary); width: 76px; flex-shrink: 0; }
 .wk-sum-v { flex: 1; min-width: 0; font-size: var(--t-17); line-height: var(--l-24); font-weight: 500; overflow-wrap: anywhere; }
 .wk-sum-sub { display: block; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); font-weight: 400; }
@@ -285,6 +288,8 @@
 .wk-scan-list { list-style: none; margin-block: 0; padding: 0 var(--space-5); flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .wk-read { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) 0; border-top: var(--hair) solid var(--border-subtle); }
 .wk-read-tick { width: 20px; height: 24px; color: var(--text-secondary); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* A line with no product keeps the photo's place, not its frame: beside the tick an empty frame reads as a box to tick. */
+.wk-read span.sa-thumb { visibility: hidden; }
 .wk-read-body { flex: 1; min-width: 0; }
 .wk-read-name { display: block; font-size: var(--t-17); line-height: var(--l-24); font-weight: 500; overflow-wrap: anywhere; }
 .wk-read-sub { display: block; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); overflow-wrap: anywhere; }
@@ -380,6 +385,7 @@
 /* Rows. */
 [data-theme^="minimal"] .wk-row { min-height: 68px; padding: 14px var(--space-4); font-size: 19px; line-height: 26px; font-weight: 600; transition: background-color var(--dur-1) linear; }
 [data-theme^="minimal"] .wk-row:active { transition-duration: 0ms; }
+[data-theme^="minimal"] :is(.wk-row, .wk-sum-row):has(> .sa-thumb) { --wk-rule: calc(var(--space-4) + 44px + var(--space-3)); }
 [data-theme^="minimal"] .wk-row-sub { font-size: 17px; line-height: 24px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-row-end { font-size: 17px; line-height: 24px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-row-end svg { width: 22px; height: 22px; color: var(--text-quiet); stroke-width: 2; }
@@ -445,7 +451,8 @@
 [data-theme^="minimal"] .wk-receipt-name { font-size: 19px; line-height: 26px; font-weight: 600; }
 [data-theme^="minimal"] .wk-suggest { margin: 0 var(--space-4) var(--space-3); background: var(--bg-hover); border: 0; border-radius: var(--radius-md); }
 /* Name over product, each in full: two truncated columns read as neither. */
-[data-theme^="minimal"] .wk-suggest button { position: relative; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; min-height: 60px; padding-block: 10px; font-size: 18px; line-height: 24px; font-weight: 500; }
+[data-theme^="minimal"] .wk-suggest button { --wk-rule: calc(var(--space-4) + 36px + var(--space-3)); position: relative; justify-content: flex-start; gap: var(--space-3); min-height: 60px; padding-block: 10px; font-size: 18px; line-height: 24px; font-weight: 500; }
+[data-theme^="minimal"] .wk-suggest-text { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
 [data-theme^="minimal"] .wk-suggest .sa-truncate { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
 [data-theme^="minimal"] .wk-suggest-sub:empty { display: none; }
 [data-theme^="minimal"] .wk-suggest button + button { border-top: 0; }
@@ -485,6 +492,9 @@
 [data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) > .wk-row-body { display: contents; }
 [data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) .wk-row-title { grid-column: 1 / -1; }
 [data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) .wk-row-sub { margin-top: 0; }
+[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end):has(> .sa-thumb) { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--space-3); }
+[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) > .sa-thumb { grid-row: 1 / span 2; align-self: center; }
+[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end):has(> .sa-thumb) .wk-row-title { grid-column: 2 / -1; }
 [data-theme^="minimal"] .wk-sheet-list .wk-row > .wk-row-end .sa-num { font-weight: 600; color: var(--text-primary); }
 [data-theme^="minimal"] .wk-pick-context strong { font-weight: 600; }
 [data-theme^="minimal"] .wk-sheet-form { gap: var(--space-5); }
@@ -538,7 +548,7 @@
 [data-theme^="minimal"] .wk-scan-sheet-title { font-size: 26px; line-height: 32px; font-weight: 700; }
 [data-theme^="minimal"] .wk-scan-sheet-lead { font-size: 18px; line-height: 26px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-scan-list { padding-inline: var(--space-4); }
-[data-theme^="minimal"] .wk-read { --wk-rule: 32px; position: relative; padding-block: 14px; border-top: 0; }
+[data-theme^="minimal"] .wk-read { --wk-rule: 80px; position: relative; padding-block: 14px; border-top: 0; }
 [data-theme^="minimal"] .wk-read-tick { color: var(--success-text); }
 [data-theme^="minimal"] .wk-read-tick .sa-dot { display: none; }
 [data-theme^="minimal"] .wk-read-tick svg { width: 20px; height: 20px; stroke-width: 2; }
