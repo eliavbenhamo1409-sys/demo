@@ -10,7 +10,7 @@ import { useUi } from "./ui-state";
 import { errorMessage } from "./forms/useForm";
 import { ProductThumb } from "./Viz";
 import { Button, Dot, Fields, Modal, Notice, SidePanel, type Tone } from "@/components/ui";
-import { fmtFull, fmtName, fmtPrice, fmtQty, fmtRelative, ORDER_STATUS_LABEL } from "@/lib/format";
+import { daysUntil, fmtFull, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtWeekday, ORDER_STATUS_LABEL } from "@/lib/format";
 
 /** The closing the manager is being asked to confirm. */
 type Closing = "deliver" | "cancel";
@@ -38,6 +38,7 @@ function OrderPanelInner({ id }: { id: string }) {
   const agentName = agent(o.agent_id)?.name;
   const dot = STATUS_DOT[o.status];
   const isOpen = o.status === "open";
+  const late = isOpen && !!o.promised_on && daysUntil(o.promised_on) < 0;
 
   // A line the shelf can't cover: delivering it zeroes the stock, the same as a manual issue.
   const shortages = isOpen
@@ -137,6 +138,15 @@ function OrderPanelInner({ id }: { id: string }) {
 
         <Fields
           items={[
+            {
+              label: "מסירה ללקוח",
+              value: o.promised_on ? (
+                <>
+                  {fmtWeekday(o.promised_on)}
+                  {late ? <span className="sa-order-late block">{fmtPromised(o.promised_on)}</span> : null}
+                </>
+              ) : undefined,
+            },
             { label: "סוכן", value: agentName },
             {
               label: "טלפון",

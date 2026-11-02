@@ -615,6 +615,7 @@ export type Database = {
           items: Json
           order_note: string
           phone: string
+          promised?: string
           request: string
         }
         Returns: Database["public"]["Tables"]["orders"]["Row"]

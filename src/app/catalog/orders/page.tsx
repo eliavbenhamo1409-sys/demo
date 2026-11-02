@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCatalog, type Order } from "@/lib/catalog";
 import { ChevronDownIcon } from "@/components/catalog/Icons";
-import { fmtDate, fmtName, fmtPrice, fmtQty, ORDER_STATUS_LABEL } from "@/lib/catalog/format";
+import { fmtDate, fmtDay, fmtName, fmtPrice, fmtPromise, fmtQty, ORDER_STATUS_LABEL, today } from "@/lib/catalog/format";
 
 function Row({ order }: { order: Order }) {
   const { cancelOrder } = useCatalog();
@@ -13,6 +13,7 @@ function Row({ order }: { order: Order }) {
   const [error, setError] = useState<string | null>(null);
 
   const isOpen = order.status === "open";
+  const late = isOpen && order.promised_on !== null && order.promised_on < today();
   const priced = order.order_lines.every((l) => l.unit_price !== null);
   const total = order.order_lines.reduce((sum, l) => sum + (l.unit_price ?? 0) * l.qty, 0);
 
@@ -23,7 +24,7 @@ function Row({ order }: { order: Order }) {
       await cancelOrder(order.id);
       setAsking(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "הביטול נכשל");
+      setError(e instanceof Error ? e.message : "הביטול נכשל. אפשר לנסות שוב, ואם זה חוזר לפנות למנהל");
     } finally {
       setBusy(false);
     }
@@ -34,12 +35,15 @@ function Row({ order }: { order: Order }) {
       <button type="button" className="cg-order__head" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <span className="cg-order__number cg-num">{order.number}</span>
         <span className="cg-order__customer">{order.customer}</span>
-        <span className="cg-order__date cg-num">{fmtDate(order.created_at)}</span>
-        <span className="cg-order__status">{ORDER_STATUS_LABEL[order.status]}</span>
+        <span className="cg-order__date">
+          {order.promised_on ? <>מסירה <span className="cg-num">{fmtDay(order.promised_on)}</span></> : <span className="cg-num">{fmtDate(order.created_at)}</span>}
+        </span>
+        <span className="cg-order__status">{late ? "באיחור" : ORDER_STATUS_LABEL[order.status]}</span>
         <span className="cg-order__chev"><ChevronDownIcon /></span>
       </button>
       {open ? (
         <div className="cg-order__body">
+          {order.promised_on ? <p className="cg-order__promise">מסירה ללקוח: {fmtPromise(order.promised_on)}</p> : null}
           <ul className="cg-order__lines">
             {order.order_lines.map((l) => (
               <li key={l.id} className="cg-order__line">

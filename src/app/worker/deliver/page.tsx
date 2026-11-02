@@ -13,7 +13,7 @@ import { deliverOrder, useCurrentWorker, useOpenOrders, useRecentCustomers, useR
 import type { ScannedLine } from "@/lib/worker/ocr";
 import { useDocumentScan, type ReadLine } from "@/lib/worker/scan";
 import { buildDictionary, matchLine, type Candidate } from "@/lib/worker/match";
-import { fmtName, fmtQty } from "@/lib/format";
+import { fmtName, fmtPromised, fmtQty } from "@/lib/format";
 import { Boot, CameraButton, Cta, Done, Flow, Hint, Picker, Row, Section, StepHead, Summary, pointAt, productPick, useBackToClose, useSteps, type PickItem, type SummaryLine } from "@/components/worker";
 import { Scanner } from "@/components/worker/Scanner";
 
@@ -308,7 +308,7 @@ export default function DeliverPage() {
                 <Row
                   key={o.id}
                   title={o.customer}
-                  sub={`הזמנה ${o.number} · ${o.order_lines.length === 1 ? "שורה אחת" : `${o.order_lines.length} שורות`} · ${o.agents.name}`}
+                  sub={`${o.promised_on ? `מסירה ${fmtPromised(o.promised_on)} · ` : ""}הזמנה ${o.number} · ${o.order_lines.length === 1 ? "שורה אחת" : `${o.order_lines.length} שורות`} · ${o.agents.name}`}
                   selected={o.id === chosen?.id}
                   onClick={() => chooseOrder(o.id === chosen?.id ? null : o)}
                 />

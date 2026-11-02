@@ -1,15 +1,24 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { available, useCatalog, type Product } from "@/lib/catalog";
-import { ProductCard, ProductImage } from "@/components/catalog/ProductCard";
+import { Notice, NoticeRow } from "@/components/catalog/Notice";
+import { openedFrom, ProductCard, ProductImage } from "@/components/catalog/ProductCard";
 import { Reveal } from "@/components/catalog/Reveal";
 import { useDrawer } from "@/components/catalog/Shell";
 import { Stepper } from "@/components/catalog/Stepper";
 import { fmtName, fmtPrice, fmtQty } from "@/lib/catalog/format";
 
 const RELATED = 3;
+
+/** Why this product can't be promised, and what an agent can do about it. Under one unit left counts here too. */
+function nothingFree(p: Product): { title: string; text: string } {
+  if (p.qty <= 0) return { title: "אזל מהמלאי", text: "אין מהמוצר הזה במחסן. אפשר לבדוק עם המחסן מתי תגיע סחורה" };
+  if (p.reserved >= p.qty) return { title: "הכול משוריין", text: "כל הכמות במחסן שמורה להזמנות פתוחות. אפשר לבדוק עם המחסן אם משהו ישתחרר" };
+  return { title: "פחות מיחידה אחת", text: `נשארו ${fmtQty(available(p))} ${p.unit} במלאי. אפשר לבדוק עם המחסן מתי תגיע סחורה` };
+}
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -29,21 +38,35 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 }
 
 function Detail({ product: p }: { product: Product }) {
-  const { products, inDraft, addToDraft } = useCatalog();
+  const { products, lines, inDraft, addToDraft } = useCatalog();
   const { show } = useDrawer();
+  const router = useRouter();
   const [wanted, setWanted] = useState(1);
-  const [added, setAdded] = useState(false);
-
-  useEffect(() => {
-    if (!added) return;
-    const t = setTimeout(() => setAdded(false), 1600);
-    return () => clearTimeout(t);
-  }, [added]);
+  /** The stop on screen: stock that doesn't cover the request, or the choice after adding. */
+  const [stop, setStop] = useState<{ short: true } | { added: number } | null>(null);
 
   const free = available(p);
   const inOrder = inDraft(p.id);
-  const room = Math.floor(free - inOrder);
-  const qty = Math.min(wanted, Math.max(room, 1));
+  const room = Math.max(Math.floor(free - inOrder), 0);
+  // Stock can arrive while the message is open; the offer never goes past what was asked.
+  const fits = Math.min(wanted, room);
+
+  const add = (qty: number) => {
+    addToDraft(p.id, qty);
+    setWanted(1);
+    setStop({ added: qty });
+  };
+
+  const toOrder = () => {
+    setStop(null);
+    show();
+  };
+
+  const keepBrowsing = () => {
+    setStop(null);
+    if (openedFrom.grid) router.back();
+    else router.push("/catalog");
+  };
 
   const related = useMemo(() => {
     const others = products.filter((x) => x.id !== p.id && available(x) > 0);
@@ -90,25 +113,17 @@ function Detail({ product: p }: { product: Product }) {
 
           {p.description ? <p className="cg-product__desc">{p.description}</p> : null}
 
-          {/* Nothing free means nothing to choose: no quantity, no dead button to tap at a customer's side. */}
+          {/* Nothing free means nothing to choose: no quantity, no dead button to tap at a customer's side. The reason stands in their place. */}
           {free > 0 ? (
             <div className="cg-buy">
-              <Stepper label={`כמות של ${p.name}`} value={qty} max={Math.max(room, 1)} onChange={setWanted} />
-              <button
-                type="button"
-                className="cg-btn"
-                disabled={room < 1 || added}
-                onClick={() => {
-                  addToDraft(p.id, qty);
-                  setWanted(1);
-                  setAdded(true);
-                }}
-              >
-                {added ? "נוסף להזמנה" : "הוספה להזמנה"}
+              <Stepper label={`כמות של ${p.name}`} value={wanted} onChange={setWanted} />
+              <button type="button" className="cg-btn" onClick={() => (wanted > room ? setStop({ short: true }) : add(wanted))}>
+                הוספה להזמנה
               </button>
             </div>
-          ) : null}
-          {free > 0 && room < 1 && inOrder === 0 ? <p className="cg-inorder">פחות מיחידה אחת זמינה</p> : null}
+          ) : (
+            <p className="cg-why"><b>{nothingFree(p).title}</b> {nothingFree(p).text}</p>
+          )}
           {inOrder > 0 ? (
             <p className="cg-inorder">
               בהזמנה <span className="cg-num">{fmtQty(inOrder)}</span> {p.unit} · <button type="button" className="cg-link" onClick={show}>צפייה בהזמנה</button>
@@ -141,6 +156,57 @@ function Detail({ product: p }: { product: Product }) {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {stop && "added" in stop ? (
+        <Notice
+          title="נוסף להזמנה"
+          primary={{ label: "שליחת ההזמנה", onClick: toOrder }}
+          secondary={{ label: "המשך בקטלוג", onClick: keepBrowsing }}
+          onClose={() => setStop(null)}
+        >
+          <div className="cg-notice__item">
+            <ProductImage product={p} />
+            <p>
+              <span className="cg-notice__name">{fmtName(p.name)}</span>
+              <span className="cg-notice__sub"><span className="cg-num">{fmtQty(stop.added)}</span> {p.unit}</span>
+            </p>
+          </div>
+          <p className="cg-notice__text">{lines.length === 1 ? "מוצר אחד בהזמנה" : `${fmtQty(lines.length)} מוצרים בהזמנה`}</p>
+        </Notice>
+      ) : null}
+
+      {stop && "short" in stop ? (
+        room >= 1 ? (
+          <Notice
+            title="אין מספיק במלאי"
+            primary={{ label: `הוספת ${fmtQty(fits)} ${p.unit}`, onClick: () => add(fits) }}
+            secondary={{ label: "שינוי הכמות", onClick: () => setStop(null) }}
+            onClose={() => setStop(null)}
+          >
+            <dl className="cg-notice__rows">
+              <NoticeRow label="ביקשת"><span className="cg-num">{fmtQty(wanted)}</span> {p.unit}</NoticeRow>
+              {inOrder > 0 ? <NoticeRow label="כבר בהזמנה"><span className="cg-num">{fmtQty(inOrder)}</span> {p.unit}</NoticeRow> : null}
+              <NoticeRow label={inOrder > 0 ? "אפשר להוסיף" : "זמין עכשיו"}><span className="cg-num">{fmtQty(room)}</span> {p.unit}</NoticeRow>
+            </dl>
+            <p className="cg-notice__text">אפשר להזמין את מה שזמין, ועל היתר לבדוק עם המחסן</p>
+          </Notice>
+        ) : inOrder > 0 ? (
+          <Notice
+            title="הכול כבר בהזמנה"
+            primary={{ label: "צפייה בהזמנה", onClick: toOrder }}
+            secondary={{ label: "חזרה", onClick: () => setStop(null) }}
+            onClose={() => setStop(null)}
+          >
+            <p className="cg-notice__text">
+              כל הכמות הזמינה, <span className="cg-num">{fmtQty(inOrder)}</span> {p.unit}, כבר בהזמנה. על עוד צריך לבדוק עם המחסן
+            </p>
+          </Notice>
+        ) : (
+          <Notice title={nothingFree(p).title} primary={{ label: "הבנתי", onClick: () => setStop(null) }} onClose={() => setStop(null)}>
+            <p className="cg-notice__text">{nothingFree(p).text}</p>
+          </Notice>
+        )
       ) : null}
     </main>
   );

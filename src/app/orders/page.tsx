@@ -10,7 +10,7 @@ import { normalizeName, orderTotal, useData, type Order } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Count, EmptyState, PageHead, Select, Showing, Table, Tabs, Toolbar, type SelectOption, type TableColumn } from "@/components/ui";
-import { fmtAge, fmtDay, fmtName, fmtPrice, ORDER_STATUS_LABEL } from "@/lib/format";
+import { byPromise, daysUntil, fmtAge, fmtDay, fmtName, fmtPlainDay, fmtPrice, fmtPromised, ORDER_STATUS_LABEL } from "@/lib/format";
 
 type Status = Order["status"];
 
@@ -20,8 +20,8 @@ const TABS: { value: Status; label: string; empty: string }[] = [
   { value: "cancelled", label: "בוטלו", empty: "אין הזמנות שבוטלו" },
 ];
 
-/** Phones keep the customer and the total; each carries the rest on its second line, and the order panel has everything. */
-const PHONE_ORDERS = "max-[600px]:[&_:is(td,th):is(:nth-child(2),:nth-child(4))]:hidden";
+/** Phones keep the customer and the total; each carries the rest on its second line, and the order panel has everything. A tablet gives up the state column for the names, and keeps the state under the total. */
+const PHONE_ORDERS = "max-[600px]:[&_:is(td,th):is(:nth-child(2),:nth-child(4),:nth-child(5))]:hidden min-[601px]:max-[1099px]:[&_:is(td,th):nth-child(4)]:hidden";
 
 /** These two cells share what the figures leave, so a long name truncates and no column is ever cut. On phones the customer takes it all. */
 const WHO_CELL = "w-[36%] max-w-0 max-[600px]:w-full";
@@ -34,6 +34,13 @@ function toStatus(value: string | null): Status {
 /** Where an order stands, in its colour. An open order that asks for more than the shelf has says so, in the one loud colour. */
 function OrderState({ status, short }: { status: Status; short: boolean }) {
   return <span className={`sa-order-state is-${short ? "short" : status}`}>{short ? "חסר במלאי" : ORDER_STATUS_LABEL[status]}</span>;
+}
+
+/** The delivery date the agent promised. On an open order past it, the word turns to how late it is. */
+function Promised({ order }: { order: Order }) {
+  if (!order.promised_on) return <span className="text-ink-3">—</span>;
+  const late = order.status === "open" && daysUntil(order.promised_on) < 0;
+  return <span className={late ? "sa-order-late" : undefined}>{order.status === "open" ? fmtPromised(order.promised_on) : fmtPlainDay(order.promised_on)}</span>;
 }
 
 const digitsOf = (text: string) => text.replace(/\D/g, "");
@@ -92,11 +99,13 @@ function OrdersInner() {
   const q = normalizeName(query);
   const orders = useMemo(() => {
     const digits = phoneDigits(q);
-    return baseOrders.filter((o) => {
+    const found = baseOrders.filter((o) => {
       if (o.status !== status) return false;
       if (!q) return true;
       return normalizeName(o.customer).includes(q) || String(o.number).includes(q) || (digits !== "" && digitsOf(o.customer_phone ?? "").includes(digits));
     });
+    // What still has to go out is read by the date promised to the customer, nearest first.
+    return status === "open" ? found.sort(byPromise) : found;
   }, [baseOrders, status, q]);
 
   const tabTotal = useMemo(() => state.orders.filter((o) => o.status === status).length, [state.orders, status]);
@@ -124,7 +133,7 @@ function OrdersInner() {
               <span className="sa-cell-sub sa-truncate">
                 הזמנה {o.number}
                 <span className="max-[600px]:hidden">{name ? ` · ${name}` : null}</span>
-                <span className="min-[601px]:hidden"> · {age(o)}</span>
+                <span className="min-[601px]:hidden"> · {o.promised_on ? <>מסירה <Promised order={o} /></> : age(o)}</span>
               </span>
             </>
           );
@@ -157,7 +166,7 @@ function OrdersInner() {
           return (
             <>
               <span className={total === null ? "text-ink-3" : "sa-row-figure"}>{fmtPrice(total)}</span>
-              <span className="block min-[601px]:hidden">
+              <span className="block min-[1100px]:hidden">
                 <OrderState status={o.status} short={short(o)} />
               </span>
             </>
@@ -173,6 +182,11 @@ function OrdersInner() {
             <span className="sa-cell-sub">{age(o)}</span>
           </span>
         ),
+      },
+      {
+        key: "promised_on",
+        title: "מסירה",
+        render: (o) => <span className="block whitespace-nowrap"><Promised order={o} /></span>,
       },
     ];
   }, [agent, product, linesOf]);

@@ -49,6 +49,13 @@ export class ShortageError extends Error {
   }
 }
 
+/** An order that didn't go: `message` says why and what to do next, `retry` whether sending again can help. */
+export class OrderRefused extends Error {
+  constructor(public title: string, message: string, public retry: boolean) {
+    super(message);
+  }
+}
+
 const AGENT_KEY = "agent.id";
 const DRAFT_KEY = "agent.draft";
 
@@ -167,10 +174,16 @@ type Api = {
   addToDraft: (productId: string, qty: number) => void;
   setDraftQty: (productId: string, qty: number) => void;
   removeFromDraft: (productId: string) => void;
+  /** Replaces the lines at once, for a change that touches several. */
+  setDraftLines: (lines: DraftLine[]) => void;
   clearDraft: () => void;
   /** The order this draft already became, when the answer to its send was lost. */
   landed: Order | undefined;
-  placeOrder: (input: { customer: string; phone: string; note: string }) => Promise<Tables<"orders">>;
+  /** The lines changed after that send, so the order doesn't hold what the draft shows. */
+  landedEarlier: boolean;
+  /** Ends a draft whose order landed unseen. What was added or raised after that send stays as a new order. */
+  settleLanded: () => void;
+  placeOrder: (input: { customer: string; phone: string; note: string; promised: string }) => Promise<Tables<"orders">>;
   cancelOrder: (id: string) => Promise<void>;
 };
 
@@ -203,8 +216,23 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function friendly(message: string): string {
-  return /fetch|network|load failed/i.test(message) ? "אין חיבור. אפשר לנסות שוב" : message;
+const offline = (message: string) => /fetch|network|load failed/i.test(message);
+const hebrew = (message: string) => /[֐-׿]/.test(message);
+
+/** What the database said, as an agent needs to hear it. */
+function refusal(message: string): OrderRefused {
+  const title = "ההזמנה לא נשלחה";
+  // The send may have landed with only its answer lost, so this can't promise that it didn't.
+  if (offline(message)) return new OrderRefused("אין חיבור לאינטרנט", "לא ברור אם ההזמנה נקלטה. אפשר לשלוח שוב, היא לא תישלח פעמיים", true);
+  if (message === "הסוכן לא פעיל") return new OrderRefused(message, "המנהל השבית את הסוכן הזה. צריך לפנות למנהל", false);
+  if (message === "תאריך המסירה כבר עבר") return new OrderRefused(message, "צריך לבחור תאריך מהיום והלאה", false);
+  return new OrderRefused(title, `${hebrew(message) ? `${message}. ` : ""}אפשר לנסות שוב, ואם זה חוזר לפנות למנהל`, true);
+}
+
+function cancelRefusal(message: string): string {
+  if (offline(message)) return "אין חיבור, ההזמנה לא בוטלה. אפשר לנסות שוב";
+  if (message === "ההזמנה כבר טופלה") return "המחסן כבר טיפל בהזמנה, אז אי אפשר לבטל אותה";
+  return `${hebrew(message) ? message : "הביטול נכשל"}. אפשר לנסות שוב, ואם זה חוזר לפנות למנהל`;
 }
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
@@ -312,6 +340,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const agentRow = agents.find((a) => a.id === agentId);
   const tried = draft?.tried?.request;
   const landed = tried ? orders.find((o) => o.request_id === tried && o.status !== "cancelled") : undefined;
+  const landedEarlier = landed !== undefined && draft?.request !== tried;
 
   const api = useMemo<Api>(() => {
     const qtyOf = (productId: string) => lines.find((l) => l.productId === productId)?.qty ?? 0;
@@ -334,11 +363,31 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       },
       setDraftQty: (productId, qty) => saveLines(lines.map((l) => (l.productId === productId ? { ...l, qty } : l)), draft),
       removeFromDraft: (productId) => saveLines(lines.filter((l) => l.productId !== productId), draft),
+      setDraftLines: (next) => saveLines(next, draft),
       clearDraft: () => write(DRAFT_KEY, null),
       landed,
+      landedEarlier,
+      settleLanded: () => {
+        const sent = new Map(landed?.order_lines.map((l) => [l.product_id, l.qty]));
+        const rest = lines.flatMap((l) => {
+          const left = l.qty - (sent.get(l.productId) ?? 0);
+          return left > 0 ? [{ ...l, qty: left }] : [];
+        });
+        write(DRAFT_KEY, rest.length ? JSON.stringify({ request: newRequest(), lines: rest }) : null);
+      },
 
-      placeOrder: async ({ customer, phone, note }) => {
-        if (!agentRow || !draft) throw new Error("אין שורות בהזמנה");
+      placeOrder: async ({ customer, phone, note, promised }) => {
+        if (!agentRow || !draft) throw new OrderRefused("ההזמנה לא נשלחה", "אין שורות בהזמנה. צריך להוסיף מוצר", false);
+        // The lines changed after a send whose answer never came. It may have landed, and a new request would then be a second order.
+        const earlier = draft.tried && draft.tried.request !== draft.request ? draft.tried.request : null;
+        if (earlier) {
+          const { data: found, error: unread } = await sb.from("orders").select("id").eq("request_id", earlier).neq("status", "cancelled").maybeSingle();
+          if (unread) throw refusal(unread.message);
+          if (found) {
+            await loadOrders().catch(() => undefined);
+            throw new OrderRefused("ההזמנה כבר נקלטה", "השליחה הקודמת הגיעה למחסן. אפשר לראות אותה בהזמנות", false);
+          }
+        }
         write(DRAFT_KEY, JSON.stringify({ ...draft, tried: { request: draft.request, key: linesKey(draft.lines) } }));
         const { data, error: failed } = await sb.rpc("create_order", {
           request: draft.request,
@@ -347,6 +396,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           phone,
           order_note: note,
           items: draft.lines.map((l) => ({ product_id: l.productId, qty: l.qty })),
+          promised,
         });
         if (failed) {
           if (failed.message === "חסר במלאי" && failed.details) {
@@ -355,12 +405,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           }
           // The answer may be what was lost: if the order landed, `landed` shows it instead of this message.
           await loadOrders().catch(() => undefined);
-          throw new Error(friendly(failed.message));
+          throw refusal(failed.message);
         }
         if (data.status === "cancelled") {
           // A retry found its earlier order, cancelled since. The agent is sending a new one.
           write(DRAFT_KEY, JSON.stringify({ request: newRequest(), lines: draft.lines }));
-          throw new Error("ההזמנה הקודמת בוטלה. אפשר לשלוח שוב");
+          throw new OrderRefused("ההזמנה הקודמת בוטלה", "אפשר לשלוח אותה שוב כהזמנה חדשה", true);
         }
         loadOrders().catch(() => undefined);
         return data;
@@ -368,10 +418,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       cancelOrder: async (id) => {
         const { error: failed } = await sb.rpc("cancel_order", { target_order: id });
         await loadOrders().catch(() => undefined);
-        if (failed) throw new Error(friendly(failed.message));
+        if (failed) throw new Error(cancelRefusal(failed.message));
       },
     };
-  }, [status, error, hydrated, products, agents, orders, reload, agentId, agentRow, landed, productMap, lines, draft, sb, loadOrders]);
+  }, [status, error, hydrated, products, agents, orders, reload, agentId, agentRow, landed, landedEarlier, productMap, lines, draft, sb, loadOrders]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

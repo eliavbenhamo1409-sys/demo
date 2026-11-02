@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { byPromise } from "@/lib/format";
 import { useData, type DocumentInput } from "@/lib/store";
 
 const WORKER_KEY = "worker.id";
@@ -149,13 +150,13 @@ const openOrdersQuery = () => supabase().from("orders").select("*, order_lines(*
 /** An agent's order waiting to leave the warehouse, with its lines and agent. */
 export type OpenOrder = QueryData<ReturnType<typeof openOrdersQuery>>[number];
 
-/** The open orders as of opening the screen, oldest first. Read once: the database refuses a stale one. */
+/** The open orders as of opening the screen, the nearest promise to a customer first. Read once: the database refuses a stale one. */
 export function useOpenOrders() {
   const [orders, setOrders] = useState<OpenOrder[]>([]);
   useEffect(() => {
     let alive = true;
     void openOrdersQuery().then(({ data }) => {
-      if (alive && data) setOrders(data);
+      if (alive && data) setOrders(data.sort(byPromise));
     });
     return () => {
       alive = false;
@@ -164,7 +165,7 @@ export function useOpenOrders() {
   /** Read the list again, after the database refused an order that someone else closed. */
   const refresh = useCallback(async () => {
     const { data } = await openOrdersQuery();
-    if (data) setOrders(data);
+    if (data) setOrders(data.sort(byPromise));
   }, []);
   return { orders, refresh };
 }

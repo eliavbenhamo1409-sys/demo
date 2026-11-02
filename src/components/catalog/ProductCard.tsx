@@ -24,10 +24,19 @@ export function ProductImage({ product, eager }: { product: Product; eager?: boo
   );
 }
 
-export function ProductCard({ product }: { product: Product }) {
+/** Set by the card that opened a product: from the grid, one step back returns to the same place on it. */
+export const openedFrom = { grid: false };
+
+export function ProductCard({ product, grid }: { product: Product; grid?: boolean }) {
   const free = available(product);
   return (
-    <Link href={`/catalog/product/${product.id}`} className="cg-card">
+    <Link
+      href={`/catalog/product/${product.id}`}
+      className="cg-card"
+      onClick={() => {
+        openedFrom.grid = Boolean(grid);
+      }}
+    >
       <ProductImage product={product} />
       <span className="cg-card__meta">
         <span className="cg-card__row">

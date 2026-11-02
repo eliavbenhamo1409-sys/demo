@@ -110,3 +110,26 @@ from (values
   ('CUT-5L','נוזל קירור וסיכה לחיתוך ולקידוח אלומיניום, שומר על הלהב ועל גימור החיתוך.',135.00,'/products/cut-5l.webp')
 ) as v(sku, description, price, image_path)
 where p.sku = v.sku;
+
+-- A fuller catalogue: tubes, bars, sheets and hardware. Runs again safely: a code already there stays as it is.
+-- Quantities sit above each minimum, so these rows add nothing to the attention list.
+insert into products (sku, barcode, name, category, unit, qty, min_qty, location, primary_supplier_id, description, price, image_path)
+select v.sku, v.barcode, v.name, v.category, v.unit, v.qty, v.min_qty, v.location, s.id, v.description, v.price, v.image_path
+from (values
+  ('PRF-4040-BK','7290000010090','פרופיל אלומיניום 40×40 מ״מ שחור','פרופילים','מטר',120,40,'B-1','מתכות המרכז בע״מ','פרופיל מבני עם חריצי T בארבעת הצדדים, בגימור אנודייז שחור למסגרות גלויות.',84.00,'/products/prf-4040-bk.webp'),
+  ('TUB-4040','7290000010106','צינור ריבועי 40×40×2 מ״מ (מוט 6 מ׳)','פרופילים','יח׳',180,40,'B-3','מתכות המרכז בע״מ','צינור סגור למסגרות, למעקות ולשלדות קלות, באורך מוט מלא של 6 מטר.',142.00,'/products/tub-4040.webp'),
+  ('TUB-6030','7290000010113','צינור מלבני 60×30×2 מ״מ (מוט 6 מ׳)','פרופילים','יח׳',96,30,'B-3','מתכות המרכז בע״מ','צינור מלבני לקורות ולשלדות, חזק בכיוון הגובה ונוח לחיבור.',158.00,'/products/tub-6030.webp'),
+  ('TUB-50','7290000010120','צינור עגול 50×3 מ״מ (מוט 6 מ׳)','פרופילים','יח׳',64,20,'B-3','שחר לוחות ומתכת','צינור עגול בגימור אנודייז, למעקות, לידיות ולמתקנים.',176.00,'/products/tub-50.webp'),
+  ('TEE-4040','7290000010137','פרופיל T 40×40×3 מ״מ (מוט 6 מ׳)','פרופילים','יח׳',72,20,'B-2','מתכות המרכז בע״מ','פרופיל T לחיזוק, לחיבור לוחות ולמסילות תמיכה.',124.00,'/products/tee-4040.webp'),
+  ('FLT-5005','7290000010144','פס אלומיניום 50×5 מ״מ (מוט 6 מ׳)','פרופילים','יח׳',140,40,'B-2','מתכות המרכז בע״מ','פס שטוח לחיזוקים, לספים ולעבודות מסגרות קלות.',104.00,'/products/flt-5005.webp'),
+  ('FRM-70','7290000010151','פרופיל מסגרת לזיגוג ברונזה (מוט 6 מ׳)','פרופילים','יח׳',48,15,'B-1','שחר לוחות ומתכת','פרופיל דו תאי לחלונות ולמחיצות זכוכית, עם שקע לזיגוג, בגימור אנודייז ברונזה.',212.00,'/products/frm-70.webp'),
+  ('SHT-TRD-3','7290000010168','לוח מרוג 3 מ״מ 1250×2500','לוחות','יח׳',34,10,'A-3','שחר לוחות ומתכת','לוח עם דוגמה מונעת החלקה, לרצפות, למדרגות ולארגזי רכב.',540.00,'/products/sht-trd-3.webp'),
+  ('SHT-PRF-2','7290000010175','לוח מחורר 2 מ״מ 1000×2000','לוחות','יח׳',26,8,'A-3','שחר לוחות ומתכת','לוח עם חירור עגול אחיד, לחיפוי, לאוורור ולמחיצות.',410.00,'/products/sht-prf-2.webp'),
+  ('SHT-BK-15','7290000010182','לוח אנודייז שחור 1.5 מ״מ 1000×2000','לוחות','יח׳',30,10,'A-2','שחר לוחות ומתכת','לוח בגימור שחור עמוק, לחזיתות, לשילוט ולציפוי ארונות.',360.00,'/products/sht-bk-15.webp'),
+  ('BRK-4040','7290000010199','מחבר פינה 40×40 (אריזה 10)','אביזרים','אריזה',85,20,'C-3/1','הצפון אביזרים','זווית יצוקה עם צלעות חיזוק, לחיבור פרופילים בזווית ישרה.',95.00,'/products/brk-4040.webp'),
+  ('TNT-M6','7290000010205','אום T M6 לחריץ 8 (אריזה 100)','אביזרים','אריזה',60,15,'C-3/2','הצפון אביזרים','אום הזזה לחריץ של פרופיל 40×40, לחיבור אביזרים בכל נקודה לאורכו.',60.00,'/products/tnt-m6.webp')
+) as v(sku, barcode, name, category, unit, qty, min_qty, location, supplier, description, price, image_path)
+left join suppliers s on s.name = v.supplier
+on conflict (sku) do nothing;
+-- Written barcodes don't move the sequence, and the next blank product must not land on one of them.
+select setval('product_barcode_seq', greatest((select last_value from product_barcode_seq), (select max(substr(barcode, 4, 9)::bigint) from products where barcode ~ '^729[0-9]{10}$')));

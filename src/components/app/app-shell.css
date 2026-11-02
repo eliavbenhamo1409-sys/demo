@@ -1577,6 +1577,12 @@ a.sa-fault-thumb:focus-visible {
   color: var(--short);
 }
 
+/* A promise to a customer that has passed: a word in colour, not an alarm. */
+.sa-order-late {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
 /* ── Movements page ─────────────────────────────────────────── */
 .sa-moves {
   display: flex;

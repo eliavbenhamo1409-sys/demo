@@ -85,7 +85,7 @@ function Catalog() {
           <div className="cg-grid">
             {list.map((p, i) => (
               <Reveal key={p.id} i={i % 4}>
-                <ProductCard product={p} />
+                <ProductCard product={p} grid />
               </Reveal>
             ))}
           </div>
