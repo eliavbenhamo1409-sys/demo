@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type FocusEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
 import { Button, cx, Notice, PageHead, Tabs } from "@/components/ui";
 import { fmtDateTime, fmtPrice, fmtQty } from "@/lib/format";
 import { DISPATCH_ZONE } from "@/lib/map3d/layout";
-import { buildMapModel } from "@/lib/map3d/model";
+import { blockAt, buildMapModel, emptySpot, type MapItem } from "@/lib/map3d/model";
 import { placeKey, resolvePlace } from "@/lib/map3d/place";
 import { routeBetween } from "@/lib/map3d/route";
+import { useShelves } from "@/lib/map3d/shelves";
 import { buildTrail, qtyAt, TRAIL_WINDOW, type PastQty } from "@/lib/map3d/trail";
 import type { MapObject, MapObjectKind, MapRoute, PickHit, ViewMode } from "@/lib/map3d/types";
 import { useLayout } from "@/lib/map3d/use-layout";
@@ -61,6 +62,7 @@ export function MapPage() {
   const ui = useUi();
   const layout = useLayout();
   const editor = useLayoutEditor(layout);
+  const { rows: shelfRows } = useShelves();
   const params = useSearchParams();
   const narrow = useNarrow();
   const coarse = useCoarsePointer();
@@ -79,21 +81,27 @@ export function MapPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [chosenView, setChosenView] = useState<ViewMode | null>(null);
   const [at, setAt] = useState<number | null>(null);
-  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [hover, setHover] = useState<PickHit | null>(null);
   const [linkSeen, setLinkSeen] = useState<string | null>(null);
 
   const viewMode = chosenView ?? (narrow ? "top" : "orbit");
 
   /* ───────── the ledger, as the map reads it ───────── */
-  const model = useMemo(() => buildMapModel(state.products, objects), [state.products, objects]);
+  const model = useMemo(() => buildMapModel(state.products, objects, shelfRows), [state.products, objects, shelfRows]);
   const worth = useMemo(() => worthOf(model), [model]);
 
+  // A product on several shelves answers with the one that holds the most of it.
   const places = useMemo(() => {
-    const byProduct = new Map<string, string>();
-    for (const stock of model.byObject.values()) for (const item of stock.items) byProduct.set(item.product.id, item.objectId);
+    const byProduct = new Map<string, MapItem>();
+    for (const stock of model.byObject.values()) {
+      for (const item of stock.items) {
+        const known = byProduct.get(item.product.id);
+        if (!known || item.qty > known.qty) byProduct.set(item.product.id, item);
+      }
+    }
     return byProduct;
   }, [model]);
-  const placeOf = useCallback((productId: string) => places.get(productId) ?? null, [places]);
+  const placeOf = useCallback((productId: string) => places.get(productId)?.objectId ?? null, [places]);
 
   /* ───────── history: never reaches the live view ───────── */
   const [trailStart] = useState(() => Date.now() - TRAIL_WINDOW);
@@ -126,8 +134,8 @@ export function MapPage() {
       stock.set(p.id, qty);
       return { ...p, qty: qty.kind === "known" ? qty.qty : 0 };
     });
-    return { stock, slots: buildMapModel(products, objects).slots };
-  }, [shownAt, trail, state.products, objects]);
+    return { stock, slots: buildMapModel(products, objects, shelfRows, { dated: true }).slots };
+  }, [shownAt, trail, state.products, objects, shelfRows]);
 
   /* ───────── selection ───────── */
   const selectedObject = (selected && objects.find((o) => o.id === selected.objectId)) || null;
@@ -141,11 +149,20 @@ export function MapPage() {
   }
 
   const select = useCallback(
-    (objectId: string) => {
-      setSelected({ objectId, level: null });
+    (objectId: string, shelf?: PickHit) => {
+      setSelected(shelf ?? { objectId, level: null });
       if (narrow) stage.current?.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
     },
     [narrow, reducedMotion],
+  );
+
+  /** Goes to the shelf that holds most of a product. */
+  const selectProduct = useCallback(
+    (productId: string) => {
+      const item = places.get(productId);
+      if (item) select(item.objectId, { objectId: item.objectId, level: item.level, side: item.side });
+    },
+    [places, select],
   );
 
   // The address follows the selection, so a link to the same place works twice.
@@ -162,7 +179,7 @@ export function MapPage() {
 
   const { engine, failed } = useMapEngine(host, {
     onPick: pickHit,
-    onHover: (hit) => setHoverId(hit?.objectId ?? null),
+    onHover: setHover,
     onDragObject: (id, x, z) => {
       editor.patch(id, { x, z });
     },
@@ -202,10 +219,14 @@ export function MapPage() {
     return valueLens ? new Set(worth.places.map((p) => p.object.id)) : null;
   }, [editing, targetId, orderPlaces, valueLens, worth.places]);
 
-  const selection = useMemo<PickHit | null>(
-    () => (editing ? (editor.editId ? { objectId: editor.editId, level: null } : null) : selected),
-    [editing, editor.editId, selected],
-  );
+  // What the rule on the map follows: a whole block of a product, however it was reached.
+  const selectedBlock = useMemo(() => (selected ? blockAt(model, selected) : null), [selected, model]);
+  const selection = useMemo<PickHit | null>(() => {
+    if (editing) return editor.editId ? { objectId: editor.editId, level: null } : null;
+    if (!selectedBlock) return selected && selectedObject ? emptySpot(selected, selectedObject, model) : selected;
+    const { objectId, level, side, through } = selectedBlock;
+    return { objectId, level, side, through: through ?? undefined };
+  }, [editing, editor.editId, selected, selectedObject, selectedBlock, model]);
 
   useEffect(() => {
     engine?.setLayout(objects);
@@ -218,11 +239,11 @@ export function MapPage() {
     const rows = at === null ? state.movements : recent.rows.filter((m) => Date.parse(m.created_at) <= at);
     for (const m of rows) {
       if (isTempId(m.id) || (m.type !== "in" && m.type !== "out")) continue;
-      const place = placeOf(m.product_id);
+      const place = resolvePlace(m.place, objects)?.objectId ?? placeOf(m.product_id);
       if (place) return place;
     }
     return null;
-  }, [at, state.movements, recent.rows, placeOf]);
+  }, [at, state.movements, recent.rows, placeOf, objects]);
 
   const forkliftSet = useRef(false);
   useEffect(() => {
@@ -310,22 +331,28 @@ export function MapPage() {
     return ids;
   }, [state.faults, placeOf]);
 
+  const closeView = selectedObject?.kind === "rack" && viewMode !== "top" && viewMode !== "walk" ? selectedObject : null;
   const labels = useMemo(
-    () => labelViews({ objects, model, past: past?.stock ?? null, money: valueLens, faults: faultObjects }),
-    [objects, model, past, valueLens, faultObjects],
+    () => labelViews({ objects, model, past: past?.stock ?? null, money: valueLens, faults: faultObjects, open: closeView, shelf: hover }),
+    [objects, model, past, valueLens, faultObjects, closeView, hover],
   );
 
   /* ───────── the rail ───────── */
   const map = useMemo<MapView>(
-    () => ({ objects, model, trail, now, recent: recent.rows, ledger, placeOf, select }),
-    [objects, model, trail, now, recent.rows, ledger, placeOf, select],
+    () => ({ objects, model, trail, now, recent: recent.rows, ledger, placeOf, select, selectProduct }),
+    [objects, model, trail, now, recent.rows, ledger, placeOf, select, selectProduct],
   );
 
   const toToday = () => setAt(null);
 
+  // A menu that opens at the foot of the rail comes into view whole.
+  const showMenu = (e: FocusEvent<HTMLElement>) => {
+    if (e.target instanceof Element) e.target.closest(".sa-menu")?.scrollIntoView({ block: "nearest" });
+  };
+
   const rail = () => {
     if (editing) return <LayoutPanel editor={editor} model={model} />;
-    if (selectedObject) return <ObjectCard map={map} object={selectedObject} past={past?.stock ?? null} onBack={() => setSelected(null)} />;
+    if (selectedObject) return <ObjectCard map={map} object={selectedObject} hit={selected} past={past?.stock ?? null} onShelf={setSelected} onBack={() => setSelected(null)} />;
     if (tab === "status") return <StatusRail map={map} past={past?.stock ?? null} at={at} />;
     if (tab === "moves") return <MovesRail map={map} at={at} />;
     if (at !== null) return <TodayOnly onToday={toToday} />;
@@ -341,8 +368,7 @@ export function MapPage() {
   };
 
   const onSearchPick = (product: Product) => {
-    const place = placeOf(product.id);
-    if (place) select(place);
+    if (placeOf(product.id)) selectProduct(product.id);
     else ui.openProduct(product.id);
   };
 
@@ -416,7 +442,7 @@ export function MapPage() {
           <Tabs tabs={tabs} value={tab} onChange={onTab} />
         )}
 
-        <aside ref={railRef} className="m3d-rail" tabIndex={-1} aria-label="פרטי המחסן">{rail()}</aside>
+        <aside ref={railRef} className="m3d-rail" tabIndex={-1} aria-label="פרטי המחסן" onFocus={showMenu}>{rail()}</aside>
       </div>
 
       <div ref={stage} className="m3d-stage">
@@ -429,10 +455,11 @@ export function MapPage() {
               views={labels}
               flashes={flashes}
               selectedId={selection?.objectId ?? null}
-              hoverId={hoverId}
+              selectedKey={selectedBlock?.key ?? null}
+              hoverId={hover?.objectId ?? null}
               emphasis={emphasis}
               plan={editing || viewMode === "top"}
-              onPick={(id) => pickHit({ objectId: id, level: null })}
+              onPick={pickHit}
             />
           ) : null}
           {failed ? (

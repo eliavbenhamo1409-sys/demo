@@ -6,7 +6,7 @@ import { useUi } from "@/components/app/ui-state";
 import { StockMeter } from "@/components/app/Viz";
 import { Button, cx, Icon, Movement, MovementQty, Select, type SelectOption } from "@/components/ui";
 import { fmtDateTime, fmtName, fmtQty, fmtRelative } from "@/lib/format";
-import { formatPlace } from "@/lib/map3d/place";
+import { formatPlace, placeWords, resolvePlace } from "@/lib/map3d/place";
 import type { PastQty } from "@/lib/map3d/trail";
 import type { StockState } from "@/lib/map3d/types";
 import { stockState, useData, type Fault, type Movement as MovementRow, type Product } from "@/lib/store";
@@ -112,7 +112,7 @@ function LedgerLine({ map, line }: { map: MapView; line: Line }) {
   const { product: p, state, place, share } = line;
 
   return (
-    <button type="button" role="row" className="m3d-line" onClick={() => (place ? map.select(place) : openProduct(p.id))}>
+    <button type="button" role="row" className="m3d-line" onClick={() => (place ? map.selectProduct(p.id) : openProduct(p.id))}>
       <span className="m3d-line-text" role="cell">
         <span className="m3d-line-name">{fmtName(p.name)}</span>
         {/* The percent counts what is free, so a full shelf that orders have taken says why it reads low. */}
@@ -180,14 +180,16 @@ export function MovesRail({ map, at }: { map: MapView; at: number | null }) {
   return (
     <ul className="m3d-list">
       {rows.map((m) => {
-        const place = map.placeOf(m.product_id);
+        // A receipt says where it went; anything else stands where the product stands.
+        const shelf = resolvePlace(m.place, map.objects);
+        const place = shelf?.objectId ?? map.placeOf(m.product_id);
         const p = product(m.product_id);
         return (
-          <RailRow key={m.id} onOpen={place ? () => map.select(place) : () => openProduct(m.product_id, "history")} end={<span className="sa-num m3d-move-qty"><MovementQty qty={m.qty} type={m.type} /></span>}>
+          <RailRow key={m.id} onOpen={place ? () => map.select(place, shelf ?? undefined) : () => openProduct(m.product_id, "history")} end={<span className="sa-num m3d-move-qty"><MovementQty qty={m.qty} type={m.type} /></span>}>
             <span className="m3d-line-name">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
             <span className="m3d-move-meta">
               <Movement type={m.type} />
-              <span>{[place, worker(m.worker_id)?.name, fmtRelative(m.created_at)].filter(Boolean).join(" · ")}</span>
+              <span>{[m.place ? placeWords(m.place, map.objects) : place, worker(m.worker_id)?.name, fmtRelative(m.created_at)].filter(Boolean).join(" · ")}</span>
             </span>
           </RailRow>
         );
@@ -196,7 +198,9 @@ export function MovesRail({ map, at }: { map: MapView; at: number | null }) {
   );
 }
 
+/** What stands nowhere on the map: a product with no place, or the part of one no shelf holds. */
 function Tray({ map }: { map: MapView }) {
+  const { openAction } = useUi();
   const [picking, setPicking] = useState<string | null>(null);
   const [change, setChange] = useState<PlaceChange | null>(null);
   const { model } = map;
@@ -214,14 +218,14 @@ function Tray({ map }: { map: MapView }) {
   return (
     <RailSection title="ללא מיקום במפה" count={model.tray.length}>
       <ul className="m3d-list">
-        {model.tray.map((p) => (
+        {model.tray.map(({ product: p, qty }) => (
           <RailRow
             key={p.id}
-            end={<Button variant="link" size="sm" onClick={() => setPicking(picking === p.id ? null : p.id)}>שיבוץ</Button>}
+            end={<Button variant="link" size="sm" onClick={() => (qty > 0 ? openAction("place", { productId: p.id }) : setPicking(picking === p.id ? null : p.id))}>שיבוץ</Button>}
           >
             <span className="m3d-line-name">{fmtName(p.name)}</span>
             <span className="sa-cell-sub sa-truncate">
-              <span className="ltr">{fmtQty(p.qty)}</span> {p.unit} · <bdi>{p.location || "ללא מיקום"}</bdi>
+              <span className="ltr">{fmtQty(qty)}</span> {p.unit} · <bdi>{qty < p.qty ? `מתוך ${fmtQty(p.qty)}` : p.location || "ללא מיקום"}</bdi>
             </span>
             {picking === p.id ? (
               <div className="m3d-pick">
@@ -246,7 +250,7 @@ function AllPlaces({ map }: { map: MapView }) {
       </summary>
       <ul className="m3d-list">
         {map.objects.map((o) => {
-          const count = map.model.byObject.get(o.id)?.items.length ?? 0;
+          const count = map.model.byObject.get(o.id)?.products ?? 0;
           return (
             <RailRow key={o.id} onOpen={() => map.select(o.id)} end={count > 0 ? <span className="sa-num">{fmtQty(count)}</span> : undefined}>
               <span className="m3d-row-line">

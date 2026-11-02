@@ -1,10 +1,10 @@
 import { levelY, RACK_LEVELS } from "../layout";
-import type { MapObject, StockFinish, StockForm, StockSlot } from "../types";
+import type { MapObject, ShelfSide, StockFinish, StockForm, StockSlot } from "../types";
 
 /**
- * How stock stands in its place. Drawn for the eye, not counted: neat, large forms, as many as the fill asks for, so a
- * shelf reads from across the building. A unit's place depends only on its index, so what stays has not moved when
- * the rest leaves.
+ * How stock stands in its place. Every piece is drawn, so a shelf can be counted against the ledger. Pieces are neat
+ * and large so a shelf reads from across the building; a place that can't hold its count at that size draws all it
+ * holds smaller. A unit's place depends only on its index, so what stays has not moved when the rest leaves.
  */
 
 /** One instance. `part` names its geometry and look; x and z are the centre, y the base. */
@@ -37,14 +37,26 @@ interface Bay {
   clear: number;
 }
 
-interface Sink {
-  units: Unit[];
-  fittings: Placed[];
+/** The places one product has in one bay, by index. */
+interface Pile {
+  capacity: number;
+  unit: (index: number) => Unit;
+}
+
+/** What one bay holds of one product. */
+interface Take {
+  key: string;
+  bay: Bay;
+  pile: Pile;
+  count: number;
 }
 
 /** What a bay keeps free of its rack: the posts at the sides, the lip at the front, air under the next shelf. */
 const SIDE_CLEARANCE = 0.3;
 const DEPTH_CLEARANCE = 0.2;
+const HALF_GAP = 0.16;
+/** A lane is at least this share of an even split, so the smaller product keeps a place to stand. */
+const LEAST_LANE = 3;
 const SHELF_HEIGHT = 0.11;
 const HEADROOM = 0.1;
 
@@ -67,67 +79,48 @@ const ROLL_LINE_GAP = 0.1;
 
 const CANISTER = { w: 0.42, h: 0.58, d: 0.3, gap: 0.06 };
 const CARTON = { w: 0.62, h: 0.36, d: 0.46, gap: 0.03 };
-const MAX_LINES = 3;
 
-/** The least of a level a product takes, so what is nearly gone still shows. */
-const SMALLEST_SHARE = 0.2;
+/** Steps down from the full size, so one piece more or less doesn't resize a whole rack. The last is about real size. */
+const SCALE_STEP = 0.9;
+const SMALLEST_SCALE = 0.15;
 
 const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), high);
-
-/** How many of `capacity` a bay shows for its share. At least one, or a product in stock would look gone. */
-const inBay = (capacity: number, share: number) => clamp(Math.round(capacity * share), 1, capacity);
 
 /** Indices of `count` places from the middle outward, so a part-filled row stands centred. */
 function fromMiddle(count: number): number[] {
   return Array.from({ length: count }, (_, i) => i).sort((a, b) => Math.abs(a - (count - 1) / 2) - Math.abs(b - (count - 1) / 2) || b - a);
 }
 
-function bearers(bay: Bay, sink: Sink): void {
+function bearers(bay: Bay, fittings: Placed[]): void {
   for (const side of [-1, 1]) {
-    sink.fittings.push({ part: "skid", x: bay.x + side * bay.w * SKID_SPREAD, y: bay.y, z: bay.z, sx: SKID_WIDTH, sy: SKID_HEIGHT, sz: bay.d });
+    fittings.push({ part: "skid", x: bay.x + side * bay.w * SKID_SPREAD, y: bay.y, z: bay.z, sx: SKID_WIDTH, sy: SKID_HEIGHT, sz: bay.d });
   }
 }
 
-function fillBars(form: Extract<StockForm, { form: "bar" }>, finish: StockFinish, bay: Bay, share: number, sink: Sink): void {
+function barPile(form: Extract<StockForm, { form: "bar" }>, finish: StockFinish, bay: Bay, scale: number): Pile {
   const part = `bar:${form.section}:${finish}`;
-  const sz = BAR_SIDE * clamp(form.a / form.b, 1, MAX_ASPECT);
-  const sy = BAR_SIDE * clamp(form.b / form.a, 1, MAX_ASPECT);
-  const cols = Math.max(1, Math.floor((bay.d + BAR_GAP_Z) / (sz + BAR_GAP_Z)));
-  const rows = Math.max(1, Math.floor((bay.clear - SKID_HEIGHT) / (sy + BAR_GAP_Y)));
+  const sz = scale * BAR_SIDE * clamp(form.a / form.b, 1, MAX_ASPECT);
+  const sy = scale * BAR_SIDE * clamp(form.b / form.a, 1, MAX_ASPECT);
+  const [gapZ, gapY] = [scale * BAR_GAP_Z, scale * BAR_GAP_Y];
+  const cols = Math.max(1, Math.floor((bay.d + gapZ) / (sz + gapZ)));
+  const rows = Math.max(1, Math.floor((bay.clear - SKID_HEIGHT) / (sy + gapY)));
   const places = fromMiddle(cols);
-  const count = inBay(cols * rows, share);
-  bearers(bay, sink);
-  for (let i = 0; i < count; i++) {
-    const col = places[i % cols];
-    const z = bay.z + (col - (cols - 1) / 2) * (sz + BAR_GAP_Z);
-    sink.units.push([{ part, x: bay.x, y: bay.y + SKID_HEIGHT + Math.floor(i / cols) * (sy + BAR_GAP_Y), z, sx: bay.w, sy, sz }]);
-  }
+  return {
+    capacity: cols * rows,
+    unit: (index) => {
+      const z = bay.z + (places[index % cols] - (cols - 1) / 2) * (sz + gapZ);
+      return [{ part, x: bay.x, y: bay.y + SKID_HEIGHT + Math.floor(index / cols) * (sy + gapY), z, sx: bay.w, sy, sz }];
+    },
+  };
 }
 
-function fillSheets(finish: StockFinish, bay: Bay, share: number, sink: Sink): void {
+function sheetPile(finish: StockFinish, bay: Bay, scale: number): Pile {
   const part = `sheet:${finish}`;
-  const capacity = Math.max(2, Math.floor((bay.clear - SKID_HEIGHT) / SHEET_PITCH));
-  const count = inBay(capacity, share);
-  bearers(bay, sink);
-  for (let i = 0; i < count; i++) {
-    sink.units.push([{ part, x: bay.x, y: bay.y + SKID_HEIGHT + i * SHEET_PITCH, z: bay.z, sx: bay.w, sy: SHEET_THICKNESS, sz: bay.d - 0.1 }]);
-  }
-}
-
-/** Rolls stand on edge in lines, so their round faces look out of the rack and never read as tyres. */
-function fillRolls(bay: Bay, share: number, sink: Sink): void {
-  const od = Math.min(ROLL_OD, bay.clear - SKID_HEIGHT);
-  const across = Math.max(1, Math.floor((bay.w + ROLL_GAP) / (od + ROLL_GAP)));
-  const lines = clamp(Math.floor((bay.d + ROLL_LINE_GAP) / (ROLL_WIDTH + ROLL_LINE_GAP)), 1, MAX_LINES);
-  const places = fromMiddle(across);
-  const count = inBay(across * lines, share);
-  bearers(bay, sink);
-  for (let i = 0; i < count; i++) {
-    const x = bay.x + (places[i % across] - (across - 1) / 2) * (od + ROLL_GAP);
-    const z = bay.z + ((lines - 1) / 2 - Math.floor(i / across)) * (ROLL_WIDTH + ROLL_LINE_GAP);
-    const size = { x, y: bay.y + SKID_HEIGHT, z, sx: od, sy: od, sz: ROLL_WIDTH };
-    sink.units.push([{ part: "roll", ...size }, { part: "core", ...size }]);
-  }
+  const pitch = scale * SHEET_PITCH;
+  return {
+    capacity: Math.max(2, Math.floor((bay.clear - SKID_HEIGHT) / pitch)),
+    unit: (index) => [{ part, x: bay.x, y: bay.y + SKID_HEIGHT + index * pitch, z: bay.z, sx: bay.w, sy: scale * SHEET_THICKNESS, sz: bay.d - 0.1 }],
+  };
 }
 
 interface Grid {
@@ -135,99 +128,156 @@ interface Grid {
   h: number;
   d: number;
   gap: number;
+  /** Between one line and the next, into the depth. */
+  lineGap: number;
 }
 
 /** Rows on the shelf, then a layer on top where the height allows, in fill order from the front middle. */
-function fillGrid(grid: Grid, bay: Bay, share: number, sink: Sink, unit: (x: number, y: number, z: number) => Unit): void {
+function gridPile(grid: Grid, bay: Bay, unit: (x: number, y: number, z: number) => Unit): Pile {
   const across = Math.max(1, Math.floor((bay.w + grid.gap) / (grid.w + grid.gap)));
-  const lines = clamp(Math.floor((bay.d + grid.gap) / (grid.d + grid.gap)), 1, MAX_LINES);
+  const lines = Math.max(1, Math.floor((bay.d + grid.lineGap) / (grid.d + grid.lineGap)));
   const high = Math.max(1, Math.floor((bay.clear - SKID_HEIGHT) / grid.h));
   const places = fromMiddle(across);
   const perLayer = across * lines;
-  const count = inBay(perLayer * high, share);
-  bearers(bay, sink);
-  for (let i = 0; i < count; i++) {
-    const cell = i % perLayer;
-    const x = bay.x + (places[cell % across] - (across - 1) / 2) * (grid.w + grid.gap);
-    const z = bay.z + ((lines - 1) / 2 - Math.floor(cell / across)) * (grid.d + grid.gap);
-    sink.units.push(unit(x, bay.y + SKID_HEIGHT + Math.floor(i / perLayer) * grid.h, z));
-  }
+  return {
+    capacity: perLayer * high,
+    unit: (index) => {
+      const cell = index % perLayer;
+      const x = bay.x + (places[cell % across] - (across - 1) / 2) * (grid.w + grid.gap);
+      const z = bay.z + ((lines - 1) / 2 - Math.floor(cell / across)) * (grid.d + grid.lineGap);
+      return unit(x, bay.y + SKID_HEIGHT + Math.floor(index / perLayer) * grid.h, z);
+    },
+  };
 }
 
-function fillBay(slot: StockSlot, bay: Bay, share: number, sink: Sink): void {
-  const { form, finish } = slot;
-  if (form.form === "bar") fillBars(form, finish, bay, share, sink);
-  else if (form.form === "sheet") fillSheets(finish, bay, share, sink);
-  else if (form.form === "roll") fillRolls(bay, share, sink);
-  else if (form.form === "canister") {
-    const size = { sx: CANISTER.w, sy: CANISTER.h, sz: CANISTER.d };
-    fillGrid(CANISTER, bay, share, sink, (x, y, z) => [{ part: "canister", x, y, z, ...size }, { part: "canister-cap", x, y, z, ...size }]);
-  } else {
-    fillGrid(CARTON, bay, share, sink, (x, y, z) => [{ part: "carton", x, y, z, sx: CARTON.w, sy: CARTON.h - 0.02, sz: CARTON.d }]);
-  }
-}
-
-function baysOf(object: MapObject, lanes: number): Bay[][] {
-  const w = object.w - SIDE_CLEARANCE;
-  const d = object.d - DEPTH_CLEARANCE;
-  const lane = (y: number, clear: number) =>
-    Array.from({ length: lanes }, (_, i): Bay => ({ x: object.x, y, z: object.z + d / 2 - ((i + 0.5) * d) / lanes, w, d: d / lanes, clear }));
-  if (object.kind !== "rack") return [lane(0, object.h)];
-  const levels = object.levels ?? RACK_LEVELS;
-  return Array.from({ length: levels }, (_, level) => {
-    const y = levelY(object, level);
-    const top = level + 1 < levels ? levelY(object, level + 1) - SHELF_HEIGHT : object.h;
-    return lane(y, top - y - HEADROOM);
+/** Rolls stand on edge in lines, so their round faces look out of the rack and never read as tyres. */
+function rollPile(bay: Bay, scale: number): Pile {
+  const od = Math.min(scale * ROLL_OD, bay.clear - SKID_HEIGHT);
+  const sz = scale * ROLL_WIDTH;
+  return gridPile({ w: od, h: od, d: sz, gap: scale * ROLL_GAP, lineGap: scale * ROLL_LINE_GAP }, bay, (x, y, z) => {
+    const size = { x, y, z, sx: od, sy: od, sz };
+    return [{ part: "roll", ...size }, { part: "core", ...size }];
   });
 }
 
-/** How many levels each product takes: what it asks for, cut back from the greediest until they all fit. */
-function spans(wants: readonly number[], free: number): number[] {
-  const counts = wants.map((want) => Math.max(1, Math.ceil(want - 1e-6)));
-  const total = () => counts.reduce((sum, n) => sum + n, 0);
-  while (total() > free) {
-    const largest = counts.indexOf(Math.max(...counts));
-    if (counts[largest] === 1) break;
-    counts[largest]--;
-  }
-  return counts;
+function canisterPile(bay: Bay, scale: number): Pile {
+  const [w, h, d, gap] = [CANISTER.w, CANISTER.h, CANISTER.d, CANISTER.gap].map((size) => size * scale);
+  return gridPile({ w, h, d, gap, lineGap: gap }, bay, (x, y, z) => {
+    const size = { x, y, z, sx: w, sy: h, sz: d };
+    return [{ part: "canister", ...size }, { part: "canister-cap", ...size }];
+  });
 }
 
-/** Each product starts on the next free level, a pinned one on its own. More products than levels share lanes across the depth. */
+function cartonPile(bay: Bay, scale: number): Pile {
+  const [w, h, d, gap] = [CARTON.w, CARTON.h, CARTON.d, CARTON.gap].map((size) => size * scale);
+  return gridPile({ w, h, d, gap, lineGap: gap }, bay, (x, y, z) => [{ part: "carton", x, y, z, sx: w, sy: h - scale * 0.02, sz: d }]);
+}
+
+function pileOf({ form, finish }: StockSlot, bay: Bay, scale: number): Pile {
+  if (form.form === "bar") return barPile(form, finish, bay, scale);
+  if (form.form === "sheet") return sheetPile(finish, bay, scale);
+  if (form.form === "roll") return rollPile(bay, scale);
+  return form.form === "canister" ? canisterPile(bay, scale) : cartonPile(bay, scale);
+}
+
+/** A shelf whole, or the deck of a floor area. */
+function shelfBay(object: MapObject, level: number): Bay {
+  const base = { x: object.x, z: object.z, w: object.w - SIDE_CLEARANCE, d: object.d - DEPTH_CLEARANCE };
+  if (object.kind !== "rack") return { ...base, y: 0, clear: object.h };
+  const levels = object.levels ?? RACK_LEVELS;
+  const y = levelY(object, level);
+  const top = level + 1 < levels ? levelY(object, level + 1) - SHELF_HEIGHT : object.h;
+  return { ...base, y, clear: top - y - HEADROOM };
+}
+
+/** One half of a shelf. The gap keeps two products from reading as one pile. */
+function halfBay(bay: Bay, side: ShelfSide): Bay {
+  const w = (bay.w - HALF_GAP) / 2;
+  return { ...bay, x: bay.x + ((side === "right" ? 1 : -1) * (w + HALF_GAP)) / 2, w };
+}
+
+/** Bays across the depth for what shares a place, each as deep as its share of the pieces, or the one with more would run out of room first. */
+function lanesOf(bay: Bay, pieces: readonly number[]): Bay[] {
+  const total = pieces.reduce((sum, count) => sum + count, 0);
+  const least = total / (pieces.length * LEAST_LANE);
+  const depths = pieces.map((count) => Math.max(count, least));
+  const all = depths.reduce((sum, depth) => sum + depth, 0);
+  let front = bay.z + bay.d / 2;
+  return depths.map((depth) => {
+    const d = (bay.d * depth) / all;
+    front -= d;
+    return { ...bay, z: front + d / 2, d };
+  });
+}
+
+/** What stands on one shelf, each in its bay. A whole-shelf product beside a half takes the half that is left. */
+function shelfPlan(bay: Bay, slots: readonly StockSlot[]): { slot: StockSlot; bay: Bay }[] {
+  const right = slots.filter((slot) => slot.side === "right");
+  const left = slots.filter((slot) => slot.side === "left");
+  const whole = slots.filter((slot) => slot.side === null);
+  const share = (list: readonly StockSlot[], place: Bay) => {
+    const lanes = lanesOf(place, list.map((slot) => slot.count));
+    return list.map((slot, i) => ({ slot, bay: lanes[i] }));
+  };
+  if (right.length === 0 && left.length === 0) return share(whole, bay);
+  for (const slot of whole) (right.length <= left.length ? right : left).push(slot);
+  return [...share(right, halfBay(bay, "right")), ...share(left, halfBay(bay, "left"))];
+}
+
+/** A placed product stands on its shelf. One with no shelf named starts on the next free level, and more of them than levels share lanes across the depth. */
 export function packObject(object: MapObject, slots: readonly StockSlot[]): PackedObject {
-  const packed: PackedObject = { units: new Map(), fittings: [] };
-  const active = slots.filter((slot) => slot.fill > 0);
+  const active = slots.filter((slot) => slot.count > 0);
   const levels = object.kind === "rack" ? (object.levels ?? RACK_LEVELS) : 1;
   const pinnedLevel = (slot: StockSlot) => clamp(slot.level ?? 0, 0, levels - 1);
-  const pinned = active.filter((slot) => slot.level !== null);
-  const loose = active.filter((slot) => slot.level === null);
+  const pinned = active.filter((slot) => slot.level !== null || object.kind !== "rack");
+  const loose = active.filter((slot) => !pinned.includes(slot));
 
-  const pinnedOn = new Array<number>(levels).fill(0);
-  for (const slot of pinned) pinnedOn[pinnedLevel(slot)]++;
-  const bays = baysOf(object, Math.max(1, Math.ceil(active.length / levels), ...pinnedOn));
-  const free = bays.flat();
+  const onLevel = (level: number) => pinned.filter((slot) => pinnedLevel(slot) === level);
+  const all = Array.from({ length: levels }, (_, level) => level);
+  const spare = all.filter((level) => onLevel(level).length === 0);
+  const spareLevels = spare.length > 0 ? spare : all;
+  const shelves = all.flatMap((level) => shelfPlan(shelfBay(object, level), onLevel(level)));
+  const lanes = Math.max(1, Math.ceil(loose.length / spareLevels.length));
+  const spareBays = spareLevels.flatMap((level) => lanesOf(shelfBay(object, level), new Array<number>(lanes).fill(1)));
 
-  const fill = (slot: StockSlot, list: readonly { bay: Bay; share: number }[]) => {
-    const units: Unit[] = [];
-    for (const { bay, share } of list) fillBay(slot, bay, share, { units, fittings: packed.fittings });
-    packed.units.set(slot.key, units);
+  const plan = (scale: number): { takes: Take[]; fits: boolean } => {
+    const free = [...spareBays];
+    const takes: Take[] = [];
+    let fits = true;
+    const take = (slot: StockSlot, bay: Bay, wanted: number) => {
+      const pile = pileOf(slot, bay, scale);
+      const count = Math.min(wanted, pile.capacity);
+      takes.push({ key: slot.key, bay, pile, count });
+      return wanted - count;
+    };
+
+    for (const { slot, bay } of shelves) {
+      if (take(slot, bay, slot.count) > 0) fits = false;
+    }
+    loose.forEach((slot, i) => {
+      // One bay stays for each product still to come, or it would look gone.
+      const room = free.length - (loose.length - 1 - i);
+      let [left, used] = [slot.count, 0];
+      while (left > 0 && used < room) left = take(slot, free[used++], left);
+      free.splice(0, used);
+      if (left > 0) fits = false;
+    });
+    return { takes, fits };
   };
 
-  for (const slot of pinned) {
-    const level = bays[pinnedLevel(slot)];
-    const lane = level.find((bay) => free.includes(bay)) ?? level[0];
-    if (free.includes(lane)) free.splice(free.indexOf(lane), 1);
-    fill(slot, [{ bay: lane, share: Math.max(slot.fill, SMALLEST_SHARE) }]);
+  let scale = 1;
+  let { takes, fits } = plan(scale);
+  while (!fits && scale > SMALLEST_SCALE) {
+    scale = Math.max(scale * SCALE_STEP, SMALLEST_SCALE);
+    ({ takes, fits } = plan(scale));
   }
 
-  const room = free.length;
-  const wants = loose.map((slot) => slot.fill * room);
-  const counts = spans(wants, room);
-  loose.forEach((slot, i) => {
-    const taken = free.splice(0, counts[i]);
-    if (taken.length === 0) taken.push(bays[0][0]);
-    const last = clamp(wants[i] - (taken.length - 1), SMALLEST_SHARE, 1);
-    fill(slot, taken.map((bay, n) => ({ bay, share: n === taken.length - 1 ? last : 1 })));
-  });
+  const packed: PackedObject = { units: new Map(), fittings: [] };
+  for (const { key, bay, pile, count } of takes) {
+    const units = packed.units.get(key) ?? [];
+    for (let i = 0; i < count; i++) units.push(pile.unit(i));
+    packed.units.set(key, units);
+    bearers(bay, packed.fittings);
+  }
   return packed;
 }

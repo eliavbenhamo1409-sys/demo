@@ -9,6 +9,8 @@ import type { BarSection, StockFinish, StockForm } from "./types";
 export interface FormOf {
   form: StockForm;
   finish: StockFinish;
+  /** How much of the product's own unit one piece holds. Most hold one; stock sold by the metre stands in whole bars. */
+  perPiece: number;
 }
 
 type Kind = StockForm["form"];
@@ -23,7 +25,7 @@ const MAX_SHEET_THICKNESS = 0.1;
 const MAX_SECTION = 0.4;
 const DEFAULT_SECTION = 0.04;
 const DEFAULT_SHEET = { width: 1.25, length: 2.5, thickness: 0.003 };
-const ROLL = { od: 0.32, id: 0.08, height: 0.05 };
+const ROLL = { od: 0.32, id: 0.08, height: 0.05, length: 50 };
 const CARTON = { width: 0.2, depth: 0.15, height: 0.1 };
 /** A 5 litre canister. Other volumes scale from it. */
 const CANISTER = { litres: 5, width: 0.19, depth: 0.125, height: 0.27 };
@@ -41,6 +43,11 @@ const KINDS: readonly (readonly [Kind, ReadonlySet<string>])[] = [
 
 const ANGLE = wordSet("זווית זוויות זוויתן זויתן l angle");
 const CHANNEL = wordSet("תעלה תעלות u c channel");
+
+/** Units, read from the product's unit and never from its name. */
+const PACK = wordSet("אריזה אריזות חבילה חבילות קרטון קרטונים ארגז ארגזים pack packs box boxes carton cartons");
+const METRE = wordSet("מטר מטרים מ m meter meters metre metres");
+const LITRE = wordSet("ליטר ליטרים ל l lt liter liters litre litres");
 
 const FINISHES: readonly (readonly [StockFinish, ReadonlySet<string>])[] = [
   ["black", wordSet("שחור שחורה שחורים black")],
@@ -130,9 +137,15 @@ function sheetOf(name: string): StockForm {
 }
 
 function canisterOf(name: string): StockForm {
-  const litres = Number(LITRES.exec(name)?.[1]);
-  const size = litres > 0 && litres <= MAX_LITRES ? Math.cbrt(litres / CANISTER.litres) : 1;
-  return { form: "canister", width: CANISTER.width * size, depth: CANISTER.depth * size, height: CANISTER.height * size };
+  const stated = Number(LITRES.exec(name)?.[1]);
+  const litres = stated > 0 && stated <= MAX_LITRES ? stated : CANISTER.litres;
+  const size = Math.cbrt(litres / CANISTER.litres);
+  return { form: "canister", width: CANISTER.width * size, depth: CANISTER.depth * size, height: CANISTER.height * size, litres };
+}
+
+function rollOf(name: string): StockForm {
+  const stated = Number(METRES.exec(name)?.[1]);
+  return { form: "roll", ...ROLL, length: stated > 0 ? stated : ROLL.length };
 }
 
 function shapeOf(name: string, words: readonly string[], category: string | null): StockForm {
@@ -140,13 +153,21 @@ function shapeOf(name: string, words: readonly string[], category: string | null
   if (kind === "bar") return barOf(name, words);
   if (kind === "sheet") return sheetOf(name);
   if (kind === "canister") return canisterOf(name);
-  return kind === "roll" ? { form: "roll", ...ROLL } : { form: "carton", ...CARTON };
+  return kind === "roll" ? rollOf(name) : { form: "carton", ...CARTON };
 }
 
-export function formOf(product: Pick<Product, "name" | "category">): FormOf {
+function perPieceOf(form: StockForm, unit: readonly string[]): number {
+  if (form.form === "canister" && hasWord(unit, LITRE)) return form.litres;
+  if ((form.form === "bar" || form.form === "roll") && hasWord(unit, METRE)) return form.length;
+  return 1;
+}
+
+export function formOf(product: Pick<Product, "name" | "category" | "unit">): FormOf {
   const name = tidy(product.name);
   const words = wordsOf(name);
-  const form = shapeOf(name, words, product.category);
+  const unit = wordsOf(tidy(product.unit));
+  // A pack is a box whatever it holds: 40×40 brackets sold by the pack are not 40×40 bars.
+  const form: StockForm = hasWord(unit, PACK) ? { form: "carton", ...CARTON } : shapeOf(name, words, product.category);
   const stated = FINISHES.find(([, list]) => hasWord(words, list))?.[0];
-  return { form, finish: stated ?? (form.form === "bar" ? BAR_TONE[form.section] : "natural") };
+  return { form, finish: stated ?? (form.form === "bar" ? BAR_TONE[form.section] : "natural"), perPiece: perPieceOf(form, unit) };
 }

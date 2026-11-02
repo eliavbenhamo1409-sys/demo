@@ -9,7 +9,7 @@ const shareText = (share: number) => (share > 0 && share < 0.01 ? "<1%" : `${fmt
 
 function contents(stock: ObjectStock | undefined): string {
   const items = stock?.items ?? [];
-  return items.length === 1 ? fmtName(items[0].product.name) : `${fmtQty(items.length)} מוצרים`;
+  return stock?.products === 1 ? fmtName(items[0].product.name) : `${fmtQty(stock?.products ?? 0)} מוצרים`;
 }
 
 /** Where the money stands, at list prices: per location, largest first. */

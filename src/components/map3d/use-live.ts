@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fmtSigned } from "@/lib/format";
 import { DISPATCH_ZONE, RECEIVING_ZONE } from "@/lib/map3d/layout";
+import { resolvePlace } from "@/lib/map3d/place";
 import { routeBetween } from "@/lib/map3d/route";
 import type { MapEngine, MapObject, MapRoute, StockSlot } from "@/lib/map3d/types";
 import { isTempId, useData, type Movement } from "@/lib/store";
@@ -78,7 +79,8 @@ export function useLiveStock({ engine, slots, pastSlots, objects, placeOf }: Liv
     const shown = fresh.slice(0, MOTION_LIMIT);
     const flashed = new Map<string, LabelFlash>();
     for (const m of [...shown].reverse()) {
-      const place = placeOf(m.product_id);
+      // A receipt says which rack it went to; the rest stand where the product stands.
+      const place = resolvePlace(m.place, objects)?.objectId ?? placeOf(m.product_id);
       const flash = flashOf(m);
       if (!place) continue;
       const route = traceOf(m, place, objects);

@@ -1,8 +1,8 @@
 /**
  * The contract of the 3D page. Three-free, so it can be imported anywhere.
  *
- * One rule runs through it: products.qty is the only quantity. Layout holds geometry, the engine
- * holds pieces to draw, and every number a person reads comes from the store through the DOM.
+ * One rule runs through it: products.qty is the only total, and shelf_stock only says where it stands. Layout holds
+ * geometry, the engine holds pieces to draw, and every number a person reads comes from the store through the DOM.
  * All lengths are metres. x and z are floor coordinates, y is height, z grows toward the viewer.
  */
 
@@ -40,23 +40,28 @@ export type BarSection = "tube" | "channel" | "angle";
 export type StockForm =
   | { form: "bar"; section: BarSection; a: number; b: number; wall: number; length: number }
   | { form: "sheet"; width: number; length: number; thickness: number }
-  | { form: "roll"; od: number; id: number; height: number }
-  | { form: "canister"; width: number; depth: number; height: number }
+  | { form: "roll"; od: number; id: number; height: number; length: number }
+  | { form: "canister"; width: number; depth: number; height: number; litres: number }
   | { form: "carton"; width: number; depth: number; height: number };
 
 export type StockFinish = "natural" | "black" | "white" | "bronze";
 
-/** One product in one place, drawn for the eye: never a count anyone reads, only how full its place looks. */
+/** A half of a shelf, as seen from the aisle: right is +x. */
+export type ShelfSide = "right" | "left";
+
+/** One product in one place. Every piece is drawn, so the shelf can be counted against the ledger. */
 export interface StockSlot {
-  /** The product id. Stable, so what changes can slide on or off the shelf. */
+  /** The product and its place. Stable, so what changes can slide on or off the shelf. */
   key: string;
   objectId: string;
   /** Zero based, 0 is the bottom level. Null: unknown, the stock fills from the bottom up. */
   level: number | null;
+  /** Null: the whole shelf. */
+  side: ShelfSide | null;
   form: StockForm;
   finish: StockFinish;
-  /** 0 to 1, how much of its place the stock takes: the quantity against the product's own minimum. */
-  fill: number;
+  /** Whole pieces in this place: its share of products.qty, as bars where it is sold by the metre. */
+  count: number;
 }
 
 /* ───────── what the rail shows ───────── */
@@ -126,6 +131,10 @@ export interface PickHit {
   objectId: string;
   /** The level clicked, when the object is a rack. */
   level: number | null;
+  /** The half clicked. Without it a rule on the map covers the whole shelf. */
+  side?: ShelfSide | null;
+  /** The top level of a block of shelves, which the rule follows. */
+  through?: number;
 }
 
 /** A DOM node the engine keeps glued to a point in the scene. React owns the content, the engine only writes style.transform. */

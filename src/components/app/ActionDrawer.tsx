@@ -10,6 +10,7 @@ import { ReceiveForm } from "./forms/ReceiveForm";
 import { IssueForm } from "./forms/IssueForm";
 import { FaultForm } from "./forms/FaultForm";
 import { AdjustForm } from "./forms/AdjustForm";
+import { PlaceForm } from "./forms/PlaceForm";
 import { ProductForm } from "./forms/ProductForm";
 import { SupplierForm } from "./forms/SupplierForm";
 import { WorkerForm } from "./forms/WorkerForm";
@@ -30,6 +31,8 @@ function FormFor({ kind, ctx }: { kind: ActionKind; ctx: ActionContext }) {
       return <FaultForm ctx={ctx} />;
     case "adjust":
       return <AdjustForm ctx={ctx} />;
+    case "place":
+      return <PlaceForm ctx={ctx} />;
     case "new-product":
       return <ProductForm ctx={ctx} mode="new" />;
     case "edit-product":
@@ -62,6 +65,6 @@ function FormFor({ kind, ctx }: { kind: ActionKind; ctx: ActionContext }) {
 export function ActionDrawer() {
   const { panel } = useUi();
   if (!panel || panel.type !== "action") return null;
-  const key = `${panel.kind}:${panel.ctx.productId ?? ""}:${panel.ctx.supplierId ?? ""}:${panel.ctx.supplierItemId ?? ""}:${panel.ctx.workerId ?? ""}:${panel.ctx.agentId ?? ""}:${panel.ctx.requestId ?? ""}`;
+  const key = `${panel.kind}:${panel.ctx.productId ?? ""}:${panel.ctx.supplierId ?? ""}:${panel.ctx.supplierItemId ?? ""}:${panel.ctx.workerId ?? ""}:${panel.ctx.agentId ?? ""}:${panel.ctx.requestId ?? ""}:${panel.ctx.place ?? ""}:${panel.ctx.from ?? ""}`;
   return <FormFor key={key} kind={panel.kind} ctx={panel.ctx} />;
 }

@@ -94,6 +94,11 @@
   overflow: clip;
 }
 
+/* A clip cuts an open menu off and leaves the rail nothing to scroll to. */
+[data-theme^="minimal"] :is(.m3d-ledger, .m3d-section, .m3d-all, .m3d-card, .m3d-form, .m3d-rail > .m3d-list):has(.sa-menu) {
+  overflow: visible;
+}
+
 [data-theme^="minimal"] .m3d-section {
   gap: 0;
   padding-block-start: var(--space-4);
@@ -114,6 +119,174 @@
 [data-theme^="minimal"] .m3d-count {
   font-weight: 500;
   color: var(--text-quiet);
+}
+
+/* ── One rack, shelf by shelf: the top shelf first, a block of shelves on one line ── */
+[data-theme^="minimal"] .m3d-shelves {
+  --shelf-columns: 62px minmax(0, 1fr) 54px 62px 14px;
+  margin-inline: calc(var(--space-5) * -1);
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme^="minimal"] :is(.m3d-shelf-head, .m3d-shelf) {
+  display: grid;
+  grid-template-columns: var(--shelf-columns);
+  column-gap: var(--space-2);
+  align-items: center;
+  padding-inline: var(--space-5);
+}
+
+[data-theme^="minimal"] .m3d-shelf-head {
+  padding-block: var(--space-2);
+  border-bottom: var(--hair) solid var(--border-base);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+[data-theme^="minimal"] .m3d-shelf {
+  width: 100%;
+  min-height: 64px;
+  padding-block: var(--space-2);
+  text-align: start;
+  transition: background-color var(--dur-1) linear;
+}
+
+[data-theme^="minimal"] .m3d-shelf.is-empty {
+  min-height: 48px;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+}
+
+[data-theme^="minimal"] .m3d-shelfblock + :is(.m3d-shelfblock, .m3d-shelf),
+[data-theme^="minimal"] .m3d-shelf + :is(.m3d-shelfblock, .m3d-shelf) {
+  border-top: var(--hair) solid var(--border-subtle);
+}
+
+@media (hover: hover) {
+  [data-theme^="minimal"] .m3d-shelf:hover {
+    background: var(--bg-hover);
+  }
+}
+
+[data-theme^="minimal"] .m3d-shelf:active {
+  background: var(--bg-muted);
+  transition-duration: 0ms;
+}
+
+[data-theme^="minimal"] .m3d-shelf-no {
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+[data-theme^="minimal"] .m3d-shelf-free {
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  color: var(--text-quiet);
+}
+
+[data-theme^="minimal"] .m3d-shelf-add {
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  color: var(--accent-text, var(--accent));
+}
+
+[data-theme^="minimal"] .m3d-shelf.is-empty.is-picked {
+  background: var(--bg-hover);
+}
+
+[data-theme^="minimal"] .m3d-shelf-chevron {
+  color: var(--text-quiet);
+  transition: transform var(--dur-2) var(--ease);
+}
+
+[data-theme^="minimal"] .m3d-shelfblock.is-open .m3d-shelf-chevron {
+  transform: rotate(180deg);
+}
+
+[data-theme^="minimal"] .m3d-shelfblock.is-open > .m3d-item {
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+
+[data-theme^="minimal"] .m3d-shelfblock.is-open > .m3d-shelf {
+  background: var(--bg-hover);
+}
+
+[data-theme^="minimal"] .m3d-actions-wide {
+  grid-column: 1 / -1;
+}
+
+/* ── A tag on the front of a shelf: the product over its figures, or one figure from afar ── */
+[data-theme^="minimal"] .m3d-label.is-shelf .m3d-tag {
+  bottom: 0;
+  transform: translate(round(-50%, 1px), 50%);
+  width: max-content;
+  max-width: 230px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 var(--space-2);
+  padding: 4px 10px;
+  white-space: normal;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 700;
+  text-align: center;
+}
+
+[data-theme^="minimal"] .m3d-tag-name {
+  flex-basis: 100%;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme^="minimal"] .m3d-tag-shelf {
+  font-size: var(--t-13);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+[data-theme^="minimal"] .m3d-tag-qty {
+  font-size: var(--t-13);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+[data-theme^="minimal"] .m3d-label.is-shelf.is-quiet .m3d-tag {
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  box-shadow: var(--shadow-card);
+  padding: 4px 10px;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 700;
+}
+
+/* An empty shelf only says so. */
+[data-theme^="minimal"] .m3d-label.is-shelf.is-quiet .m3d-tag:not(:has(.m3d-tag-name)) {
+  background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+  box-shadow: none;
+  padding: 2px 8px;
+}
+
+/* A phone has the ledger right under the map: a shelf keeps its figure, and the rail has the rest. */
+@media (max-width: 899px) {
+  [data-theme^="minimal"] .m3d-label.is-shelf {
+    display: block;
+  }
+  [data-theme^="minimal"] .m3d-label.is-shelf:not(.is-selected) :is(.m3d-tag-name, .m3d-tag-qty) {
+    display: none;
+  }
+  [data-theme^="minimal"] .m3d-label.is-shelf .m3d-tag {
+    max-width: 150px;
+    padding: 2px 7px;
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+  }
 }
 
 /* ── The ledger: a list that breathes. Its rule starts at the text ── */

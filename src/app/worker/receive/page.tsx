@@ -12,10 +12,20 @@ import { useCurrentWorker, useReceiptUpload } from "@/lib/worker-store";
 import type { ScannedLine } from "@/lib/worker/ocr";
 import { useDocumentScan, type ReadLine } from "@/lib/worker/scan";
 import { buildDictionary, matchLine, type Candidate } from "@/lib/worker/match";
+import { fmtName, fmtQty } from "@/lib/format";
+import { buildMapModel } from "@/lib/map3d/model";
+import { placeWords, resolvePlace } from "@/lib/map3d/place";
+import { useShelves } from "@/lib/map3d/shelves";
+import { suggestPlaces, WHY_WORD } from "@/lib/map3d/suggest";
 import { Boot, CameraButton, Cta, Done, Flow, Hint, Picker, Row, Section, StepHead, Summary, pointAt, productPick, useBackToClose, useSteps, type PickItem, type SummaryLine } from "@/components/worker";
+import { useFloorObjects } from "@/components/map3d/use-floor-objects";
+import { PlaceSheet } from "@/components/worker/PlaceSheet";
 import { Scanner } from "@/components/worker/Scanner";
 
-type Step = "start" | "lines" | "summary" | "done";
+type Step = "start" | "lines" | "place" | "summary" | "done";
+
+/** One part of a line and where it was put away. */
+type Stored = { place: string; qty: number };
 
 type Line = {
   id: string;
@@ -29,17 +39,20 @@ type Line = {
   unknown: boolean;
   qty: number;
   scanned: boolean;
+  /** Where it went. More than one when a delivery didn't fit on one shelf; the first takes what the others leave. */
+  stored: Stored[];
 };
 
-const ORDER: readonly Step[] = ["start", "lines", "summary", "done"];
+const ORDER: readonly Step[] = ["start", "lines", "place", "summary", "done"];
 const STEPS = [
   { key: "start", label: "ספק" },
   { key: "lines", label: "שורות" },
+  { key: "place", label: "מיקום" },
   { key: "summary", label: "אישור" },
 ];
 
 const newLine = (partial: Partial<Line> = {}): Line => ({
-  id: Math.random().toString(36).slice(2), externalName: "", productId: null, unknown: false, qty: 1, scanned: false, ...partial,
+  id: Math.random().toString(36).slice(2), externalName: "", productId: null, unknown: false, qty: 1, scanned: false, stored: [], ...partial,
 });
 
 /** A supplier missing from the list must never stop the worker: it's added here and the manager sees it. */
@@ -81,6 +94,8 @@ export default function ReceivePage() {
   const { step, dir, go } = useSteps(ORDER, "start");
   const { scan, start: startScan, close: closeScan } = useDocumentScan();
   const receipt = useReceiptUpload("in");
+  const { rows: shelfRows, usual } = useShelves();
+  const floor = useFloorObjects();
 
   const [supplierId, setSupplierId] = useState("");
   const [pickSupplier, setPickSupplier] = useState(false);
@@ -94,12 +109,15 @@ export default function ReceivePage() {
   const [services, setServices] = useState<ScannedLine[]>([]);
   const [lines, setLines] = useState<Line[]>([newLine()]);
   const [pickProductFor, setPickProductFor] = useState<string | null>(null);
+  /** The line the place sheet is open for: a new place, or the one at `part`. */
+  const [pickPlaceFor, setPickPlaceFor] = useState<{ lineId: string; part: number; rack?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ received: SummaryLine[]; pending: SummaryLine[] } | null>(null);
   /** Lines already saved, so retrying after a failure never receives one twice. */
   const saved = useRef(new Map<string, SummaryLine>());
+  const savedParts = useRef(new Set<string>());
 
   useEffect(() => {
     if (ready && !worker) router.replace("/worker");
@@ -113,6 +131,7 @@ export default function ReceivePage() {
   const productItems = useMemo<PickItem[]>(() => state.products.map((p) => productPick(p)), [state.products]);
 
   const dictionary = useMemo(() => buildDictionary(state.products, state.supplierItems, state.itemRequests), [state.products, state.supplierItems, state.itemRequests]);
+  const shelfModel = useMemo(() => buildMapModel(state.products, floor, shelfRows), [state.products, floor, shelfRows]);
 
   /* ── photo ── */
   const onPhoto = useCallback((file: File | undefined) => {
@@ -126,8 +145,10 @@ export default function ReceivePage() {
   const startUpload = () => { if (photo) receipt.start(photo.file); };
 
   /* ── lines ── */
-  const patch = (id: string, p: Partial<Line>) => setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...p } : l)));
+  // Another product is another answer: where the last one went says nothing about this one.
+  const patch = (id: string, p: Partial<Line>) => setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...p, ...("productId" in p && p.productId !== l.productId ? { stored: [] } : {}) } : l)));
   const removeLine = (id: string) => setLines((ls) => (ls.length > 1 ? ls.filter((l) => l.id !== id) : ls));
+  const placesText = (l: Line) => (l.stored.length > 0 ? l.stored.map((part) => placeWords(part.place, floor)).join(", ") : undefined);
 
   /** For a typed name: auto-map from the dictionary unless the worker chose a product by hand. */
   const resolution = (l: Line) => resolveSupplierName(supplierId, l.externalName);
@@ -150,6 +171,36 @@ export default function ReceivePage() {
   const toReceive = validLines.filter((l) => effectiveProduct(l));
   const toReview = validLines.filter((l) => !effectiveProduct(l));
   const openLines = validLines.filter((l) => !effectiveProduct(l) && !l.unknown);
+
+  /* ── places ── */
+  /** The first part takes what the others leave, so a line always adds up to its quantity. */
+  const partsOf = (l: Line): Stored[] => {
+    if (l.stored.length === 0) return [];
+    const others = l.stored.slice(1).reduce((sum, part) => sum + part.qty, 0);
+    return [{ place: l.stored[0].place, qty: l.qty - others }, ...l.stored.slice(1)];
+  };
+  // Without the shelves the step has nothing to offer, and the receipt must not stop for it.
+  const placing = shelfRows !== null;
+  const unplaced = placing ? toReceive.filter((l) => l.stored.length === 0) : [];
+  const badSplit = placing ? toReceive.filter((l) => partsOf(l).some((part) => part.qty <= 0)) : [];
+  const suggestionsFor = (p: Product) => suggestPlaces(p, shelfRows ?? [], usual, floor);
+  /** The usual place of every line that has one and has no answer yet. */
+  const usualLines = unplaced.flatMap((l) => {
+    const best = suggestionsFor(effectiveProduct(l)!).find((suggestion) => !suggestion.rackOnly);
+    return best ? [{ line: l, place: best.place }] : [];
+  });
+  const setPart = (lineId: string, part: number, place: string) =>
+    setLines((ls) => ls.map((l) => {
+      if (l.id !== lineId) return l;
+      const stored = [...l.stored];
+      if (part < stored.length) stored[part] = { ...stored[part], place };
+      else stored.push({ place, qty: part === 0 ? l.qty : 1 });
+      return { ...l, stored: stored.filter((row, i) => i === stored.findIndex((other) => other.place === row.place)) };
+    }));
+  const setPartQty = (lineId: string, part: number, qty: number) =>
+    setLines((ls) => ls.map((l) => (l.id === lineId ? { ...l, stored: l.stored.map((row, i) => (i === part ? { ...row, qty } : row)) } : l)));
+  const removePart = (lineId: string, part: number) =>
+    setLines((ls) => ls.map((l) => (l.id === lineId ? { ...l, stored: l.stored.filter((_, i) => i !== part) } : l)));
 
   /** Reading finished and the worker agreed: the lines land on the lines step. */
   const takeReading = () => {
@@ -188,8 +239,17 @@ export default function ReceivePage() {
       for (const l of toReceive) {
         if (saved.current.has(l.id)) continue;
         const p = effectiveProduct(l)!;
-        await receive({ productId: p.id, qty: l.qty, supplierId, workerId: worker.id, reference: reference.trim() || null, note, externalName: l.externalName.trim(), documentId });
-        saved.current.set(l.id, { key: l.id, title: p.name, sub: l.externalName.trim() !== p.name ? l.externalName.trim() : undefined, qty: l.qty, unit: p.unit, product: p });
+        // A line split over two shelves is two receipts, each of a place. One that failed halfway doesn't repeat what landed.
+        const parts = partsOf(l);
+        const each: (Stored | null)[] = parts.length > 0 ? parts : [null];
+        for (let i = 0; i < each.length; i++) {
+          const part = each[i];
+          const mark = `${l.id}#${i}`;
+          if (savedParts.current.has(mark)) continue;
+          await receive({ productId: p.id, qty: part?.qty ?? l.qty, supplierId, workerId: worker.id, reference: reference.trim() || null, note, externalName: l.externalName.trim(), documentId, place: part?.place ?? null });
+          savedParts.current.add(mark);
+        }
+        saved.current.set(l.id, { key: l.id, title: p.name, sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p });
         setProgress(saved.current.size);
       }
       for (const l of toReview) {
@@ -226,7 +286,8 @@ export default function ReceivePage() {
   const back = () => {
     if (step === "start") router.replace("/worker");
     else if (step === "lines") go("start");
-    else go("lines");
+    else if (step === "place" || !placing || toReceive.length === 0) go("lines");
+    else go("place");
   };
 
   const overlay = (
@@ -264,6 +325,22 @@ export default function ReceivePage() {
           emptyTitle="לא נמצאו מוצרים"
         />
       ) : null}
+      {pickPlaceFor ? (() => {
+        const line = lines.find((l) => l.id === pickPlaceFor.lineId);
+        const p = line && effectiveProduct(line);
+        if (!line || !p) return null;
+        return (
+          <PlaceSheet
+            product={p}
+            objects={floor}
+            model={shelfModel}
+            value={line.stored[pickPlaceFor.part]?.place ?? ""}
+            rack={pickPlaceFor.rack}
+            onPick={(place) => { setPart(line.id, pickPlaceFor.part, place); setPickPlaceFor(null); }}
+            onClose={() => setPickPlaceFor(null)}
+          />
+        );
+      })() : null}
       <Scanner scan={scan} docName="התעודה" unit={{ one: "שורה", many: "שורות" }} identify={identify} onContinue={takeReading} onManual={fillByHand} onRetake={onPhoto} onCancel={() => { closeScan(); setPhoto(null); setMode(null); }} />
     </>
   );
@@ -332,7 +409,7 @@ export default function ReceivePage() {
         title="מה הגיע מהספק?"
         lead={lead}
         overlay={overlay}
-        foot={{ label: "המשך לאישור", onClick: () => go("summary"), blocked }}
+        foot={{ label: placing && toReceive.length > 0 ? "המשך למיקום" : "המשך לאישור", onClick: () => go(placing && toReceive.length > 0 ? "place" : "summary"), blocked }}
       >
         <div className="wk-lines">
           {lines.map((l, i) => {
@@ -426,8 +503,76 @@ export default function ReceivePage() {
     );
   }
 
-  /* ── step 3: summary ── */
-  const receivedLines: SummaryLine[] = toReceive.map((l) => { const p = effectiveProduct(l)!; return { key: l.id, title: p.name, sub: l.externalName.trim() !== p.name ? l.externalName.trim() : undefined, qty: l.qty, unit: p.unit, product: p }; });
+  /* ── step 3: where each line was put ── */
+  if (step === "place") {
+    const blocked = unplaced.length
+      ? { reason: unplaced.length === 1 ? "חסר מיקום" : `חסר מיקום ל-${unplaced.length} שורות`, onTap: () => pointAt(`place-${unplaced[0].id}`) }
+      : badSplit.length ? { reason: "הכמויות לא מסתדרות", onTap: () => pointAt(`place-${badSplit[0].id}`) } : null;
+    return (
+      <Flow
+        flow={`קליטת סחורה מ${supplier?.name ?? "הספק"}`}
+        steps={STEPS}
+        current="place"
+        dir={dir}
+        onBack={back}
+        title="איפה שמת?"
+        overlay={overlay}
+        foot={{ label: "המשך לאישור", onClick: () => go("summary"), blocked }}
+      >
+        {usualLines.length > 1 ? <Row title="הכול למקום הרגיל" sub={`${usualLines.length} שורות`} onClick={() => { for (const { line, place } of usualLines) setPart(line.id, 0, place); }} /> : null}
+        <div className="wk-lines">
+          {toReceive.map((l) => {
+            const p = effectiveProduct(l)!;
+            const parts = partsOf(l);
+            const quick = suggestionsFor(p);
+            return (
+              <article key={l.id} id={`place-${l.id}`} className="wk-line">
+                <div className="wk-place-head">
+                  <ProductThumb product={p} small />
+                  <span className="wk-place-name">{fmtName(p.name)}</span>
+                  <span className="wk-place-qty"><span className="sa-num">{fmtQty(l.qty)}</span> {p.unit}</span>
+                </div>
+                {parts.length === 0 ? (
+                  <div className="wk-group">
+                    {quick.map(({ place, why, rackOnly }) => (
+                      <Row
+                        key={place}
+                        title={placeWords(place, floor)}
+                        sub={WHY_WORD[why]}
+                        end={rackOnly ? <Icon name="chevron-left" size={20} /> : undefined}
+                        onClick={() => (rackOnly ? setPickPlaceFor({ lineId: l.id, part: 0, rack: resolvePlace(place, floor)?.objectId }) : setPart(l.id, 0, place))}
+                      />
+                    ))}
+                    <Row quiet={quick.length > 0} title={quick.length > 0 ? "מקום אחר" : "בחירת מקום"} end={quick.length > 0 ? undefined : <Icon name="chevron-left" size={20} />} onClick={() => setPickPlaceFor({ lineId: l.id, part: 0 })} />
+                  </div>
+                ) : (
+                  <>
+                    <div className="wk-group">
+                      {parts.map((part, i) => (
+                        <div key={part.place} className="wk-place-part">
+                          <Row title={placeWords(part.place, floor)} selected={parts.length === 1} sub={parts.length > 1 && i === 0 ? <>נשארו כאן <span className="sa-num">{fmtQty(part.qty)}</span></> : undefined} end={parts.length > 1 ? undefined : <Icon name="check" size={20} />} onClick={() => setPickPlaceFor({ lineId: l.id, part: i })} />
+                          {i > 0 ? (
+                            <div className="wk-qty-row">
+                              <button type="button" className="wk-textlink" onClick={() => removePart(l.id, i)}>הסרה</button>
+                              <QuantityStepper value={part.qty} min={1} onChange={(n) => setPartQty(l.id, i, n)} />
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                    {l.qty > parts.length ? <button type="button" className="wk-textlink is-start" onClick={() => setPickPlaceFor({ lineId: l.id, part: l.stored.length })}>חלק הלך למקום נוסף</button> : null}
+                  </>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </Flow>
+    );
+  }
+
+  /* ── step 4: summary ── */
+  const receivedLines: SummaryLine[] = toReceive.map((l) => { const p = effectiveProduct(l)!; return { key: l.id, title: p.name, sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p }; });
   const reviewLines: SummaryLine[] = toReview.map((l) => ({ key: l.id, title: l.externalName.trim(), qty: l.qty }));
   const total = toReceive.length + toReview.length;
   return (

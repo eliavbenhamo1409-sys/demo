@@ -22,8 +22,8 @@ export function worthOf(model: MapModel): Worth {
   places.sort((a, b) => b.value - a.value);
 
   let tray = 0;
-  for (const p of model.tray) {
-    const value = valueOf(p);
+  for (const { product, qty } of model.tray) {
+    const value = valueOf({ qty, price: product.price });
     if (value === null) unpriced += 1;
     else tray += value;
   }

@@ -1,0 +1,130 @@
+/* Choosing where stock stands: the same rack in the admin's forms and on the worker's phone. */
+.sa-shelfgrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sa-shelfgrid > .sa-tabs {
+  display: flex;
+  align-self: stretch;
+}
+
+.sa-shelfgrid > .sa-tabs > .sa-tab {
+  flex: 1;
+  justify-content: center;
+}
+
+.sa-shelfrow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.sa-shelfrow-no {
+  flex: none;
+  width: 18px;
+  align-self: center;
+  text-align: center;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  color: var(--text-tertiary);
+}
+
+.sa-spot {
+  flex: 1;
+  min-width: 0;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hair) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  text-align: start;
+  transition: background-color var(--dur-1) linear, border-color var(--dur-1) linear;
+}
+
+@media (hover: hover) {
+  .sa-spot:hover {
+    background: var(--bg-hover);
+  }
+}
+
+.sa-spot:active {
+  background: var(--bg-muted);
+}
+
+.sa-spot.is-selected {
+  border-color: var(--accent, var(--border-inverse));
+  box-shadow: 0 0 0 1px var(--accent, var(--border-inverse));
+}
+
+.sa-spot-title {
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sa-spot-sub {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The quick answers, above the full list of places. */
+.sa-placefield {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sa-quickplaces {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sa-quickplace {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: var(--hair) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  text-align: start;
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: background-color var(--dur-1) linear;
+}
+
+@media (hover: hover) {
+  .sa-quickplace:hover {
+    background: var(--bg-hover);
+  }
+}
+
+.sa-quickplace.is-selected {
+  border-color: var(--accent, var(--border-inverse));
+  box-shadow: 0 0 0 1px var(--accent, var(--border-inverse));
+}
+
+.sa-quickplace-why {
+  flex: none;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}

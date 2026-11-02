@@ -2,8 +2,8 @@ import { BufferAttribute, BufferGeometry, Color, Mesh, MeshBasicMaterial, type O
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
-import { levelY } from "../layout";
-import type { MapObject, MapPoint, MapRoute, PickHit, ScenePalette } from "../types";
+import { levelY, RACK_LEVELS } from "../layout";
+import type { MapObject, MapPoint, MapRoute, PickHit, ScenePalette, ShelfSide } from "../types";
 import type { Tracker } from "./dispose";
 import type { Easing } from "./ease";
 
@@ -115,7 +115,8 @@ export class Overlays {
   }
 
   setSelection(selection: PickHit | null, now: number): void {
-    const same = selection?.objectId === this.selection?.objectId && selection?.level === this.selection?.level;
+    const mark = (hit: PickHit | null) => (hit ? `${hit.objectId}/${hit.level}/${hit.side ?? ""}/${hit.through ?? ""}` : "");
+    const same = mark(selection) === mark(this.selection);
     this.selection = selection;
     if (same) return;
     this.writeRule();
@@ -203,7 +204,9 @@ export class Overlays {
       return;
     }
     const flat =
-      selection?.level !== null && selection?.level !== undefined && object.kind === "rack" ? this.frontBeam(object, selection.level) : this.around(object);
+      selection?.level !== null && selection?.level !== undefined && object.kind === "rack"
+        ? this.shelfFront(object, selection.level, selection.through ?? selection.level, selection.side ?? null)
+        : this.around(object);
     this.tracker.free(this.rule.geometry);
     const geometry = this.tracker.add(new LineSegmentsGeometry());
     geometry.setPositions(flat);
@@ -224,10 +227,14 @@ export class Overlays {
     return floorSegments(corners, RULE_Y);
   }
 
-  private frontBeam(o: MapObject, level: number): number[] {
-    const y = levelY(o, level) - BEAM_MIDDLE;
+  /** A frame on the front of a shelf, a half or a block of shelves: it stands off the stock, so the eye finds what it marks. */
+  private shelfFront(o: MapObject, level: number, through: number, side: ShelfSide | null): number[] {
+    const levels = o.levels ?? RACK_LEVELS;
+    const bottom = levelY(o, level) - BEAM_MIDDLE;
+    const top = through + 1 < levels ? levelY(o, through + 1) - BEAM_MIDDLE : o.h;
     const z = o.z + o.d / 2 + 0.03;
-    return [o.x - o.w / 2, y, z, o.x + o.w / 2, y, z];
+    const [left, right] = side === null ? [o.x - o.w / 2, o.x + o.w / 2] : side === "right" ? [o.x, o.x + o.w / 2] : [o.x - o.w / 2, o.x];
+    return [left, bottom, z, right, bottom, z, right, bottom, z, right, top, z, right, top, z, left, top, z, left, top, z, left, bottom, z];
   }
 
   /** Strength is alpha on the chart colour, so the floor keeps its shadows under a fill and a theme is one colour write. */

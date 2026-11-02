@@ -1,21 +1,21 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
-import { Button, Count, Fields, Select, type SelectOption } from "@/components/ui";
+import { Button, Count, cx, Fields, Icon } from "@/components/ui";
 import { fmtName, fmtPrice, fmtQty, fmtRelative, isToday } from "@/lib/format";
-import { DISPATCH_ZONE, RACK_LEVELS, RECEIVING_ZONE } from "@/lib/map3d/layout";
+import { DISPATCH_ZONE, RECEIVING_ZONE } from "@/lib/map3d/layout";
 import { coverOf, countOf, lastOutOf } from "@/lib/map3d/metrics";
-import type { MapItem, ObjectStock } from "@/lib/map3d/model";
-import { formatPlace } from "@/lib/map3d/place";
+import { blockAt, shelfLines, type ObjectStock, type ShelfBlock } from "@/lib/map3d/model";
+import { formatPlace, shelfWords } from "@/lib/map3d/place";
 import type { PastQty } from "@/lib/map3d/trail";
-import type { MapObject } from "@/lib/map3d/types";
+import type { MapObject, PickHit } from "@/lib/map3d/types";
 import { available, isTempId, useData, type Fault, type Movement } from "@/lib/store";
 import { minimumShare, percentText } from "./measure";
-import { PlaceConfirm, RailRow, type PlaceChange } from "./parts";
+import { RailRow } from "./parts";
 import type { MapView } from "./view";
-import { coverText, STATE_NUM } from "./words";
+import { coverText, STATE_NUM, STATE_WORD } from "./words";
 
 /** Past quantities, set while the page shows a date. */
 export type PastStock = ReadonlyMap<string, PastQty>;
@@ -23,19 +23,22 @@ export type PastStock = ReadonlyMap<string, PastQty>;
 interface ObjectCardProps {
   map: MapView;
   object: MapObject;
+  /** The shelf the map or a line of the rail has chosen. */
+  hit: PickHit | null;
   past: PastStock | null;
+  onShelf: (hit: PickHit | null) => void;
   onBack: () => void;
 }
 
 /** The rail, turned to one object. Every button opens the app's own forms; nothing here writes stock. */
-export function ObjectCard({ map, object, past, onBack }: ObjectCardProps) {
+export function ObjectCard({ map, object, hit, past, onShelf, onBack }: ObjectCardProps) {
   const body =
     object.kind === "machine" ? (
       <MachineBody object={object} past={past !== null} />
     ) : object.kind === "zone" ? (
       <ZoneBody object={object} past={past !== null} />
     ) : (
-      <StockBody map={map} object={object} past={past} />
+      <StockBody map={map} object={object} hit={hit} past={past} onShelf={onShelf} />
     );
 
   return (
@@ -58,39 +61,32 @@ function Head({ object, sub }: { object: MapObject; sub?: ReactNode }) {
 }
 
 function StockHead({ object, stock, past }: { object: MapObject; stock: ObjectStock | undefined; past: boolean }) {
-  const count = stock?.items.length ?? 0;
   const parts = (
     <>
       {!past && stock && stock.value > 0 ? <><span className="sa-num">{fmtPrice(stock.value)}</span> במחירון · </> : null}
-      <Count n={count} one="מוצר" many="מוצרים" />
+      <Count n={stock?.products ?? 0} one="מוצר" many="מוצרים" />
       {!past && stock && stock.unpriced > 0 ? <> · <span className="sa-num">{fmtQty(stock.unpriced)}</span> ללא מחיר</> : null}
     </>
   );
   return <Head object={object} sub={parts} />;
 }
 
-function StockBody({ map, object, past }: { map: MapView; object: MapObject; past: PastStock | null }) {
+interface StockBodyProps {
+  map: MapView;
+  object: MapObject;
+  hit: PickHit | null;
+  past: PastStock | null;
+  onShelf: (hit: PickHit | null) => void;
+}
+
+function StockBody({ map, object, hit, past, onShelf }: StockBodyProps) {
   const { state } = useData();
-  const [change, setChange] = useState<PlaceChange | null>(null);
+  const { openAction } = useUi();
   const stock = map.model.byObject.get(object.id);
-  const items = stock?.items;
   const dated = past !== null;
 
-  // What still has no place comes first; a product elsewhere can move here too.
-  const options = useMemo<SelectOption[]>(() => {
-    const here = new Set(items?.map((i) => i.product.id));
-    const others = state.products.filter((p) => !here.has(p.id));
-    const sorted = [...others.filter((p) => !map.placeOf(p.id)), ...others.filter((p) => map.placeOf(p.id))];
-    return sorted.map((p) => ({ value: p.id, label: `${p.name} · ${p.sku}` }));
-  }, [items, state.products, map]);
-
-  const here = new Set(items?.map((i) => i.product.id));
+  const here = new Set(stock?.items.map((i) => i.product.id));
   const faults = dated ? [] : state.faults.filter((f) => f.status === "open" && (f.asset === object.id || (!f.asset && f.product_id !== null && here.has(f.product_id))));
-
-  const assign = (productId: string) => {
-    const product = state.products.find((p) => p.id === productId);
-    if (product) setChange({ product, location: formatPlace(object.id, null) });
-  };
 
   return (
     <>
@@ -100,18 +96,98 @@ function StockBody({ map, object, past }: { map: MapView; object: MapObject; pas
           {faults.map((f) => <FaultRow key={f.id} fault={f} />)}
         </ul>
       ) : null}
-      {items && items.length > 0 ? (
-        items.map((item) => (
-          <ItemBlock key={item.product.id} map={map} item={item} object={object} past={past?.get(item.product.id) ?? null} dated={dated} onLevel={setChange} />
-        ))
+      {dated ? (
+        <PastList map={map} stock={stock} past={past} />
       ) : (
-        <p className="m3d-empty">אין מוצרים</p>
+        <ShelfLedger map={map} object={object} stock={stock} hit={hit} onShelf={onShelf} />
       )}
       {!dated ? (
-        <Select options={options} value="" onChange={assign} placeholder="שיבוץ מוצר" searchPlaceholder="חיפוש מוצר" emptyLabel="אין מוצרים לשיבוץ" block />
+        <Button variant="secondary" icon="plus" onClick={() => openAction("place", { place: object.kind === "floor" ? object.id : undefined })}>שיבוץ מוצר</Button>
       ) : null}
-      {change ? <PlaceConfirm change={change} onClose={() => setChange(null)} /> : null}
     </>
+  );
+}
+
+/** A date knows quantities per product, not per shelf. */
+function PastList({ map, stock, past }: { map: MapView; stock: ObjectStock | undefined; past: PastStock }) {
+  const products = [...new Map(stock?.blocks.map((block) => [block.product.id, block])).values()];
+  if (products.length === 0) return <p className="m3d-empty">אין מוצרים</p>;
+  return products.map((block) => <ItemBlock key={block.key} map={map} block={block} past={past.get(block.product.id) ?? null} dated />);
+}
+
+function shelfText(level: number, side: ShelfBlock["side"], through: number | null = level): string {
+  return shelfWords(level, side, through)?.replace(/^(מדף|מדפים) /, "") ?? "";
+}
+
+function hitOf(block: ShelfBlock): PickHit {
+  return { objectId: block.objectId, level: block.level, side: block.side, through: block.through ?? undefined };
+}
+
+/** The rack as a ledger, top shelf first: each place in it, what stands there and how that product stands against its minimum. */
+function ShelfLedger({ map, object, stock, hit, onShelf }: { map: MapView; object: MapObject; stock: ObjectStock | undefined; hit: PickHit | null; onShelf: (hit: PickHit | null) => void }) {
+  const { openAction } = useUi();
+  const blocks = stock?.blocks ?? [];
+  const open = hit && hit.level !== null ? blockAt(map.model, hit) : null;
+  const toggle = (block: ShelfBlock) => onShelf(open?.key === block.key ? { objectId: object.id, level: null } : hitOf(block));
+  const loose = blocks.filter((block) => block.level === null);
+  const lines = object.kind === "rack" ? shelfLines(object, blocks) : [];
+
+  return (
+    <div className="m3d-shelves" role="table" aria-label="מדפים">
+      <div className="m3d-shelf-head" role="row">
+        <span role="columnheader">מדף</span>
+        <span role="columnheader">מוצר</span>
+        <span role="columnheader" className="m3d-num">כאן</span>
+        <span role="columnheader" className="m3d-num">מהמינימום</span>
+      </div>
+      {lines.map((line) =>
+        line.blocks.length === 0 ? (
+          <button
+            key={`${line.level}/${line.side ?? ""}`}
+            type="button"
+            role="row"
+            className={cx("m3d-shelf is-empty", hit?.level === line.level && (line.side === null || !hit.side || hit.side === line.side) && "is-picked")}
+            onClick={() => openAction("place", { place: formatPlace(object.id, line.level, line.side) })}
+          >
+            <span className="m3d-shelf-no" role="cell">{shelfText(line.level, line.side)}</span>
+            <span className="m3d-shelf-free" role="cell">פנוי</span>
+            <span className="m3d-shelf-add" role="cell">שיבוץ</span>
+          </button>
+        ) : (
+          line.blocks.map((block) => <ShelfLine key={block.key} map={map} block={block} open={open?.key === block.key} onToggle={() => toggle(block)} />)
+        ),
+      )}
+      {loose.map((block) => <ShelfLine key={block.key} map={map} block={block} open={open?.key === block.key} onToggle={() => toggle(block)} />)}
+      {lines.length === 0 && loose.length === 0 ? <p className="m3d-empty">אין מוצרים</p> : null}
+    </div>
+  );
+}
+
+function ShelfLine({ map, block, open, onToggle }: { map: MapView; block: ShelfBlock; open: boolean; onToggle: () => void }) {
+  const { product: p, state, level, side, through, qty } = block;
+  const share = minimumShare(p);
+  const word = state === "out" || state === "short" ? STATE_WORD[state] : null;
+  const line = useRef<HTMLDivElement>(null);
+
+  // Picked on the map, the line may stand below the fold.
+  useEffect(() => {
+    if (open) line.current?.scrollIntoView({ block: "nearest" });
+  }, [open]);
+
+  return (
+    <div ref={line} className={cx("m3d-shelfblock", open && "is-open")}>
+      <button type="button" role="row" className="m3d-shelf" aria-expanded={open} onClick={onToggle}>
+        <span className="m3d-shelf-no" role="cell">{level === null ? "—" : shelfText(level, side, through)}</span>
+        <span className="m3d-line-name" role="cell">{fmtName(p.name)}</span>
+        <span className="m3d-num" role="cell">
+          <span className="m3d-line-qty">{fmtQty(qty)}</span>
+          <span className="m3d-line-unit">{p.unit}</span>
+        </span>
+        <span className={cx("m3d-num m3d-line-percent", STATE_NUM[state])} role="cell">{word ?? (share === null ? "—" : percentText(share))}</span>
+        <Icon name="chevron-down" size={14} className="m3d-shelf-chevron" />
+      </button>
+      {open ? <ItemBlock map={map} block={block} past={null} dated={false} /> : null}
+    </div>
   );
 }
 
@@ -122,17 +198,16 @@ function pastText(past: PastQty | null): string {
 
 interface ItemBlockProps {
   map: MapView;
-  item: MapItem;
-  object: MapObject;
+  block: ShelfBlock;
   past: PastQty | null;
   dated: boolean;
-  onLevel: (change: PlaceChange) => void;
 }
 
-function ItemBlock({ map, item, object, past, dated, onLevel }: ItemBlockProps) {
+function ItemBlock({ map, block, past, dated }: ItemBlockProps) {
   const ui = useUi();
-  const p = item.product;
+  const p = block.product;
   const share = minimumShare(p);
+  const first = block.items[0];
 
   return (
     <section className="m3d-item" aria-label={p.name}>
@@ -152,7 +227,7 @@ function ItemBlock({ map, item, object, past, dated, onLevel }: ItemBlockProps) 
         <>
           <dl className="m3d-summary">
             <div>
-              <dd className={STATE_NUM[item.state]}>{fmtQty(p.qty)}</dd>
+              <dd className={STATE_NUM[block.state]}>{fmtQty(p.qty)}</dd>
               <dt>במלאי, {p.unit}</dt>
             </div>
             <div>
@@ -160,19 +235,21 @@ function ItemBlock({ map, item, object, past, dated, onLevel }: ItemBlockProps) 
               <dt>מינימום</dt>
             </div>
             <div>
-              <dd className={STATE_NUM[item.state]}>{share === null ? "—" : percentText(share)}</dd>
+              <dd className={STATE_NUM[block.state]}>{share === null ? "—" : percentText(share)}</dd>
               <dt>מהמינימום</dt>
             </div>
           </dl>
-          <ItemFacts map={map} item={item} />
+          <ItemFacts map={map} block={block} />
         </>
       )}
-      {object.kind === "rack" ? <LevelSelect item={item} object={object} disabled={dated} onLevel={onLevel} /> : null}
       <div className="m3d-actions">
-        <Button variant="primary" size="sm" icon="arrow-down-left" disabled={dated} onClick={() => ui.openAction("receive", { productId: p.id })}>קליטה</Button>
+        <Button variant="primary" size="sm" icon="arrow-down-left" disabled={dated} onClick={() => ui.openAction("receive", { productId: p.id, place: first?.place })}>קליטה</Button>
         <Button variant="secondary" size="sm" icon="arrow-up-right" disabled={dated} onClick={() => ui.openAction("issue", { productId: p.id })}>הוצאה</Button>
         <Button variant="secondary" size="sm" icon="clipboard-check" disabled={dated} onClick={() => ui.openAction("adjust", { productId: p.id })}>תיקון ספירה</Button>
         <Button variant="secondary" size="sm" icon="tool" disabled={dated} onClick={() => ui.openAction("fault", { productId: p.id })}>דיווח תקלה</Button>
+        {block.qty > 0 ? (
+          <Button variant="secondary" size="sm" icon="arrow-left" className="m3d-actions-wide" disabled={dated} onClick={() => ui.openAction("place", { productId: p.id, from: first?.place })}>העברה למדף אחר</Button>
+        ) : null}
       </div>
     </section>
   );
@@ -183,10 +260,10 @@ function lastSupplierId(productId: string, rows: readonly Movement[]): string | 
   return rows.find((m) => m.product_id === productId && m.type === "in" && m.supplier_id)?.supplier_id ?? null;
 }
 
-function ItemFacts({ map, item }: { map: MapView; item: MapItem }) {
+function ItemFacts({ map, block }: { map: MapView; block: ShelfBlock }) {
   const { supplier } = useData();
   const { ledger, trail } = map;
-  const p = item.product;
+  const p = block.product;
   const free = available(p);
 
   const history = ledger.ready ? ledger.rows : null;
@@ -212,30 +289,6 @@ function ItemFacts({ map, item }: { map: MapView; item: MapItem }) {
           ? [{ label: "טלפון", value: <a className="sa-btn sa-btn-link sa-mono ltr" href={`tel:${vendor.phone}`}>{vendor.phone}</a> }]
           : []),
       ]}
-    />
-  );
-}
-
-function LevelSelect({ item, object, disabled, onLevel }: { item: MapItem; object: MapObject; disabled: boolean; onLevel: (change: PlaceChange) => void }) {
-  const options = useMemo(
-    () => Array.from({ length: object.levels ?? RACK_LEVELS }, (_, i) => ({ value: String(i + 1), label: `מפלס ${i + 1}` })),
-    [object.levels],
-  );
-  const choose = (value: string) => {
-    const level = value === "" ? null : Number(value) - 1;
-    if (level !== item.level) onLevel({ product: item.product, location: formatPlace(object.id, level) });
-  };
-  return (
-    <Select
-      label="מפלס"
-      options={options}
-      value={item.level === null ? "" : String(item.level + 1)}
-      onChange={choose}
-      allLabel="מפלס לא צוין"
-      placeholder="מפלס לא צוין"
-      searchable={false}
-      disabled={disabled}
-      block
     />
   );
 }

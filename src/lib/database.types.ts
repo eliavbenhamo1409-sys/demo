@@ -171,6 +171,7 @@ export type Database = {
           created_at: string
           id: string
           note: string | null
+          place: string | null
           product_id: string
           qty: number
           reference: string | null
@@ -185,6 +186,7 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          place?: string | null
           product_id: string
           qty: number
           reference?: string | null
@@ -199,6 +201,7 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          place?: string | null
           product_id?: string
           qty?: number
           reference?: string | null
@@ -460,6 +463,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shelf_stock: {
+        Row: {
+          id: string
+          place: string
+          placed_at: string
+          product_id: string
+          qty: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          place: string
+          placed_at?: string
+          product_id: string
+          qty: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          place?: string
+          placed_at?: string
+          product_id?: string
+          qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_items: {
         Row: {
           approved_at: string | null
@@ -631,6 +669,10 @@ export type Database = {
       }
       ean13_check: { Args: { digits12: string }; Returns: string }
       normalize_name: { Args: { t: string }; Returns: string }
+      place_stock: {
+        Args: { amount: number; product: string; source?: string; target: string | null }
+        Returns: undefined
+      }
       recount_reserved: { Args: { ids: string[] }; Returns: undefined }
       remove_without_receipt: {
         Args: {

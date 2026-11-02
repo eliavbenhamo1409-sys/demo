@@ -45,7 +45,8 @@ export class Picker {
         nearest = target;
       }
     }
-    return nearest ? { objectId: nearest.objectId, level: nearest.level } : null;
+    if (!nearest) return null;
+    return { objectId: nearest.objectId, level: nearest.level, side: nearest.level === null ? null : ray.intersectBox(nearest.box, hit) && hit.x >= (nearest.box.min.x + nearest.box.max.x) / 2 ? "right" : "left" };
   }
 
   /** Whatever stands under the pointer, ignoring the level: what a drag in edit mode takes hold of. */

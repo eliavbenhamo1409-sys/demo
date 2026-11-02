@@ -268,8 +268,10 @@ export type ReceiveInput = {
   externalSku?: string | null;
   /** The archived photo this line was read from. */
   documentId?: string | null;
+  /** Where the goods were put away, as shelf_stock writes it. */
+  place?: string | null;
 };
-export type IssueInput = Omit<ReceiveInput, "supplierId" | "externalName" | "externalSku">;
+export type IssueInput = Omit<ReceiveInput, "supplierId" | "externalName" | "externalSku" | "place">;
 
 /** Result of translating a supplier's wording into the factory catalogue. */
 export type NameResolution =
@@ -695,7 +697,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: tempId(), type, product_id: input.productId, qty: input.qty,
         worker_id: input.workerId ?? null, supplier_id: input.supplierId ?? null,
         reference: input.reference ?? null, note: input.note ?? null, created_at: now,
-        external_name: input.externalName?.trim() || null, document_id: input.documentId ?? null, exit_pass: null,
+        external_name: input.externalName?.trim() || null, document_id: input.documentId ?? null, exit_pass: null, place: input.place ?? null,
       };
       const counted = stateRef.current.products.find((p) => p.id === input.productId)?.qty;
       if (type === "in") bumpProduct(input.productId, input.qty);
@@ -707,6 +709,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           worker_id: input.workerId ?? null, supplier_id: input.supplierId ?? null,
           reference: input.reference || null, note: input.note || null,
           external_name: input.externalName?.trim() || null, document_id: input.documentId ?? null,
+          place: input.place || null,
         }, optimistic)) as Movement;
         return row;
       } catch (e) {

@@ -4,7 +4,7 @@
  */
 
 import { placeKey, RACK_LEVELS } from "./place";
-import type { MachineModel, MapObject, MapObjectKind, MapPoint } from "./types";
+import type { MachineModel, MapObject, MapObjectKind, MapPoint, ShelfSide } from "./types";
 
 export { RACK_LEVELS };
 
@@ -53,6 +53,18 @@ export const DEFAULT_OBJECTS: readonly MapObject[] = [
 export function levelY(object: MapObject, level: number): number {
   const levels = object.levels ?? RACK_LEVELS;
   return BOTTOM_DECK + (level * (object.h - BOTTOM_DECK - RACK_HEAD)) / levels;
+}
+
+/** Centre of a half of a rack along x. Right is +x, the viewer's right from the aisle. */
+export function sideX(object: MapObject, side: ShelfSide | null): number {
+  return side === null ? object.x : object.x + ((side === "right" ? 1 : -1) * object.w) / 4;
+}
+
+/** The point on the front of a shelf where its figure stands. `through`: the top level of a block of shelves. */
+export function shelfAnchor(object: MapObject, level: number, side: ShelfSide | null, through = level): { x: number; y: number; z: number } {
+  const levels = object.levels ?? RACK_LEVELS;
+  const top = through + 1 < levels ? levelY(object, through + 1) : object.h - RACK_HEAD;
+  return { x: sideX(object, side), y: (levelY(object, level) + top) / 2, z: object.z + object.d / 2 };
 }
 
 function pointInside(x: number, z: number): boolean {

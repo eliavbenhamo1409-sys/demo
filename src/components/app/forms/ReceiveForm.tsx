@@ -6,6 +6,7 @@ import { useData, type SupplierItem } from "@/lib/store";
 import { fmtQty } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
+import { PlaceField } from "./PlaceField";
 import { QtyField } from "./QtyField";
 import { NEW_OPTION, productOptions, supplierOptions, workerOptions } from "./options";
 import { REQUIRED, submitOnEnter, useForm } from "./useForm";
@@ -24,6 +25,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
 
   const [productId, setProductId] = useState(ctx.productId ?? "");
   const [qty, setQty] = useState(1);
+  const [place, setPlace] = useState(ctx.place ?? "");
   const [supplierId, setSupplierId] = useState(product(ctx.productId)?.primary_supplier_id ?? ctx.supplierId ?? "");
   const [externalName, setExternalName] = useState("");
   const [externalSku, setExternalSku] = useState("");
@@ -100,6 +102,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
   const onProduct = (v: string) => {
     if (v === NEW_OPTION) { openAction("new-product", { supplierId: supplierId || undefined }); return; }
     setProductId(v);
+    setPlace("");
     form.clearField("product");
     const p = product(v);
     if (p?.primary_supplier_id && !supplierId) setSupplierId(p.primary_supplier_id);
@@ -139,6 +142,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
         note: note.trim() || null,
         externalName: supplierId ? externalName.trim() || null : null,
         externalSku: supplierId ? externalSku.trim() || null : null,
+        place: place || null,
       });
       notify({ tone: "success", title: `נקלטו ${fmtQty(qty)} ${selected.unit} של ${selected.name}`, text: `מק"ט ${selected.sku}` });
       close();
@@ -266,6 +270,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
         {form.errors.product ? <span className="sa-error" role="alert">{form.errors.product}</span> : null}
       </div>
       <QtyField label="כמות" value={qty} onChange={(n) => { setQty(n); form.clearField("qty"); }} unit={unit || undefined} min={1} error={form.errors.qty} required />
+      {selected ? <PlaceField key={selected.id} optional product={selected} value={place} onChange={setPlace} /> : null}
       <hr className="sa-form-break" />
       <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
       <Input label="מספר תעודה" optional mono placeholder="תעודת משלוח / הזמנה" value={reference} onChange={(e) => setReference(e.target.value)} />

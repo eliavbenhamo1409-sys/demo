@@ -129,7 +129,7 @@ export class PointerInput {
 
   private setHover(hit: PickHit | null): void {
     const { hovered } = this;
-    if (hit?.objectId === hovered?.objectId && hit?.level === hovered?.level) return;
+    if (hit?.objectId === hovered?.objectId && hit?.level === hovered?.level && hit?.side === hovered?.side) return;
     this.hovered = hit;
     this.canvas.style.cursor = hit ? "pointer" : "";
     this.events.onHover(hit);

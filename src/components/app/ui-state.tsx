@@ -11,6 +11,7 @@ export type ActionKind =
   | "issue"          // הוצאת סחורה
   | "fault"          // דיווח תקלה
   | "adjust"         // תיקון ספירה
+  | "place"          // שיבוץ או העברה בין מדפים
   | "new-product"
   | "edit-product"
   | "new-supplier"
@@ -33,6 +34,8 @@ export type ActionContext = {
   faultId?: string;
   requestId?: string;
   asset?: string; // קוד של מכונה במפה
+  place?: string; // מיקום, כמו A-1/2R
+  from?: string; // המיקום שממנו מעבירים
 };
 
 export type OpenPanel =

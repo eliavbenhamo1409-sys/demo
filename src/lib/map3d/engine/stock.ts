@@ -100,7 +100,7 @@ interface Owned {
 }
 
 function signature(slot: StockSlot): string {
-  return `${slot.key}/${slot.level}/${slot.finish}/${slot.fill}/${JSON.stringify(slot.form)}`;
+  return `${slot.key}/${slot.level}/${slot.side}/${slot.finish}/${slot.count}/${JSON.stringify(slot.form)}`;
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t);

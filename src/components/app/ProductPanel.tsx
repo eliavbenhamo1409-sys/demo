@@ -13,7 +13,8 @@ import { useFloorObjects } from "@/components/map3d/use-floor-objects";
 import { Badge, Button, cx, Fields, Notice, SidePanel, Spinner, Timeline, type TimelineItem } from "@/components/ui";
 import { fmtDate, fmtName, fmtPrice, fmtQty, fmtRelative, MOVEMENT_LABEL } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
-import { resolvePlace } from "@/lib/map3d/place";
+import { placeWords, resolvePlace } from "@/lib/map3d/place";
+import { useShelves } from "@/lib/map3d/shelves";
 import { productPhotoUrl } from "@/lib/product-photos";
 
 type PanelTab = "details" | "history";
@@ -49,6 +50,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
   const { state, product, supplier, worker, agent, linesOf, fetchProductHistory, approveSupplierItem, resolveFault } = useData();
   const { close, notify, openAction, openOrder } = useUi();
   const floor = useFloorObjects();
+  const { rows: shelves } = useShelves();
   const p = product(id);
 
   const [tab, setTab] = useState<PanelTab>(initialTab);
@@ -151,6 +153,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
   const stockWord = out ? "אזל" : short ? "חסר להזמנות" : low ? "מתחת למינימום" : null;
   const photo = productPhotoUrl(p.image_path);
   const place = resolvePlace(p.location, floor);
+  const standing = (shelves ?? []).filter((row) => row.product_id === p.id);
 
   // The fault behind a history entry: photo, full note and status live on the fault, not the movement.
   const faultDetail = (f: Fault) => {
@@ -338,10 +341,20 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
 
           <Fields
             items={[
-              {
-                label: "מיקום",
-                value: place ? <Link className="sa-btn sa-btn-link" href={`/3d?at=${encodeURIComponent(place.objectId)}`} onClick={close}>{p.location}</Link> : p.location,
-              },
+              ...(standing.length > 0
+                ? standing.map((row) => ({
+                    label: "מיקום",
+                    value: (
+                      <>
+                        <Link className="sa-btn sa-btn-link" href={`/3d?at=${encodeURIComponent(row.place)}`} onClick={close}>{placeWords(row.place, floor)}</Link>
+                        {standing.length > 1 ? <> · <span className="sa-num">{fmtQty(row.qty)}</span> {p.unit}</> : null}
+                      </>
+                    ),
+                  }))
+                : [{
+                    label: "מיקום",
+                    value: place ? <Link className="sa-btn sa-btn-link" href={`/3d?at=${encodeURIComponent(place.objectId)}`} onClick={close}>{p.location}</Link> : p.location,
+                  }]),
               { label: "ספק ראשי", value: supplier(p.primary_supplier_id)?.name },
               {
                 label: "ברקוד",
