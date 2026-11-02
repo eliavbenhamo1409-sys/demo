@@ -90,21 +90,24 @@ function Detail({ product: p }: { product: Product }) {
 
           {p.description ? <p className="cg-product__desc">{p.description}</p> : null}
 
-          <div className="cg-buy">
-            <Stepper label={`כמות של ${p.name}`} value={qty} max={Math.max(room, 1)} onChange={setWanted} />
-            <button
-              type="button"
-              className="cg-btn"
-              disabled={room < 1 || added}
-              onClick={() => {
-                addToDraft(p.id, qty);
-                setWanted(1);
-                setAdded(true);
-              }}
-            >
-              {added ? "נוסף להזמנה" : "הוספה להזמנה"}
-            </button>
-          </div>
+          {/* Nothing free means nothing to choose: no quantity, no dead button to tap at a customer's side. */}
+          {free > 0 ? (
+            <div className="cg-buy">
+              <Stepper label={`כמות של ${p.name}`} value={qty} max={Math.max(room, 1)} onChange={setWanted} />
+              <button
+                type="button"
+                className="cg-btn"
+                disabled={room < 1 || added}
+                onClick={() => {
+                  addToDraft(p.id, qty);
+                  setWanted(1);
+                  setAdded(true);
+                }}
+              >
+                {added ? "נוסף להזמנה" : "הוספה להזמנה"}
+              </button>
+            </div>
+          ) : null}
           {free > 0 && room < 1 && inOrder === 0 ? <p className="cg-inorder">פחות מיחידה אחת זמינה</p> : null}
           {inOrder > 0 ? (
             <p className="cg-inorder">

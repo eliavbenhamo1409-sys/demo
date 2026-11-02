@@ -94,7 +94,9 @@ body:has(.cg-root) { background: #ffffff; }
 .cg-card__name { font-size: 16px; font-weight: 400; line-height: 1.4; }
 .cg-card__price { flex: none; font-size: 15px; font-weight: 300; }
 .cg-stock { font-size: 14px; font-weight: 400; color: var(--ink-3); }
-.cg-card.is-out .cg-media img { opacity: 0.45; }
+/* The loudest thing in the catalogue, on purpose: an agent checks stock on a phone, outdoors, with the customer waiting, and reads this before any word. */
+.cg-media.is-out img { opacity: 0.45; }
+.cg-media__out { position: absolute; inset-inline: 0; inset-block-start: 50%; transform: translateY(-50%); padding-block: 9px; background: var(--ink); color: var(--paper); font-size: 16px; font-weight: 500; line-height: 1.25; text-align: center; }
 
 .cg-empty { padding-block: clamp(56px, 8vw, 104px); text-align: center; color: var(--ink-3); font-size: 18px; font-weight: 300; }
 
@@ -106,6 +108,7 @@ body:has(.cg-root) { background: #ffffff; }
 .cg-crumbs [aria-current="page"] { color: var(--ink); }
 .cg-product__layout { max-width: var(--wide); margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(40px, 6vw, 100px); align-items: start; }
 .cg-product__media { position: sticky; top: calc(var(--header) + 20px); }
+.cg-product__media .cg-media__out { padding-block: clamp(11px, 1.3vw, 18px); font-size: clamp(19px, 1.8vw, 26px); }
 .cg-product__detail { display: flex; flex-direction: column; gap: 18px; padding-top: clamp(8px, 1vw, 24px); }
 .cg-product__cat { font-size: 14px; font-weight: 400; color: var(--ink-3); transition: color var(--soft); align-self: flex-start; }
 @media (hover: hover) { .cg-product__cat:hover { color: var(--ink); } }
@@ -179,6 +182,7 @@ body:has(.cg-root) { background: #ffffff; }
 .cg-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .cg-line { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; padding-block: 18px; border-bottom: 1px solid var(--rule); }
 .cg-line .cg-media__sku { display: none; }
+.cg-line .cg-media__out { padding-block: 4px; font-size: 13px; }
 .cg-line__body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .cg-line__top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .cg-line__name { font-size: 15px; font-weight: 400; line-height: 1.4; }
