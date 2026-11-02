@@ -28,8 +28,8 @@ import { movedWorth, PACE_DAYS, runway, shelfWorth, type Runway } from "@/lib/sn
 
 const RECENT = 6;
 
-/** The open orders listed here; the orders page has the rest. */
-const OPEN_ORDERS = 6;
+/** The open orders listed here, one row for each of the list beside them; the orders page has the rest. */
+const OPEN_ORDERS = 5;
 
 /** The products closest to running out; the inventory page has the rest. */
 const RUNNING_OUT = 5;
@@ -228,7 +228,7 @@ export default function OverviewPage() {
   );
 
   return (
-    <div className="sa-page">
+    <div className="sa-page ov-page">
       <PageHead title="סקירה" sub={fmtToday()} />
 
       <ShelfPicture worth={worth} products={stats.products} orders={promises} checks={checks} />
@@ -237,14 +237,6 @@ export default function OverviewPage() {
         <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
           הסכומים מחושבים רק לפי מה שנטען
         </Notice>
-      ) : null}
-
-      {workItems.length > 0 ? (
-        <div id="ov-work" className="min-w-0">
-          <Card title="דורש טיפול" count={workItems.length} flush>
-            <AttentionGroups items={workItems} />
-          </Card>
-        </div>
       ) : null}
 
       <div className="sa-stats ov-stats">
@@ -271,6 +263,14 @@ export default function OverviewPage() {
           note={latest ? `אחרונה ${fmtRelative(latest.created_at)}` : undefined}
         />
       </div>
+
+      {workItems.length > 0 ? (
+        <div id="ov-work" className="min-w-0">
+          <Card title="דורש טיפול" count={workItems.length} flush>
+            <AttentionGroups items={workItems} />
+          </Card>
+        </div>
+      ) : null}
 
       <div className="ov-split">
         <RunningOut rows={soon} shown={RUNNING_OUT} isLoading={isLoading || monthLoading} onDismiss={onRemoveAlert} />

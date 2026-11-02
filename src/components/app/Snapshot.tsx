@@ -90,27 +90,30 @@ export function ShelfPicture({ worth, products, orders, checks }: { worth: Shelf
         <div className="ov-worth-label">שווי המלאי</div>
         <div className="ov-worth-n" style={{ "--len": fmtQty(Math.round(worth.total)).length + 1 } as CSSProperties}><Shekels value={worth.total} /></div>
         <div className="ov-worth-note">במחירון · {note}</div>
-        <StockBar
-          label={`${fmtPrice(Math.round(worth.free))} זמין, ${fmtPrice(Math.round(worth.held))} משוריין להזמנות`}
-          parts={[
-            { tone: "ok", value: worth.free },
-            { tone: "other", value: worth.held },
-          ]}
-        />
-        <dl className="ov-parts">
-          <div>
-            <dt><i className="is-free" />זמין</dt>
-            <dd><Shekels value={worth.free} /></dd>
-          </div>
-          <div>
-            <dt><i className="is-held" />משוריין להזמנות</dt>
-            <dd><Shekels value={worth.held} /></dd>
-          </div>
-        </dl>
+        <div className="ov-held">
+          <StockBar
+            label={`${fmtPrice(Math.round(worth.free))} זמין, ${fmtPrice(Math.round(worth.held))} משוריין להזמנות`}
+            parts={[
+              { tone: "ok", value: worth.free },
+              { tone: "other", value: worth.held },
+            ]}
+          />
+          <dl className="ov-parts">
+            <div>
+              <dt><i className="is-free" />זמין</dt>
+              <dd><Shekels value={worth.free} /></dd>
+            </div>
+            <div>
+              <dt><i className="is-held" />משוריין</dt>
+              <dd><Shekels value={worth.held} /></dd>
+            </div>
+          </dl>
+        </div>
       </div>
 
+      <OrderCover {...orders} />
+
       <div className="ov-checks">
-        <OrderCover {...orders} />
         {checks.map((c) => {
           const body = (
             <>
@@ -206,6 +209,7 @@ export function OpenOrders({ shown, isLoading }: { shown: number; isLoading: boo
   return (
     <Card
       title="הזמנות פתוחות"
+      subtitle="לפי מועד המסירה"
       count={orders.length || undefined}
       flush
       className="ov-list min-w-0"
