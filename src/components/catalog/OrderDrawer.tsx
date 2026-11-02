@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { available, OrderRefused, ShortageError, useCatalog, type DraftLine, type Product } from "@/lib/catalog";
+import { available, OrderRefused, ShortageError, useCatalog, type DraftLine, type Order, type Product } from "@/lib/catalog";
 import { fmtName, fmtPrice, fmtPromise, fmtQty, today } from "@/lib/catalog/format";
 import { CloseIcon } from "./Icons";
 import { Notice, NoticeRow } from "./Notice";
@@ -77,7 +77,7 @@ export function OrderDrawer() {
   const [promisedError, setPromisedError] = useState<string | null>(null);
   const [stop, setStop] = useState<Stop | null>(null);
   const [busy, setBusy] = useState(false);
-  const [placed, setPlaced] = useState<{ number: number; customer: string; promised_on: string | null } | null>(null);
+  const [placed, setPlaced] = useState<Pick<Order, "number" | "customer" | "customer_phone" | "note" | "promised_on"> | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const customerRef = useRef<HTMLInputElement>(null);
   const promisedRef = useRef<HTMLLabelElement>(null);
@@ -85,7 +85,8 @@ export function OrderDrawer() {
 
   const done = placed ?? landed ?? null;
   // A send that found its order already there keeps the first send's details and lines.
-  const earlier = done !== null && (landedEarlier || (customer.trim() !== "" && done.customer !== customer.trim()) || (promised !== "" && done.promised_on !== promised));
+  const changed = (typed: string, stored: string | null) => typed.trim() !== "" && typed.trim() !== stored;
+  const earlier = done !== null && (landedEarlier || changed(customer, done.customer) || changed(promised, done.promised_on) || changed(phone, done.customer_phone) || changed(note, done.note));
 
   const close = () => {
     // The answer decides what becomes of these lines, so the drawer waits for it.

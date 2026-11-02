@@ -94,9 +94,10 @@ export function daysUntil(day: string, now: number = Date.now()): number {
   return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
 }
 
-/** "05.11", for a date with no hour. */
-export function fmtPlainDay(day: string): string {
-  return day.slice(5).split("-").reverse().join(".");
+/** "05.11" for a date with no hour, and "26.11.25" once it is in another year. */
+export function fmtPlainDay(day: string, now: number = Date.now()): string {
+  const [y, m, d] = day.split("-");
+  return Number(y) === new Date(now).getFullYear() ? `${d}.${m}` : `${d}.${m}.${y.slice(2)}`;
 }
 
 /** The delivery an agent promised, as it stands today: "היום" / "מחר" / "05.11", or how late it is. */
@@ -106,7 +107,7 @@ export function fmtPromised(day: string, now: number = Date.now()): string {
   if (days === 1) return "מחר";
   if (days === -1) return "באיחור של יום";
   if (days < 0) return `באיחור של ${-days} ימים`;
-  return fmtPlainDay(day);
+  return fmtPlainDay(day, now);
 }
 
 const weekdayFmt = new Intl.DateTimeFormat("he-IL", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
