@@ -1,0 +1,14 @@
+/* The רכש view: only what the shared classes lack. */
+
+/* Suppliers have long names and may be six, so the keys take a second line. */
+.dash-buying-keys { flex-wrap: wrap; row-gap: var(--space-1); }
+
+/* The ring stands beside a taller chart, so it takes the middle of its card. */
+.dash-buying-ring .sa-card-body:not(.is-flush) { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+/* The figure the row is for. */
+.dash-buying-qty { flex-shrink: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 600; color: var(--text-primary); }
+
+/* The same beat as the list beside it. A phone keeps who, when and how much. */
+.dash-buying-table { --row: 54px; }
+@media (max-width: 480px) { .dash-buying-table :is(th, td):nth-child(3) { display: none; } }

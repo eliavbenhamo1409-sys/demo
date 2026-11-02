@@ -4,8 +4,7 @@
    never as a tint or a chip behind a word. The face is the platform's own. Big type, plain words, big targets:
    this is read at arm's length, on a factory floor, for hours.
    The colours, sizes and radii are tokens (tokens.css); this file changes only what a token cannot.
-   Every rule is scoped to [data-theme^="minimal"], so the classic style never sees it.
-   Copied byte for byte to worker/src/design/minimal.css. */
+   Every rule is scoped to [data-theme^="minimal"], so the classic style never sees it. */
 
 /* ── Type: the page speaks in sizes, not in weights of grey ── */
 [data-theme^="minimal"] .sa-page-title { font-size: 34px; line-height: 44px; font-weight: 700; }
@@ -53,6 +52,8 @@
 .sa-thumb { flex-shrink: 0; display: block; width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius-md); background: var(--bg-muted); box-shadow: inset 0 0 0 var(--hair) rgba(0, 0, 0, 0.06); }
 .sa-thumb.is-sm { width: 36px; height: 36px; }
 @supports (corner-shape: squircle) { .sa-thumb { corner-shape: squircle; } }
+/* A studio photo is shot on white: in the dark it comes down a step, or a column of them outshouts the figures. */
+[data-theme="minimal-dark"] :is(.sa-thumb, .sa-product-photo) { filter: brightness(0.82); }
 
 /* Stock against its minimum: a battery, its middle mark the minimum. Colour here is data, not decoration. */
 .sa-level { display: inline-flex; align-items: center; gap: var(--space-3); }
@@ -77,16 +78,16 @@
   [data-theme^="minimal"] .sa-inventory-table td:first-child { width: 100%; max-width: 0; }
   [data-theme^="minimal"] .sa-inventory-table td:first-child .sa-thumbed > span { max-width: none; }
 }
-/* Movements: the same, in closer cells, while a name still reads. The row keeps its inset at both ends. Below that it scrolls, so no column is cut. */
-@media (min-width: 1240px) and (max-width: 1499px) {
+/* Movements: the same, in closer cells, while a name still reads. The row keeps its inset at both ends. */
+@media (min-width: 1100px) and (max-width: 1499px) {
   [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) :is(th, td):not(:first-child) { padding-inline-start: var(--space-3); }
   [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) :is(th, td):not(:last-child) { padding-inline-end: var(--space-3); }
   [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) td:has(.sa-cell-primary) { width: 100%; max-width: 0; }
   [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) td span:has(> .sa-cell-primary) { max-width: none; }
 }
-@media (min-width: 1100px) and (max-width: 1239px) {
-  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) { overflow: auto; }
-  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) th { top: 0; }
+/* A name is what the row is for, and its sizes are at its end: it takes a second line before it is cut. */
+@media (max-width: 1499px) {
+  [data-theme^="minimal"] :is(.sa-inventory-table td:first-child, .sa-table-wrap:has(> .sa-table .sa-signed) td) .sa-cell-primary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; text-wrap: pretty; overflow-wrap: anywhere; }
 }
 /* Long lists keep their column names, where the table needs no sideways scroll. */
 @media (min-width: 1100px) {
@@ -111,10 +112,6 @@
 [data-theme^="minimal"] .sa-move.is-out svg { color: var(--accent-text); }
 [data-theme^="minimal"] .sa-move.is-fault, [data-theme^="minimal"] .sa-move.is-fault svg { color: var(--danger-text); }
 [data-theme^="minimal"] .sa-timeline-qty { font-weight: 600; }
-[data-theme^="minimal"] .sa-panel-sub .text-ink { font-size: var(--t-17); font-weight: 600; }
-[data-theme^="minimal"] .sa-panel-sub:has(.sa-dot-danger) .text-ink { color: var(--danger-text); }
-[data-theme^="minimal"] .sa-panel-sub:has(.sa-dot-warning) .text-ink { color: var(--warning-text); }
-[data-theme^="minimal"] .sa-panel-sub:has(.sa-dot[class*="bg-short"]) .text-ink { color: var(--short); }
 [data-theme^="minimal"] :is(.app-live, .wk-live, .wk-status:has(> .sa-dot-warning)) { color: var(--warning-text); font-weight: 500; }
 
 /* ── Buttons: blue is what you can press; the rest is a quiet fill ── */
@@ -139,9 +136,10 @@
 
 /* ── Fields: a white well that lights up blue ───────────────── */
 [data-theme^="minimal"] .sa-input, [data-theme^="minimal"] .sa-select-trigger { border-color: var(--border-strong); }
-[data-theme^="minimal"] .sa-input { transition: border-color var(--dur-1) linear, box-shadow var(--dur-2) var(--ease); }
+[data-theme^="minimal"] .sa-input { text-overflow: ellipsis; transition: border-color var(--dur-1) linear, box-shadow var(--dur-2) var(--ease); }
 [data-theme^="minimal"] .sa-input::placeholder, [data-theme^="minimal"] .sa-menu-search input::placeholder, [data-theme^="minimal"] .sa-select-value.is-placeholder { color: var(--text-quiet); }
 [data-theme^="minimal"] .sa-input:focus:not(.is-error), [data-theme^="minimal"] .sa-select-trigger.is-open { border-color: var(--focus); box-shadow: var(--focus-ring); }
+[data-theme^="minimal"] .sa-input.is-error { border-color: var(--danger); }
 [data-theme^="minimal"] .sa-input.is-error:focus { box-shadow: var(--focus-ring-danger); }
 /* A saved login: login.css draws the classic ink ring, later in the cascade. */
 [data-theme^="minimal"] .app-login .sa-input:-webkit-autofill:focus:not(.is-error) { box-shadow: 0 0 0 100px var(--bg-surface) inset, var(--focus-ring); }
@@ -171,6 +169,10 @@
   [data-theme^="minimal"] .sa-tabs::before { content: ""; position: absolute; position-anchor: --seg; inset: anchor(top) anchor(right) anchor(bottom) anchor(left); border-radius: calc(var(--radius-md) - 3px); background: var(--bg-thumb); box-shadow: var(--shadow-sm); transition: inset var(--dur-3) var(--ease); }
   [data-theme^="minimal"] .sa-tabs:not(:has(.sa-tab.is-active))::before { display: none; }
 }
+/* A stacked toolbar: the track hugs its segments, or the empty part reads as a dead control. */
+@media (max-width: 1279px) { [data-theme^="minimal"] .sa-toolbar-tabs .sa-tabs { width: fit-content; } }
+/* A phone's width: closer segments, so four tabs and their counts stand without scrolling. */
+@media (max-width: 600px) { [data-theme^="minimal"] .sa-toolbar-tabs .sa-tab { padding-inline: var(--space-2); } }
 [data-theme^="minimal"] .sa-tabs-line { display: flex; border-bottom: 0; }
 [data-theme^="minimal"] .sa-tabs-line .sa-tab { flex: 1; justify-content: center; height: calc(var(--control-md) - 6px); margin-bottom: 0; }
 [data-theme^="minimal"] .sa-panel-tabs { padding: 0 var(--inset) var(--space-3); }
@@ -210,6 +212,11 @@
 }
 
 /* ── Shell: a floating sidebar and a toolbar made of glass ──── */
+/* A smaller window gives the lists the sidebar's and the margin's air. The 3D page keeps its own gutter. */
+@media (min-width: 900px) and (max-width: 1339px) {
+  [data-theme^="minimal"] { --sidebar: 208px; }
+  [data-theme^="minimal"] .app-main:not(:has(.m3d-page)) :is(.sa-topbar, .app-content) { padding-inline: var(--space-6); }
+}
 [data-theme^="minimal"] .sa-sidebar { background: var(--bg-surface); border: 0; }
 [data-theme^="minimal"] .sa-brand { height: 68px; padding-inline: var(--space-5); font-size: 20px; line-height: 26px; font-weight: 700; }
 [data-theme^="minimal"] .sa-nav { padding: var(--space-1) var(--space-3); gap: 2px; }
@@ -233,6 +240,7 @@
   [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { color: var(--accent-text); border-bottom-color: var(--accent); }
   [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active > svg { color: inherit; }
   [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot { padding: 0 var(--space-2); flex-direction: row; }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item.is-active, [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item.is-active > svg { color: var(--accent-text); }
   /* The name scrolls away, the tabs stay. */
   [data-theme^="minimal"] .sa-shell > .sa-sidebar { position: sticky; top: -48px; z-index: 75; }
 }
@@ -261,6 +269,7 @@
 [data-theme^="minimal"] .sa-attention-item { min-height: 72px; padding: var(--space-3) var(--inset); gap: var(--space-4); border-bottom: 0; }
 [data-theme^="minimal"] .sa-attention-item:not(:last-child)::after, [data-theme^="minimal"] .ag-group::before { content: ""; position: absolute; inset-inline: var(--inset); bottom: 0; height: var(--hair); background: var(--border-subtle); pointer-events: none; }
 [data-theme^="minimal"] .sa-attention-title, [data-theme^="minimal"] .ag-title { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; }
+[data-theme^="minimal"] .sa-attention-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; text-wrap: pretty; overflow-wrap: anywhere; }
 [data-theme^="minimal"] .sa-attention-meta, [data-theme^="minimal"] .ag-hint { color: var(--text-tertiary); }
 [data-theme^="minimal"] .sa-attention-item .sa-badge { min-width: 72px; }
 [data-theme^="minimal"] .ag-group { position: relative; }
@@ -333,10 +342,11 @@
 [data-theme^="minimal"] .wk-done-mark polyline { stroke-dasharray: 23; stroke-dashoffset: -23; animation: wk-draw 420ms var(--ease) 120ms forwards; }
 @keyframes wk-draw { to { stroke-dashoffset: 0; } }
 
-/* The toolbar's rule and glass appear once there is something to separate. */
+/* The toolbar's rule and glass appear once there is something to separate. They start from clear, because a page too
+   short to scroll runs no timeline, and because the saturating blur tints the bare desk at rest. */
 @supports (animation-timeline: scroll()) {
-  @keyframes sa-edge { from { border-bottom-color: transparent; background-color: transparent; } }
-  [data-theme^="minimal"] .sa-topbar { animation: sa-edge linear both; animation-timeline: scroll(root block); animation-range: 0 24px; }
+  @keyframes sa-edge { to { background-color: var(--bg-glass); border-bottom-color: var(--border-base); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); } }
+  [data-theme^="minimal"] .sa-topbar { background: transparent; border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; animation: sa-edge linear both; animation-timeline: scroll(root block); animation-range: 0 24px; }
 }
 
 /* ── Quiet tier: what is empty, unset, locked or still to come ── */

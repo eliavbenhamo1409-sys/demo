@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useUi } from "@/components/app/ui-state";
+import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, EmptyState, Icon } from "@/components/ui";
 import { fmtName, fmtQty, fmtRelative } from "@/lib/format";
 import { available, useData } from "@/lib/store";
@@ -51,6 +52,7 @@ export function OrdersRail({ map, orderId, onOrder }: OrdersRailProps) {
                     return (
                       <RailRow
                         key={l.id}
+                        lead={<ProductThumb product={p} small />}
                         onOpen={place ? () => map.select(place) : undefined}
                         end={<><span className="sa-num">{fmtQty(l.qty)}</span> {p?.unit}</>}
                       >

@@ -1,0 +1,172 @@
+/* The control room: slabs in a row, charts in a grid, nothing that is not data. It only ever renders in the bokeh style. */
+
+.dash { --gap: 18px; perspective: 1800px; }
+
+/* One row of controls above everything it scopes. */
+.dash-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+/* ── Tiles ──────────────────────────────────────────────────── */
+.dash-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--gap); }
+@media (max-width: 1399px) { .dash-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); } }
+
+.dash-tile {
+  --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 0%;
+  position: relative;
+  min-width: 0;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 176px;
+  padding: 16px 18px 10px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sheet);
+  box-shadow: var(--shadow-card);
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform var(--dur-3) var(--ease), box-shadow var(--dur-3) var(--ease);
+}
+/* Two lights of the tile's own hue behind its glass, out of focus like the desk's. */
+.dash-tile::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -46px;
+  inset-inline-end: -40px;
+  width: 150px;
+  height: 150px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--tone) 34%, transparent) 0 58%, color-mix(in srgb, var(--tone) 16%, transparent) 62%, transparent 72%);
+  filter: blur(7px);
+}
+/* The lit edge moves with the pointer: it is what sells the slab. */
+.dash-tile::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(240px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.5), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-3) var(--ease);
+}
+.dash-tile.is-empty { gap: var(--space-3); justify-content: center; }
+.dash-tile-label { display: flex; align-items: center; gap: var(--space-2); min-width: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 600; color: var(--text-secondary); }
+.dash-tile-label svg { flex-shrink: 0; color: var(--tone); }
+.dash-tile-value { display: flex; align-items: baseline; gap: 6px; margin-top: var(--space-2); font-size: clamp(26px, 1.9vw, 32px); line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); font-variant-numeric: proportional-nums; white-space: nowrap; }
+.dash-cur { font-size: 0.66em; font-weight: 600; color: var(--text-tertiary); margin-inline-end: 0.06em; letter-spacing: 0; }
+.dash-tile-unit { font-size: var(--t-14); font-weight: 500; letter-spacing: 0; color: var(--text-tertiary); }
+.dash-tile-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 2px var(--space-2); margin-top: var(--space-1); font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-tertiary); }
+.dash-tile-note { min-width: 0; }
+.dash-delta { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--text-secondary); }
+.dash-delta.is-good { color: var(--qty-in); }
+.dash-delta.is-bad { color: var(--danger-text); }
+.dash-delta svg { width: 14px; height: 14px; }
+.dash-spark { margin-top: auto; padding-top: var(--space-2); width: 100%; min-width: 0; }
+.dash-spark svg { display: block; }
+
+/* ── Grid ───────────────────────────────────────────────────── */
+.dash-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.dash-grid > .is-wide { grid-column: span 2; }
+.dash-grid > .is-full { grid-column: 1 / -1; }
+@media (max-width: 1179px) { .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } .dash-grid > .is-wide { grid-column: auto; } }
+
+/* A card's tooltip may stand past its edge, over its neighbour. */
+.sa-card.dash-card { position: relative; min-width: 0; overflow: visible; transition: box-shadow var(--dur-3) var(--ease), transform var(--dur-3) var(--ease); }
+.sa-card.dash-card:has(.dash-table) { overflow: clip; }
+.sa-card.dash-card:hover { z-index: 2; }
+@media (hover: hover) { .sa-card.dash-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); } }
+.dash-card .sa-card-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.dash-card .sa-card-title { font-size: var(--t-16); }
+
+/* ── Plots ──────────────────────────────────────────────────── */
+.dash-plot { position: relative; width: 100%; min-width: 0; outline: none; }
+.dash-plot svg { display: block; overflow: visible; }
+.dash-plot:focus-visible { border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+.dash-plot rect[tabindex]:focus-visible { outline: none; }
+.dash-gridline { stroke: var(--viz-grid); stroke-width: 1; }
+.dash-cross { stroke: var(--border-control); stroke-width: 1; }
+.dash-band { fill: var(--bg-fill); }
+.dash-dot { stroke: var(--bg-surface); stroke-width: 2; }
+.dash-axis, .dash-axis-html { font-size: 12px; font-weight: 500; fill: var(--text-tertiary); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.dash-keys { display: flex; gap: var(--space-4); margin: 0 0 var(--space-2); padding: 0; list-style: none; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-secondary); }
+.dash-keys li { display: inline-flex; align-items: center; gap: 6px; }
+.dash-keys i { width: 10px; height: 10px; border-radius: 3px; }
+
+.dash-tip { position: absolute; z-index: 5; min-width: 148px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-md); pointer-events: none; }
+.dash-tip-title { margin-bottom: 4px; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+.dash-tip-row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--t-14); line-height: var(--l-20); white-space: nowrap; color: var(--text-secondary); }
+.dash-tip-row i { flex-shrink: 0; width: 12px; height: 2.5px; border-radius: 2px; }
+.dash-tip-row b { font-weight: 600; color: var(--text-primary); }
+.dash-tip-row span { margin-inline-start: auto; }
+
+/* ── Ring and its legend ────────────────────────────────────── */
+.dash-ring { display: flex; align-items: center; gap: var(--space-5); min-width: 0; }
+.dash-ring-art { position: relative; flex-shrink: 0; width: 148px; height: 148px; }
+.dash-ring-art svg { display: block; overflow: visible; }
+.dash-ring-art circle { transition: stroke-width var(--dur-2) var(--ease); }
+.dash-ring-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.dash-ring-mid b { font-size: 17px; line-height: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); font-variant-numeric: proportional-nums; }
+.dash-ring-mid span { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+/* The name gets a whole line: it is what the slice is for. */
+.dash-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 0; list-style: none; }
+.dash-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr); align-items: center; column-gap: var(--space-2); padding: 2px 6px; border-radius: var(--radius-sm); }
+.dash-legend li.is-on { background: var(--bg-fill); }
+.dash-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.dash-legend-name { font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-legend-figs { grid-column: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); font-size: var(--t-13); line-height: var(--l-16); font-variant-numeric: tabular-nums; }
+.dash-legend-n { font-weight: 600; color: var(--text-secondary); }
+.dash-legend-pct { color: var(--text-tertiary); }
+@media (max-width: 480px) { .dash-ring { flex-direction: column; align-items: stretch; } .dash-ring-art { align-self: center; } }
+
+/* ── Ranked rows ────────────────────────────────────────────── */
+.dash-bars { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.dash-bar { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: 6px var(--space-2); border-radius: var(--radius-md); text-align: start; }
+button.dash-bar { cursor: pointer; }
+@media (hover: hover) { button.dash-bar:hover { background: var(--bg-fill); } }
+button.dash-bar:focus-visible { box-shadow: var(--focus-ring); }
+.dash-bar-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.dash-bar-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); min-width: 0; }
+.dash-bar-name { min-width: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-bar-n { flex-shrink: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.dash-bar-track { display: block; height: 6px; border-radius: var(--radius-full); background: var(--chart-track); overflow: hidden; }
+.dash-bar-track i { display: block; height: 100%; border-radius: var(--radius-full); animation: viz-grow 700ms var(--ease) backwards; transform-origin: inline-start; }
+.dash-bar-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* ── Heat ───────────────────────────────────────────────────── */
+.dash-heat { display: grid; gap: 3px; }
+.dash-heat-row { display: contents; }
+.dash-heat i { display: block; aspect-ratio: 1.5; border-radius: 4px; background: var(--viz-1); }
+.dash-heat .dash-axis-html { text-align: center; align-self: center; }
+
+/* ── Tasks ──────────────────────────────────────────────────── */
+.dash-task-list { margin: 0; padding: 0 0 var(--space-2); list-style: none; }
+.dash-task { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 54px; padding: 6px var(--inset); text-align: start; cursor: pointer; }
+.dash-task > i { flex-shrink: 0; width: 16px; height: 16px; border-radius: var(--radius-full); box-shadow: inset 0 0 0 1.5px var(--border-control); }
+@media (hover: hover) { .dash-task:hover { background: var(--bg-fill); } .dash-task:hover > i { box-shadow: inset 0 0 0 1.5px var(--accent); } }
+.dash-task:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+.dash-task-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dash-task-title { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-task-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-task-when { flex-shrink: 0; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-tertiary); }
+.dash-task-when.is-loud { color: var(--danger-text); font-weight: 600; }
+
+/* Hover is for a mouse; a finger and reduced motion get the same slab, standing still. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .dash-tile:hover { box-shadow: var(--shadow-lift); transition-duration: var(--dur-2), var(--dur-3); }
+  .dash-tile:hover::after { opacity: 1; }
+  [data-theme$="dark"] .dash-tile::after { background: radial-gradient(240px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.08), transparent 70%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-tile, .sa-card.dash-card { transform: none !important; transition: none; }
+  .dash-bar-track i { animation: none; }
+}
+a.dash-tile:focus-visible { box-shadow: var(--focus-ring); }
+/* A pressed tile sinks into its own edge, as a key does. */
+a.dash-tile:active { transform: translateY(3px); box-shadow: 0 0 0 0.5px rgba(66, 54, 160, 0.14), 0 1px 0 var(--border-strong), 0 6px 12px -6px rgba(49, 38, 130, 0.3); transition-duration: 0ms; }

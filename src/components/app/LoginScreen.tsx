@@ -21,7 +21,7 @@ type Start = "credentials" | "first-time";
 type FieldErrors = { phone?: string; password?: string; code?: string };
 type FieldRef = RefObject<HTMLInputElement | null>;
 
-const CODE_LENGTH = 6;
+export const CODE_LENGTH = 6;
 const MIN_PHONE_DIGITS = 6;
 const MIN_PASSWORD = 8;
 const MAX_PASSWORD = 72; // Supabase refuses longer, counting bytes: a Hebrew letter takes two
@@ -122,7 +122,7 @@ function PasswordField({ inputRef, ...input }: InputProps & { inputRef: FieldRef
  * The six places of the code, drawn over one real input: pasting, the SMS autofill and the keyboard stay the browser's.
  * Only the aluminium style shows them; the classic style keeps the input's own text.
  */
-function CodeSlots({ code }: { code: string }): ReactElement {
+export function CodeSlots({ code }: { code: string }): ReactElement {
   return (
     <span className="app-login-slots" aria-hidden="true">
       {Array.from({ length: CODE_LENGTH }, (_, i) => (

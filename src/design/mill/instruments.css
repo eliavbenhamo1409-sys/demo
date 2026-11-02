@@ -1,0 +1,24 @@
+/* Mill's instruments: the parts no other style has. The rolling figure, the ruled scale, and the money sign that stands aside for the number. */
+
+:root[data-mill] {
+  /* A figure rolls like a counter on a machine: each digit a strip behind a window, so it never jumps and never reflows. */
+  .ml-fig { display: inline-flex; align-items: baseline; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ml-fig-cur { align-self: flex-start; margin-inline-end: 0.06em; font-size: 0.5em; line-height: 1.6; font-weight: 400; color: var(--text-tertiary); letter-spacing: 0; }
+  .ml-d { position: relative; display: inline-block; height: 1.1em; line-height: 1.1em; width: 0.62em; overflow: hidden; vertical-align: baseline; text-align: center; }
+  .ml-d > i { position: absolute; inset-inline: 0; top: 0; display: block; font-style: normal; transform: translateY(calc(var(--v, 0) * -1.1em)); transition: transform var(--m-roll) var(--m-settle); transition-delay: calc(var(--i, 0) * 16ms); }
+  .ml-d b { display: block; height: 1.1em; font-weight: inherit; }
+  .ml-sep { display: inline-block; line-height: 1.1em; }
+
+  /* The scale: ruled ticks read like a caliper. The fill runs from the start of the line; the tall tick is the minimum. */
+  .ml-scale { position: relative; display: block; width: var(--w, 96px); height: var(--h, 12px); background: repeating-linear-gradient(to left, var(--m-tick-off) 0 1px, transparent 1px var(--m-tick)); }
+  .ml-scale > i { position: absolute; inset-block: 0; inset-inline-start: 0; width: var(--at, 0%); background: repeating-linear-gradient(to left, currentColor 0 1px, transparent 1px var(--m-tick)); color: var(--m-tick-on); transition: width var(--m-roll) var(--m-settle); }
+  .ml-scale > b { position: absolute; inset-block: -2px; inset-inline-start: var(--mark, 50%); width: 1.5px; background: var(--text-primary); }
+  .ml-scale.is-low > i { color: var(--warning); }
+  .ml-scale.is-out > i { color: var(--danger); }
+  .ml-scale.is-short > i { color: var(--short); }
+  .ml-scale.is-held > i + i { inset-inline-start: var(--at, 0%); width: var(--more, 0%); color: var(--text-primary); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-mill] :is(.ml-d > i, .ml-scale > i) { transition: none; }
+}

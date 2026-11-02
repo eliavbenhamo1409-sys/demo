@@ -1,7 +1,6 @@
 /* ניהול מלאי — design tokens. Two styles, each in light and dark.
    classic: graphite ink on warm paper, thin rules, earth pigments for state, and nothing else.
-   minimal: aluminium, white sheets floating on a silver desk or on black, blue for what you can press (see minimal.css).
-   Copied byte for byte to worker/src/design/tokens.css. */
+   minimal: aluminium, white sheets floating on a silver desk or on black, blue for what you can press (see minimal.css). */
 :root, [data-theme="light"] {
   color-scheme: light;
   --bg-canvas: #f6f5f1;
@@ -233,8 +232,8 @@
   --border-strong: #48484a;
   --border-control: #636366;
   --border-inverse: #f5f5f7;
-  --accent: #0a84ff;
-  --accent-hover: #409cff;
+  --accent: #0071e3;
+  --accent-hover: #0062c4;
   --on-accent: #ffffff;
   --accent-text: #4da3ff;
   --success: #30d158;

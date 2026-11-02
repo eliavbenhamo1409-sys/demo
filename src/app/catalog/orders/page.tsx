@@ -1,9 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useCatalog, type Order } from "@/lib/catalog";
+import { photoUrl, useCatalog, type Order } from "@/lib/catalog";
+import { keptChanges } from "@/lib/worker/order-check";
 import { ChevronDownIcon } from "@/components/catalog/Icons";
 import { fmtDate, fmtDay, fmtName, fmtPrice, fmtPromise, fmtQty, ORDER_STATUS_LABEL, today } from "@/lib/catalog/format";
+
+/** The plate stays when a photo is missing or won't load, so the names keep one edge. */
+function LinePhoto({ path }: { path: string | null | undefined }) {
+  const src = photoUrl(path ?? null);
+  return (
+    <span className="cg-order__photo">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {src ? <img src={src} alt="" loading="lazy" decoding="async" /> : null}
+    </span>
+  );
+}
 
 function Row({ order }: { order: Order }) {
   const { cancelOrder } = useCatalog();
@@ -16,6 +28,7 @@ function Row({ order }: { order: Order }) {
   const late = isOpen && order.promised_on !== null && order.promised_on < today();
   const priced = order.order_lines.every((l) => l.unit_price !== null);
   const total = order.order_lines.reduce((sum, l) => sum + (l.unit_price ?? 0) * l.qty, 0);
+  const changes = keptChanges(order);
 
   const cancel = async () => {
     setBusy(true);
@@ -45,12 +58,18 @@ function Row({ order }: { order: Order }) {
         <div className="cg-order__body">
           {order.promised_on ? <p className="cg-order__promise">מסירה ללקוח: {fmtPromise(order.promised_on)}</p> : null}
           <ul className="cg-order__lines">
-            {order.order_lines.map((l) => (
-              <li key={l.id} className="cg-order__line">
-                <span>{l.products ? fmtName(l.products.name) : "מוצר שנמחק"}</span>
-                <span><span className="cg-num">{fmtQty(l.qty)}</span> {l.products?.unit}</span>
-              </li>
-            ))}
+            {order.order_lines.map((l) => {
+              const left = changes.find((c) => c.product_id === l.product_id)?.delivered ?? l.qty;
+              return (
+                <li key={l.id} className="cg-order__line">
+                  <LinePhoto path={l.products?.image_path} />
+                  <span className="cg-order__name">{l.products ? fmtName(l.products.name) : "מוצר שנמחק"}</span>
+                  {left === 0 ? <span>לא יצא</span> : left === l.qty
+                    ? <span><span className="cg-num">{fmtQty(l.qty)}</span> {l.products?.unit}</span>
+                    : <span>יצאו <span className="cg-num">{fmtQty(left)}</span> מתוך <span className="cg-num">{fmtQty(l.qty)}</span> {l.products?.unit}</span>}
+                </li>
+              );
+            })}
           </ul>
           {order.note ? <p className="cg-order__note">{order.note}</p> : null}
           <div className="cg-order__foot">

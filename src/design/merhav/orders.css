@@ -1,0 +1,288 @@
+/* הזמנות: an order is a promise. The horizon lays them on their days, the list reads along it, the model shows the way out. */
+
+.mh-ord {
+  container: mh-ord / inline-size;
+  --cols: minmax(0, 1fr) minmax(0, 1.15fr) 96px 100px;
+  --hz-pile: clamp(52px, 7.4vh, 96px);
+  --hz-label: 42px;
+  --hz-slab: 28px;
+  padding: 34px var(--mh-gutter) 72px;
+  min-width: 0;
+}
+.mh-ord.is-closed { --cols: minmax(0, 1fr) minmax(0, 1.15fr) 96px 108px 52px; }
+
+.mh-ord .sa-pagehead { margin-bottom: 16px; }
+.mh-ord-sum { display: flex; flex-direction: column; align-items: flex-end; }
+.mh-ord-sum-n { font-size: clamp(30px, 2.6vw, 44px); font-weight: 200; letter-spacing: -0.03em; color: var(--text-primary); }
+
+/* The figures are the tabs, as on מלאי. */
+.mh-ord .sa-toolbar { min-height: 46px; column-gap: 20px; }
+.mh-ord .sa-tabs { gap: clamp(14px, 2.4cqi, 28px); }
+.mh-ord .sa-tab { height: 46px; align-items: baseline; gap: 7px; padding-top: 6px; font-size: var(--t-14); }
+.mh-ord-tab-n { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; }
+.mh-ord-tab-n:not([class*="mh-tone"]) { color: var(--text-primary); }
+.mh-ord-tab-n.mh-tone-short { font-weight: 400; }
+.mh-ord .sa-toolbar-tools .sa-select { flex: 0 1 clamp(108px, 12cqi, 164px); min-width: 96px; }
+
+/* ── The horizon. It scrolls away with the list and leaves its ruled scale behind, with the carriage on it ── */
+.mh-ord-stick { position: sticky; top: calc(var(--hz-pile) * -1); z-index: 3; margin-top: 14px; background: var(--bg-surface); }
+.mh-ord.is-closed .mh-ord-stick { top: 0; }
+.mh-hz { position: relative; display: grid; grid-template-columns: repeat(var(--units), minmax(0, 1fr)); }
+.mh-hz-slot { position: relative; min-width: 0; height: calc(var(--hz-pile) + var(--hz-label)); container: mh-slot / inline-size; }
+.mh-hz-slot::after { content: ""; position: absolute; inset-inline: 0; top: calc(var(--hz-pile) - 1px); height: 1px; background: var(--border-strong); pointer-events: none; }
+/* The piles rise once, along time, then only follow what the list holds. */
+.mh-hz-pile {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 1px;
+  height: calc(var(--hz-pile) - 1px);
+  padding-inline: max(3px, 12%);
+  pointer-events: none;
+  transform-origin: bottom;
+  animation: mh-grow var(--dur-plate) var(--spring-plate) both;
+  animation-delay: calc(var(--i, 0) * 14ms);
+}
+.mh-hz-slab {
+  display: block;
+  flex: none;
+  width: 100%;
+  max-width: var(--hz-slab);
+  min-height: 3px;
+  height: calc(var(--h) * var(--hz-pile));
+  padding: 0;
+  border: 0;
+  background: var(--chart-bar);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity var(--dur-1) var(--ease), height var(--dur-move) var(--spring-move);
+}
+.mh-hz-slab.is-short { background: var(--short); }
+.mh-hz.is-hot .mh-hz-slab:not(.is-hot) { opacity: 0.22; }
+
+/* A cut where a week starts, a taller one at today. */
+.mh-hz-slot.is-week::before, .mh-hz-slot.is-today::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 1px;
+  background: var(--border-control);
+}
+.mh-hz-slot.is-week::before { top: calc(var(--hz-pile) - 6px); height: 6px; }
+.mh-hz-slot.is-today::before { top: 0; height: var(--hz-pile); background: var(--text-primary); }
+
+/* The whole column is the day: the pile's empty air answers like its name. */
+.mh-hz-day {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--hz-pile) + 7px) 0 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--t-13);
+  line-height: var(--l-16);
+  white-space: nowrap;
+}
+button.mh-hz-day { cursor: pointer; }
+button.mh-hz-day:hover .mh-hz-word { color: var(--accent-text); }
+.mh-hz-word { font-weight: 500; }
+.mh-hz-date { color: var(--text-tertiary); }
+span.mh-hz-day .mh-hz-word, span.mh-hz-day .mh-hz-date { color: var(--text-quiet); font-weight: 400; }
+.mh-hz-slot.is-today .mh-hz-word { color: var(--text-primary); font-weight: 600; }
+.mh-hz-slot.is-late .mh-hz-word { color: var(--warning-text); }
+
+/* Narrow days give up a word before they collide, then keep only what anchors the scale. */
+@container mh-slot (max-width: 31px) {
+  .mh-hz-slot.is-next .mh-hz-word { visibility: hidden; }
+  .mh-hz-slot.is-today .mh-hz-day { align-items: flex-end; padding-inline-end: 3px; }
+}
+@container mh-slot (max-width: 22px) {
+  .mh-hz-slot:not(.is-today, .is-week) .mh-hz-word, .mh-hz-slot:not(.is-today, .is-week) .mh-hz-date { visibility: hidden; }
+}
+@container mh-slot (max-width: 44px) {
+  .mh-hz-slot.is-late .mh-hz-day { align-items: flex-start; }
+}
+
+.mh-hz-carriage {
+  position: absolute;
+  left: 0;
+  top: var(--hz-pile);
+  width: calc(100% / var(--units) * var(--span));
+  height: 3px;
+  background: var(--accent);
+  transform: translateX(calc(var(--at) * 100% / var(--span)));
+  transition: transform var(--dur-move) var(--spring-move);
+  pointer-events: none;
+}
+
+/* What hover adds: a small plate under the scale. Everything it says is in the list as well. */
+.mh-hz-tip {
+  position: absolute;
+  z-index: 2;
+  left: clamp(120px, var(--x), calc(100% - 120px));
+  top: calc(var(--hz-pile) + var(--hz-label) - 4px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  max-width: 240px;
+  padding: 5px 11px 6px;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lift);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  animation: mh-fade var(--dur-1) var(--ease) both;
+}
+.mh-hz-tip > :first-child { overflow: hidden; text-overflow: ellipsis; }
+.mh-hz-tip-sub { font-size: var(--t-13); line-height: var(--l-18); font-weight: 400; color: var(--text-tertiary); }
+
+/* ── The ledger: one grid for the head, the days and every row, so a column is a real column ── */
+.mh-ord-heads {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 16px;
+  align-items: center;
+  height: 30px;
+  font-size: var(--t-13);
+  color: var(--text-tertiary);
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+.mh-ord-heads .is-worth { direction: ltr; text-align: right; }
+
+.mh-ord-day { scroll-margin-top: 74px; }
+.mh-ord-dayhead {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 16px;
+  align-items: baseline;
+  padding: 24px 0 7px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.mh-ord-day:first-child .mh-ord-dayhead { padding-top: 16px; }
+.mh-ord-daytitle { grid-column: 1 / 3; display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.mh-ord-daytitle h2 { margin: 0; font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; white-space: nowrap; }
+.mh-ord-daydate { font-size: var(--t-14); font-weight: 400; color: var(--text-tertiary); margin-inline-start: 4px; }
+.mh-ord-daysum { grid-column: 3 / -1; font-size: var(--t-13); color: var(--text-tertiary); white-space: nowrap; }
+.mh-ord-daysum .ltr { font-size: var(--t-15); font-weight: 500; color: var(--text-primary); }
+
+.mh-ord-row { position: relative; display: grid; grid-template-columns: var(--cols); gap: 16px; width: 100%; }
+.mh-ord.is-closed .mh-rows > li { content-visibility: auto; contain-intrinsic-size: auto 60px; }
+.mh-ord-row:hover { padding-inline-start: 0; }
+.mh-ord-row::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--mh-gutter) * -1);
+  top: 50%;
+  width: 3px;
+  height: 24px;
+  margin-top: -12px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform var(--dur-press) var(--spring-press);
+}
+.mh-ord-row:hover::before, .mh-ord-row:focus-visible::before, .mh-ord-row.is-selected::before, .mh-ord-row.is-hot::before { transform: scaleY(1); }
+/* The lane of an order that the model, the horizon or the panel is on: from the door's edge to the rail. */
+.mh-ord-row:is(.is-hot, .is-selected)::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: calc(var(--mh-gutter) * -1);
+  background: var(--accent-soft);
+  pointer-events: none;
+}
+
+/* Who comes first, what follows: the customer carries the row, the goods stand a step behind. */
+.mh-ord-row > .mh-row-main > .mh-row-title { font-size: var(--t-16); line-height: var(--l-22); }
+.mh-ord-what { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mh-ord-name { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.mh-ord-name .mh-row-title { font-size: var(--t-14); line-height: var(--l-20); font-weight: 400; color: var(--text-secondary); }
+.mh-ord-more { flex: none; font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-ord-worth { font-size: calc(var(--t-17) + 1px); line-height: var(--l-24); font-weight: 300; letter-spacing: -0.01em; text-align: right; white-space: nowrap; }
+.mh-ord-cover { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.mh-ord-word { font-size: var(--t-17); line-height: var(--l-23); font-weight: 500; }
+.mh-ord-word.mh-tone-short { font-weight: 600; }
+.mh-ord-word.is-delivered { color: var(--success-text); }
+.mh-ord-word.is-cancelled { color: var(--text-tertiary); }
+.mh-ord-promised { font-size: var(--t-14); }
+
+/* The racks an order draws on, named where they stand. */
+.mh-ord-tag { pointer-events: none; cursor: default; animation: mh-fade var(--dur-2) var(--ease) both; }
+
+.mh-ord-showing { margin: 0; padding: 12px 0 0; font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-ord .sa-empty { padding-block: 56px; }
+
+/* ── A narrow plate, by a dragged door or a small window: the product goes first, the panel has it in full ── */
+@container mh-ord (max-width: 540px) {
+  .mh-ord-heads, .mh-ord-dayhead, .mh-ord-row { --cols: minmax(0, 1fr) 92px 92px; gap: 12px; }
+  .mh-ord-heads .is-what, .mh-ord-heads .is-promised, .mh-ord-what, .mh-ord-promised { display: none; }
+  .mh-ord-daytitle { grid-column: 1; }
+  .mh-ord-daytitle .mh-row-sub { display: none; }
+}
+
+/* ── A phone: a name and what the shelf says, the worth under the word ── */
+@container mh-ord (max-width: 440px) {
+  .mh-ord-heads { display: none; }
+  .mh-ord-row { grid-template: "who cover" auto "who worth" auto / minmax(0, 1fr) auto; row-gap: 0; }
+  .mh-ord-row > .mh-row-main { grid-area: who; }
+  .mh-ord-cover { grid-area: cover; align-items: flex-end; }
+  .mh-ord-cover .mh-row-sub { display: none; }
+  .mh-ord-worth { grid-area: worth; font-size: var(--t-15); line-height: var(--l-20); text-align: left; }
+  .mh-ord-dayhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .mh-ord-day { scroll-margin-top: 46px; }
+  .mh-hz-tip { display: none; }
+}
+
+@media (max-width: 899px) {
+  .mh-ord { padding: 24px var(--mh-gutter) 40px; }
+}
+@media (max-width: 599px) {
+  .mh-ord .sa-toolbar-tools .sa-select { flex: 1 1 0; }
+}
+
+/* A slab is a few pixels: a finger would open whichever one it landed on, and every one is a row below. */
+@media (hover: none) {
+  .mh-hz-slab { pointer-events: none; }
+  .mh-hz-tip { display: none; }
+}
+
+/* ── Very large rooms: the same picture at the size of the room ── */
+@media (min-width: 2200px) {
+  .mh-ord {
+    --cols: minmax(0, 1fr) minmax(0, 1.25fr) 170px 180px;
+    --hz-pile: clamp(96px, 10vh, 160px);
+    --hz-label: 52px;
+    --hz-slab: 44px;
+  }
+  .mh-ord.is-closed { --cols: minmax(0, 1fr) minmax(0, 1.25fr) 170px 180px 96px; }
+  .mh-ord-heads, .mh-ord-dayhead, .mh-ord-row { gap: 28px; }
+  .mh-ord-heads { height: 36px; }
+  .mh-ord-sum-n { font-size: 64px; }
+  .mh-ord-tab-n { font-size: clamp(30px, 1.5vw, 44px); }
+  .mh-ord .sa-tab { height: 54px; }
+  .mh-ord .sa-toolbar-tools .sa-select { flex-basis: 200px; }
+  .mh-ord-day { scroll-margin-top: 90px; }
+  .mh-ord-worth { font-size: 24px; line-height: 30px; }
+}
+@media (min-width: 3000px) {
+  .mh-ord { --cols: minmax(0, 1fr) minmax(0, 1.25fr) 220px 230px; --hz-label: 66px; --hz-slab: 60px; }
+  .mh-ord.is-closed { --cols: minmax(0, 1fr) minmax(0, 1.25fr) 220px 230px 120px; }
+  .mh-ord-sum-n { font-size: 84px; }
+  .mh-ord .sa-tab { height: 66px; }
+  .mh-ord-heads { height: 44px; }
+  .mh-ord-day { scroll-margin-top: 112px; }
+  .mh-ord-worth { font-size: 30px; line-height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-hz-pile, .mh-hz-tip, .mh-ord-tag { animation: none; }
+  .mh-hz-slab, .mh-hz-carriage, .mh-ord-row::before { transition: none; }
+}

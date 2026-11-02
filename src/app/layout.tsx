@@ -7,7 +7,7 @@ import { ShellGate } from "@/components/worker/ShellGate";
 
 export const metadata: Metadata = {
   title: "ניהול מלאי · לוח ניהול",
-  description: "סקירה, מלאי, תקלות, מילון ספקים וצוות של המחסן",
+  description: "סקירה, מלאי, תקלות, מיפוי קטלוג וצוות של המחסן",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

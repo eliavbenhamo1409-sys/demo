@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useUi } from "@/components/app/ui-state";
-import { StockMeter } from "@/components/app/Viz";
+import { ProductThumb, StockMeter } from "@/components/app/Viz";
 import { Button, cx, Icon, Movement, MovementQty, Select, type SelectOption } from "@/components/ui";
 import { fmtDateTime, fmtName, fmtQty, fmtRelative } from "@/lib/format";
 import { formatPlace, placeWords, resolvePlace } from "@/lib/map3d/place";
@@ -96,9 +96,12 @@ function FaultLine({ map, fault }: { map: MapView; fault: Fault }) {
 
   return (
     <button type="button" role="row" className="m3d-line" onClick={open}>
-      <span className="m3d-line-text" role="cell">
-        <span className="m3d-line-name">{fault.description}</span>
-        {p ? <span className="m3d-line-unit sa-truncate">{fmtName(p.name)}</span> : null}
+      <span className="sa-thumbed m3d-line-product" role="cell">
+        <ProductThumb product={p} small />
+        <span className="m3d-line-text">
+          <span className="m3d-line-name">{fault.description}</span>
+          {p ? <span className="m3d-line-unit sa-truncate">{fmtName(p.name)}</span> : null}
+        </span>
       </span>
       <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
       <span role="cell" />
@@ -113,10 +116,13 @@ function LedgerLine({ map, line }: { map: MapView; line: Line }) {
 
   return (
     <button type="button" role="row" className="m3d-line" onClick={() => (place ? map.selectProduct(p.id) : openProduct(p.id))}>
-      <span className="m3d-line-text" role="cell">
-        <span className="m3d-line-name">{fmtName(p.name)}</span>
-        {/* The percent counts what is free, so a full shelf that orders have taken says why it reads low. */}
-        {p.reserved > 0 ? <span className={cx("m3d-line-unit", state === "short" && STATE_NUM.short)}>{fmtQty(p.reserved)} משוריינים להזמנות</span> : null}
+      <span className="sa-thumbed m3d-line-product" role="cell">
+        <ProductThumb product={p} small />
+        <span className="m3d-line-text">
+          <span className="m3d-line-name">{fmtName(p.name)}</span>
+          {/* The percent counts what is free, so a full shelf that orders have taken says why it reads low. */}
+          {p.reserved > 0 ? <span className={cx("m3d-line-unit", state === "short" && STATE_NUM.short)}>{fmtQty(p.reserved)} משוריינים להזמנות</span> : null}
+        </span>
       </span>
       <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
       <span className="m3d-num" role="cell">
@@ -154,7 +160,10 @@ function PastLedger({ map, lines, past, at }: { map: MapView; lines: readonly Li
       </div>
       {lines.map(({ product: p, place }) => (
         <button key={p.id} type="button" role="row" className="m3d-line is-past" disabled={!place} onClick={() => place && map.select(place)}>
-          <span className="m3d-line-name" role="cell">{fmtName(p.name)}</span>
+          <span className="sa-thumbed m3d-line-product" role="cell">
+            <ProductThumb product={p} small />
+            <span className="m3d-line-name">{fmtName(p.name)}</span>
+          </span>
           <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
           <span className="m3d-num" role="cell">
             <span className="m3d-line-qty">{pastText(past.get(p.id))}</span>
@@ -185,7 +194,7 @@ export function MovesRail({ map, at }: { map: MapView; at: number | null }) {
         const place = shelf?.objectId ?? map.placeOf(m.product_id);
         const p = product(m.product_id);
         return (
-          <RailRow key={m.id} onOpen={place ? () => map.select(place, shelf ?? undefined) : () => openProduct(m.product_id, "history")} end={<span className="sa-num m3d-move-qty"><MovementQty qty={m.qty} type={m.type} /></span>}>
+          <RailRow key={m.id} lead={<ProductThumb product={p} small />} onOpen={place ? () => map.select(place, shelf ?? undefined) : () => openProduct(m.product_id, "history")} end={<span className="sa-num m3d-move-qty"><MovementQty qty={m.qty} type={m.type} /></span>}>
             <span className="m3d-line-name">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
             <span className="m3d-move-meta">
               <Movement type={m.type} />
@@ -221,6 +230,7 @@ function Tray({ map }: { map: MapView }) {
         {model.tray.map(({ product: p, qty }) => (
           <RailRow
             key={p.id}
+            lead={<ProductThumb product={p} small />}
             end={<Button variant="link" size="sm" onClick={() => (qty > 0 ? openAction("place", { productId: p.id }) : setPicking(picking === p.id ? null : p.id))}>שיבוץ</Button>}
           >
             <span className="m3d-line-name">{fmtName(p.name)}</span>

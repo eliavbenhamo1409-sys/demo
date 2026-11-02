@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useUi } from "@/components/app/ui-state";
+import { ProductThumb } from "@/components/app/Viz";
 import { cx, Notice, Spinner } from "@/components/ui";
 import { fmtName, fmtQty } from "@/lib/format";
 import { countOf, type CountInfo } from "@/lib/map3d/metrics";
@@ -65,11 +66,14 @@ export function CountRail({ map }: { map: MapView }) {
         const place = map.placeOf(product.id);
         return (
           <button key={product.id} type="button" role="row" className="m3d-line" onClick={() => (place ? map.select(place) : openProduct(product.id))}>
-            <span className="m3d-line-text" role="cell">
-              <span className="m3d-line-name">{fmtName(product.name)}</span>
-              {info.faultQty > 0 ? (
-                <span className="m3d-line-unit"><span className="ltr">{fmtQty(info.faultQty)}</span> {product.unit} בתקלה מאז הספירה</span>
-              ) : null}
+            <span className="sa-thumbed m3d-line-product" role="cell">
+              <ProductThumb product={product} small />
+              <span className="m3d-line-text">
+                <span className="m3d-line-name">{fmtName(product.name)}</span>
+                {info.faultQty > 0 ? (
+                  <span className="m3d-line-unit"><span className="ltr">{fmtQty(info.faultQty)}</span> {product.unit} בתקלה מאז הספירה</span>
+                ) : null}
+              </span>
             </span>
             <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
             <span className={cx("m3d-num m3d-line-when", info.lastCount === null && "m3d-num-low")} role="cell">

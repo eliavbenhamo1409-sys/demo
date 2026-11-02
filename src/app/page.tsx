@@ -25,6 +25,8 @@ import { faultPhotoUrl } from "@/lib/fault-photos";
 import { useDismissedAlerts } from "@/lib/dismissed-alerts";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { movedWorth, PACE_DAYS, runway, shelfWorth, type Runway } from "@/lib/snapshot";
+import { splitTheme, useTheme } from "@/lib/theme";
+import { ControlRoom } from "@/components/app/dashboard/ControlRoom";
 
 const RECENT = 6;
 
@@ -50,7 +52,7 @@ const answer = ([text, tone]: [string, CheckTone]) => ({ answer: text, tone });
 /** Stock has its own list on this screen, with the days each product has left. */
 const isStock = (a: { kind: AttentionKind }) => a.kind === "out" || a.kind === "low";
 
-export default function OverviewPage() {
+function OwnerOverview() {
   const { state, stats, attention, product, worker, linesOf, resolveFault } = useData();
   const { openAction, openProduct, notify } = useUi();
   const { dismissed, dismiss } = useDismissedAlerts();
@@ -307,4 +309,10 @@ export default function OverviewPage() {
       </Card>
     </div>
   );
+}
+
+/** The same page in every style; the bokeh style answers with the control room. */
+export default function OverviewPage() {
+  const { theme } = useTheme();
+  return splitTheme(theme).style === "bokeh" ? <ControlRoom /> : <OwnerOverview />;
 }

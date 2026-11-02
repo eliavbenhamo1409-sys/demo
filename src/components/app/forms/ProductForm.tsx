@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Button, Input, Modal, Notice, Select } from "@/components/ui";
 import { useData } from "@/lib/store";
 import { fmtQty } from "@/lib/format";
@@ -8,6 +8,7 @@ import { productPhotoUrl, removeProductPhoto, uploadProductPhoto } from "@/lib/p
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
 import { UNIT_OPTIONS, supplierOptions } from "./options";
+import { PhotoField } from "./PhotoField";
 import { REQUIRED, friendlyDeleteError, parseNum, submitOnEnter, useForm } from "./useForm";
 
 type Field = "name" | "sku" | "barcode" | "minQty" | "qty" | "price";
@@ -17,62 +18,6 @@ const PRICE_RE = /^\d{1,10}([.,]\d{1,2})?$/;
 
 /** The file is only a leftover by now, so it never fails what already landed. */
 const discardPhoto = (path: string) => void removeProductPhoto(path).catch(() => undefined);
-
-/** A thumbnail with its two actions, or a quiet button. The file input's change marks the drawer dirty on its own. */
-function PhotoField({ src, fileName, disabled, onPick, onRemove }: {
-  src: string | null;
-  /** A file not saved yet; a browser that can't draw it (HEIC on desktop) still shows which one it is. */
-  fileName?: string;
-  disabled: boolean;
-  onPick: (file: File) => void;
-  onRemove: () => void;
-}) {
-  const fileInput = useRef<HTMLInputElement>(null);
-  const openPicker = () => fileInput.current?.click();
-  // By src, so the next photo gets its own chance. Left to itself the browser draws a broken-image glyph.
-  const [undrawable, setUndrawable] = useState<string | null>(null);
-  const drawable = src !== undrawable;
-  return (
-    <div className="sa-field" role="group" aria-label="תמונה">
-      <span className="sa-label">
-        <span>תמונה</span>
-        <span className="sa-label-opt">לא חובה</span>
-      </span>
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = ""; // or the same file picked again after הסרה fires nothing
-          if (file) onPick(file);
-        }}
-      />
-      {src ? (
-        <div className="flex items-center gap-[var(--space-3)]">
-          <span className={drawable ? "sa-doc-thumb w-[96px] shrink-0" : "sa-doc-thumb is-empty w-[96px] shrink-0"}>
-            {drawable ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={src} alt="" onError={() => setUndrawable(src)} />
-            ) : (
-              <span className="sa-doc-nophoto">אין תצוגה</span>
-            )}
-          </span>
-          <div className="min-w-0">
-            {fileName ? <span className="sa-hint sa-truncate block px-[var(--space-3)]">{fileName}</span> : null}
-            <div className="flex gap-[var(--space-1)]">
-              <Button variant="ghost" size="sm" disabled={disabled} onClick={openPicker}>החלפה</Button>
-              <Button variant="ghost" size="sm" disabled={disabled} onClick={onRemove}>הסרה</Button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <Button variant="secondary" size="sm" icon="plus" className="self-start" disabled={disabled} onClick={openPicker}>הוספת תמונה</Button>
-      )}
-    </div>
-  );
-}
 
 export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "edit" }) {
   const { state, product, supplier, createProduct, updateProduct, deleteProduct, mapSupplierItem, approveItemRequest } = useData();
@@ -242,7 +187,7 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
               error={form.errors.name}
               autoComplete="off"
             />
-            <div className="grid grid-cols-2 gap-[var(--space-4)]">
+            <div className="sa-form-pair grid grid-cols-2 gap-[var(--space-4)]">
               <Input
                 label={'מק"ט'}
                 required
@@ -333,6 +278,9 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
                 onChange={(e) => setDescription(e.target.value)}
               />
               <PhotoField
+                label="תמונה"
+                optional
+                addLabel="הוספת תמונה"
                 src={photoSrc}
                 fileName={photo?.file.name}
                 disabled={form.busy}

@@ -3,17 +3,17 @@
 -- Additive: keeps existing workers/suppliers and adds the missing ones by name.
 do $$
 declare
-  w_roi uuid; w_michal uuid; w_noam uuid;
+  w_niv uuid; w_shahar uuid; w_noam uuid;
   s_center uuid; s_shahar uuid; s_north uuid;
   p1 uuid; p2 uuid; p3 uuid; p4 uuid; p5 uuid; p6 uuid;
   d0 timestamptz := date_trunc('day', now());
 begin
   -- workers
-  select id into w_roi from workers where name = 'רועי דהן' limit 1;
-  if w_roi is null then insert into workers(name, role) values ('רועי דהן','מחסנאי') returning id into w_roi; end if;
-  insert into workers(name, role) select 'מיכל אברהם','עובד' where not exists (select 1 from workers where name='מיכל אברהם');
-  insert into workers(name, role) select 'נועם פרץ','מנהל' where not exists (select 1 from workers where name='נועם פרץ');
-  select id into w_michal from workers where name='מיכל אברהם'; select id into w_noam from workers where name='נועם פרץ';
+  select id into w_niv from workers where name = 'ניב לוצקי' limit 1;
+  if w_niv is null then insert into workers(name, role) values ('ניב לוצקי','מחסנאי') returning id into w_niv; end if;
+  insert into workers(name, role) select 'שחר אלמקאייס','עובד' where not exists (select 1 from workers where name='שחר אלמקאייס');
+  insert into workers(name, role) select 'נועם נאמן','מנהל' where not exists (select 1 from workers where name='נועם נאמן');
+  select id into w_shahar from workers where name='שחר אלמקאייס'; select id into w_noam from workers where name='נועם נאמן';
 
   -- suppliers
   select id into s_center from suppliers where name='מתכות המרכז בע״מ' limit 1;
@@ -65,30 +65,30 @@ begin
 
   -- the week: receipts (with the supplier's own wording) and issues to customers
   insert into movements(type,product_id,qty,worker_id,supplier_id,reference,external_name,note,created_at) values
-    ('in', p1,24,w_roi,s_shahar,'תעודה 48213','לוח אלומ 2 ממ 1250/2500',null,d0 - interval '5 days' + interval '8 hours 20 minutes'),
-    ('in', p6, 5,w_roi,s_shahar,'תעודה 48213','אטם EPDM גליל 50',null,d0 - interval '5 days' + interval '8 hours 21 minutes'),
-    ('out',p2, 8,w_michal,null,'הזמנה 2041',null,'חלונות ודלתות · חברת ברק',d0 - interval '6 days' + interval '9 hours'),
-    ('out',p1, 6,w_michal,null,'הזמנה 2041',null,'חלונות ודלתות · חברת ברק',d0 - interval '6 days' + interval '9 hours 5 minutes'),
-    ('out',p4, 4,w_michal,null,'הזמנה 2041',null,null,d0 - interval '6 days' + interval '9 hours 10 minutes'),
-    ('out',p3,20,w_roi,null,'הזמנה 2043',null,'מעקה מרפסת',d0 - interval '5 days' + interval '13 hours'),
-    ('out',p5, 2,w_roi,null,'הזמנה 2043',null,null,d0 - interval '5 days' + interval '13 hours 2 minutes'),
-    ('out',p2, 5,w_michal,null,'הזמנה 2045',null,'חיפוי חזית',d0 - interval '4 days' + interval '10 hours 30 minutes'),
-    ('out',p6, 2,w_michal,null,'הזמנה 2045',null,null,d0 - interval '4 days' + interval '10 hours 32 minutes'),
-    ('in', p3,90,w_roi,s_center,'תעודה 1187','פרופיל 40*40 מטר',null,d0 - interval '3 days' + interval '9 hours'),
-    ('out',p3,10,w_roi,null,'הזמנה 2043',null,'השלמה',d0 - interval '3 days' + interval '14 hours'),
-    ('out',p1, 4,w_michal,null,'הזמנה 2046',null,'פרגולה',d0 - interval '2 days' + interval '11 hours'),
-    ('out',p4, 2,w_michal,null,'הזמנה 2046',null,null,d0 - interval '2 days' + interval '11 hours 3 minutes'),
-    ('in', p5, 4,w_roi,s_north,'תעודה 7731','נוזל קירור 5 ליטר',null,d0 - interval '1 day' + interval '8 hours 45 minutes'),
-    ('out',p2, 3,w_michal,null,'הזמנה 2047',null,'ויטרינה לחנות',d0 - interval '1 day' + interval '12 hours'),
-    ('out',p1, 2,w_roi,null,'הזמנה 2047',null,null,d0 + interval '8 hours 10 minutes');
+    ('in', p1,24,w_niv,s_shahar,'תעודה 48213','לוח אלומ 2 ממ 1250/2500',null,d0 - interval '5 days' + interval '8 hours 20 minutes'),
+    ('in', p6, 5,w_niv,s_shahar,'תעודה 48213','אטם EPDM גליל 50',null,d0 - interval '5 days' + interval '8 hours 21 minutes'),
+    ('out',p2, 8,w_shahar,null,'הזמנה 2041',null,'חלונות ודלתות · חברת ברק',d0 - interval '6 days' + interval '9 hours'),
+    ('out',p1, 6,w_shahar,null,'הזמנה 2041',null,'חלונות ודלתות · חברת ברק',d0 - interval '6 days' + interval '9 hours 5 minutes'),
+    ('out',p4, 4,w_shahar,null,'הזמנה 2041',null,null,d0 - interval '6 days' + interval '9 hours 10 minutes'),
+    ('out',p3,20,w_niv,null,'הזמנה 2043',null,'מעקה מרפסת',d0 - interval '5 days' + interval '13 hours'),
+    ('out',p5, 2,w_niv,null,'הזמנה 2043',null,null,d0 - interval '5 days' + interval '13 hours 2 minutes'),
+    ('out',p2, 5,w_shahar,null,'הזמנה 2045',null,'חיפוי חזית',d0 - interval '4 days' + interval '10 hours 30 minutes'),
+    ('out',p6, 2,w_shahar,null,'הזמנה 2045',null,null,d0 - interval '4 days' + interval '10 hours 32 minutes'),
+    ('in', p3,90,w_niv,s_center,'תעודה 1187','פרופיל 40*40 מטר',null,d0 - interval '3 days' + interval '9 hours'),
+    ('out',p3,10,w_niv,null,'הזמנה 2043',null,'השלמה',d0 - interval '3 days' + interval '14 hours'),
+    ('out',p1, 4,w_shahar,null,'הזמנה 2046',null,'פרגולה',d0 - interval '2 days' + interval '11 hours'),
+    ('out',p4, 2,w_shahar,null,'הזמנה 2046',null,null,d0 - interval '2 days' + interval '11 hours 3 minutes'),
+    ('in', p5, 4,w_niv,s_north,'תעודה 7731','נוזל קירור 5 ליטר',null,d0 - interval '1 day' + interval '8 hours 45 minutes'),
+    ('out',p2, 3,w_shahar,null,'הזמנה 2047',null,'ויטרינה לחנות',d0 - interval '1 day' + interval '12 hours'),
+    ('out',p1, 2,w_niv,null,'הזמנה 2047',null,null,d0 + interval '8 hours 10 minutes');
 
   -- faults: one handled last week, one open from this morning
   insert into faults(product_id,description,reported_by,status,created_at,resolved_at) values
-    (p4,'קופסה הגיעה פתוחה, חסרים כ־20 ברגים',w_roi,'resolved',d0 - interval '4 days' + interval '9 hours',d0 - interval '3 days' + interval '10 hours');
+    (p4,'קופסה הגיעה פתוחה, חסרים כ־20 ברגים',w_niv,'resolved',d0 - interval '4 days' + interval '9 hours',d0 - interval '3 days' + interval '10 hours');
   insert into movements(type,product_id,qty,worker_id,note,created_at) values
-    ('fault',p2,1,w_michal,'פינה מקופלת, הופרד בצד',d0 + interval '7 hours 40 minutes');
+    ('fault',p2,1,w_shahar,'פינה מקופלת, הופרד בצד',d0 + interval '7 hours 40 minutes');
   insert into faults(product_id,movement_id,description,reported_by,status,created_at)
-    select p2, id, 'לוח הגיע עם פינה מקופלת, הופרד בצד', w_michal, 'open', created_at from movements where type='fault' and product_id=p2;
+    select p2, id, 'לוח הגיע עם פינה מקופלת, הופרד בצד', w_shahar, 'open', created_at from movements where type='fault' and product_id=p2;
 
   alter table movements enable trigger movements_guard;
 end $$;

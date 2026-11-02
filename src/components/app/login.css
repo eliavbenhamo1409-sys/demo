@@ -290,6 +290,12 @@
   color: var(--text-primary);
 }
 
+/* The fill ends straight at the short rule: a part of the well, not a chip inside it. Physical corners: the row is LTR, the picker RTL. */
+[data-theme^="minimal"] .app-login-phone .sa-select-trigger {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 [data-theme^="minimal"] .app-login-phone .sa-select-chevron {
   width: 16px;
   height: 16px;

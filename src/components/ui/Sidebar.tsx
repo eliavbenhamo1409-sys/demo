@@ -26,7 +26,7 @@ export interface SidebarProps {
 export const DEFAULT_SIDEBAR_ITEMS: SidebarItem[] = [
   { key: "overview", label: "סקירה", href: "/" },
   { key: "inventory", label: "מלאי", href: "/inventory" },
-  { key: "suppliers", label: "מילון ספקים", href: "/suppliers" },
+  { key: "suppliers", label: "מיפוי קטלוג", href: "/suppliers" },
 ];
 
 function cx(...parts: (string | false | null | undefined)[]): string {

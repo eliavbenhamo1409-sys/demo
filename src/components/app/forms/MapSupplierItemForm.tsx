@@ -46,7 +46,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
     setDeleteError(null);
     try {
       await deleteSupplierItem(item.id);
-      notify({ tone: "success", title: `${item.external_name} נמחק מהמילון` });
+      notify({ tone: "success", title: `${item.external_name} נמחק מהמיפוי` });
       close();
     } catch (e) {
       setDeleteError(errorMessage(e));
@@ -139,7 +139,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
           onClose={() => { if (!deleting) { setConfirmDelete(false); setDeleteError(null); } }}
         >
           <div className="flex flex-col gap-[var(--space-3)]">
-            <p className="m-0">השם יוסר מהמילון של {sup?.name ?? "הספק"}. קליטות עתידיות בשם הזה לא יזוהו אוטומטית.</p>
+            <p className="m-0">השם יוסר מהמיפוי של {sup?.name ?? "הספק"}. קליטות עתידיות בשם הזה לא יזוהו אוטומטית.</p>
             {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}
           </div>
         </Modal>

@@ -1,0 +1,18 @@
+/* Merhav, in load order. globals.css imports this last, so it reaches its own style last. */
+@import "./tokens.css";
+@import "./foundation.css";
+@import "./controls.css";
+@import "./shell.css";
+@import "./overview.css";
+@import "./inventory.css";
+@import "./panels.css";
+@import "./login.css";
+@import "./catalog.css";
+@import "./orders.css";
+@import "./movements.css";
+@import "./faults.css";
+@import "./closing.css";
+@import "./documentation.css";
+@import "./team.css";
+@import "./warehouse.css";
+@import "./responsive.css";

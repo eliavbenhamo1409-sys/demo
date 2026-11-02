@@ -19,10 +19,11 @@ export function RailSection({ title, count, children }: { title: string; count?:
   );
 }
 
-/** A ruled row. With `onOpen` the whole row is one button, and `end` stays its own control. */
-export function RailRow({ onOpen, end, expanded, children }: { onOpen?: () => void; end?: ReactNode; expanded?: boolean; children: ReactNode }) {
+/** A ruled row. With `onOpen` the whole row is one button, `lead` stands at its head under that button, and `end` stays its own control. */
+export function RailRow({ onOpen, lead, end, expanded, children }: { onOpen?: () => void; lead?: ReactNode; end?: ReactNode; expanded?: boolean; children: ReactNode }) {
   return (
     <li className="sa-order-line m3d-row">
+      {lead}
       {onOpen ? (
         <button type="button" className="sa-attention-open m3d-row-main" aria-expanded={expanded} onClick={onOpen}>
           {children}

@@ -31,7 +31,7 @@ export type Product = Pick<
 export type Agent = Tables<"agents">;
 export type OrderLine = Tables<"order_lines">;
 /** The product comes with each line, so an order keeps its names after a product leaves the catalogue. */
-export type Order = Tables<"orders"> & { order_lines: (OrderLine & { products: Pick<Tables<"products">, "name" | "unit"> | null })[] };
+export type Order = Tables<"orders"> & { order_lines: (OrderLine & { products: Pick<Tables<"products">, "name" | "unit" | "image_path"> | null })[] };
 
 export type DraftLine = { productId: string; qty: number };
 /**
@@ -252,7 +252,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     }
     const { data, error: failed } = await sb
       .from("orders")
-      .select("*, order_lines(*, products(name, unit))")
+      .select("*, order_lines(*, products(name, unit, image_path))")
       .eq("agent_id", agentId)
       .order("number", { ascending: false });
     if (failed) throw new Error(failed.message);

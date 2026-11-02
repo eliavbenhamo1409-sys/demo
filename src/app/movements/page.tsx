@@ -65,6 +65,9 @@ function differs(a: Filters, b: Filters): boolean {
 /** Phones keep product and quantity only; the rest moves under the product. The empty state sits in the first cell, so it stays. */
 const PHONE_MOVEMENTS = "max-[600px]:[&_:is(td,th):not(:nth-child(1),:nth-child(2),.sa-table-empty)]:hidden";
 
+/** A tablet moves the worker under the product, so the name keeps its room. */
+const TABLET_MOVEMENTS = "min-[601px]:max-[1099px]:[&_:is(td,th):nth-child(4)]:hidden";
+
 /** The product takes what the other columns leave, so a long name truncates and no column is ever cut. */
 const MAIN_CELL = "w-full max-w-0";
 
@@ -324,8 +327,9 @@ function MovementsTable({ rows, isLoading, empty }: { rows: MovementRow[]; isLoa
                 <span className="block min-w-0">
                   <span className="sa-cell-primary sa-truncate block">{fmtName(p.name)}</span>
                   <span className="sa-cell-sub sa-truncate">
-                    <span className="min-[601px]:hidden">{phoneLine(m)}</span>
+                    <span className="min-[600px]:hidden">{phoneLine(m)}</span>
                     <span className="max-[600px]:hidden">
+                      <span className="hidden min-[601px]:max-[1099px]:inline">{worker(m.worker_id)?.name ? `${worker(m.worker_id)?.name} · ` : null}</span>
                       <span className="sa-mono ltr">{p.sku}</span>
                       {m.external_name ? <> · בתעודה: &quot;<bdi>{m.external_name}</bdi>&quot;</> : null}
                     </span>
@@ -334,7 +338,7 @@ function MovementsTable({ rows, isLoading, empty }: { rows: MovementRow[]; isLoa
               ) : (
                 <span className="block min-w-0">
                   <span className="sa-muted">מוצר שנמחק</span>
-                  <span className="sa-cell-sub sa-truncate min-[601px]:hidden!">{phoneLine(m)}</span>
+                  <span className="sa-cell-sub sa-truncate min-[600px]:hidden!">{phoneLine(m)}</span>
                 </span>
               )}
             </span>
@@ -376,11 +380,12 @@ function MovementsTable({ rows, isLoading, empty }: { rows: MovementRow[]; isLoa
         title: "ספק ותעודה",
         render: (m) => {
           const name = supplier(m.supplier_id)?.name;
-          if (!name && !m.reference) return <span className="text-ink-3">—</span>;
+          if (!name && !m.reference && !m.exit_pass) return <span className="text-ink-3">—</span>;
           return (
             <span className="sa-mv-source block">
               {name ? <span className="sa-truncate block" title={name}>{name}</span> : null}
               {m.reference ? <span className="sa-cell-sub sa-truncate" title={m.reference}><bdi>{m.reference}</bdi></span> : null}
+              {m.exit_pass ? <span className="sa-cell-sub sa-truncate">בלי קבלה</span> : null}
             </span>
           );
         },
@@ -393,7 +398,7 @@ function MovementsTable({ rows, isLoading, empty }: { rows: MovementRow[]; isLoa
   return (
     <Table<MovementRow>
       caption="תנועות מלאי"
-      className={PHONE_MOVEMENTS}
+      className={`${PHONE_MOVEMENTS} ${TABLET_MOVEMENTS}`}
       columns={columns}
       data={page}
       isLoading={isLoading}

@@ -118,7 +118,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
     try {
       if (resolution.item.product_id !== productId) await mapSupplierItem(resolution.item.id, productId);
       else await approveSupplierItem(resolution.item.id);
-      notify({ tone: "success", title: `${resolution.item.external_name} אושר במילון` });
+      notify({ tone: "success", title: `${resolution.item.external_name} אושר במיפוי` });
     } catch (e) {
       form.setError(e instanceof Error ? e.message : "האישור נכשל");
     } finally {
@@ -175,7 +175,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
       resolutionLine = (
         <span className="sa-hint flex items-center gap-[var(--space-2)]" role="status">
           <Dot />
-          <span>שם חדש, יישמר במילון לבדיקה</span>
+          <span>שם חדש, יישמר במיפוי לבדיקה</span>
           {!productId ? (
             <Button variant="link" size="sm" onClick={() => openAction("new-product", { supplierId })}>
               מוצר חדש
@@ -200,7 +200,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
 
       {supplierId ? (
         <div className="sa-field">
-          <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-[var(--space-3)]">
+          <div className="sa-form-pair grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-[var(--space-3)]">
             <div className="sa-field relative">
               <Input
                 label="שם בתעודת המשלוח"
@@ -218,7 +218,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
                 aria-autocomplete="list"
               />
               {suggestOpen && suggestions.length > 0 ? (
-                <div className="sa-menu" id={listId} role="listbox" aria-label="שמות מהמילון" style={{ top: "100%" }}>
+                <div className="sa-menu" id={listId} role="listbox" aria-label="שמות מהמיפוי" style={{ top: "100%" }}>
                   <div className="sa-menu-list">
                     {suggestions.map((s, i) => {
                       const mapped = s.product_id ? product(s.product_id) : undefined;

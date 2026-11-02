@@ -1,0 +1,241 @@
+/* Merhav: the warehouse is the interface.
+   One surface in matte anodised white, one model standing on it, one deep green. Depth comes from light falling from
+   the rail's side, never from a card. Every value below answers to that: see DESIGN-BRIEF.md, "Merhav". */
+
+html[data-theme^="merhav"] {
+  color-scheme: light;
+
+  /* Material. The world is what the model stands on, the door is the plate that slides over it. */
+  --bg-canvas: #e6e4dd;
+  --bg-surface: #f7f6f2;
+  --bg-raised: #fdfcfa;
+  --bg-muted: #edebe5;
+  --bg-sunken: #e9e7e0;
+  --bg-inverse: #181b19;
+  --bg-inverse-hover: #2b2f2c;
+  --bg-scrim: rgba(24, 27, 25, 0.28);
+  --bg-glass: rgba(247, 246, 242, 0.82);
+
+  /* Ink. Near black, never grey on grey: this is read at arm's length for a full shift. */
+  --text-primary: #131614;
+  --text-secondary: #3f4440;
+  --text-tertiary: #5c615d;
+  --text-quiet: #7b807b;
+  --text-disabled: #a4a7a1;
+  --text-inverse: #f7f6f2;
+
+  /* Rules are ink at a strength, so they sit right on every surface in both modes. */
+  --border-subtle: rgba(19, 22, 20, 0.07);
+  --border-base: rgba(19, 22, 20, 0.12);
+  --border-strong: rgba(19, 22, 20, 0.22);
+  --border-control: rgba(19, 22, 20, 0.44);
+  --border-inverse: #131614;
+  --hair: 1px;
+
+  /* One green. It is what you can press and what is alive. */
+  --accent: #0d4f3c;
+  --accent-hover: #0a3f30;
+  --accent-soft: rgba(13, 79, 60, 0.09);
+  --on-accent: #f3f6f2;
+  --accent-text: #0c5a43;
+  --success: #0d6a4b;
+  --on-success: #f3f6f2;
+  --success-text: #0b5f43;
+  --qty-in: #0b6e4d;
+  --warning: #b86a08;
+  --on-warning: #fff8ec;
+  --warning-text: #8a4e04;
+  --danger: #b5321d;
+  --on-danger: #fff4f1;
+  --danger-text: #a82c18;
+  --short: #dc1f1f;
+  --focus: #0c5a43;
+  --chart-bar: #0d6a4b;
+
+  /* Light falls from the rail's side and a little above, so every shadow runs the same way. */
+  --shadow-sm: 0 1px 2px rgba(19, 22, 20, 0.05);
+  --shadow-md: 0 1px 1px rgba(19, 22, 20, 0.04), -6px 10px 26px -10px rgba(19, 22, 20, 0.16);
+  --shadow-card: 0 0 0 1px var(--border-subtle), 0 1px 1px rgba(19, 22, 20, 0.03);
+  --shadow-lift: 0 0 0 1px var(--border-base), -8px 14px 34px -12px rgba(19, 22, 20, 0.2);
+  --shadow-modal: 0 0 0 1px var(--border-base), -14px 26px 70px -18px rgba(19, 22, 20, 0.34);
+  --shadow-door: -1px 0 0 rgba(19, 22, 20, 0.1), -2px 0 3px rgba(19, 22, 20, 0.05), -22px 0 54px -6px rgba(19, 22, 20, 0.17);
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --focus-ring: 0 0 0 2px var(--bg-surface), 0 0 0 3.5px var(--focus);
+  --focus-ring-danger: 0 0 0 2px var(--bg-surface), 0 0 0 3.5px var(--danger);
+
+  /* Machined, not rounded: small radii that nest. */
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Type. Numbers are the heroes, so they get their own voice. */
+  --font-sans: var(--mh-plex), "IBM Plex Sans Hebrew", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font-mono: var(--font-sans);
+  --font-figure: var(--font-sans);
+  --t-12: 12.5px; --t-13: 13px; --t-14: 14px; --t-15: 15px; --t-16: 16px; --t-17: 17px;
+  --l-16: 17px; --l-18: 19px; --l-20: 21px; --l-21: 22px; --l-22: 23px; --l-23: 24px; --l-24: 25px;
+
+  /* Sizes. */
+  --control-sm: 32px;
+  --control-md: 38px;
+  --control-lg: 44px;
+  --row: 56px;
+  --panel: 480px;
+  --modal: 500px;
+
+  /* Motion: real springs sampled into linear(), so a press and a plate share one physics. Nothing waits on these. */
+  --spring-press: linear(0 0%, 0.0137 2.1%, 0.0501 4.2%, 0.1028 6.2%, 0.1665 8.3%, 0.5273 18.8%, 0.6534 22.9%, 0.7087 25%, 0.7585 27.1%, 0.8027 29.2%, 0.8416 31.2%, 0.9045 35.4%, 0.9497 39.6%, 0.9806 43.8%, 1.0069 50%, 1 100%);
+  --spring-move: linear(0 0%, 0.019 2.1%, 0.0685 4.2%, 0.1389 6.2%, 0.2222 8.3%, 0.4927 14.6%, 0.5772 16.7%, 0.6551 18.8%, 0.7252 20.8%, 0.7872 22.9%, 0.8407 25%, 0.8862 27.1%, 0.9239 29.2%, 0.9547 31.2%, 0.9791 33.3%, 1.012 37.5%, 1.0285 41.7%, 1.0328 50%, 1 100%);
+  --spring-plate: linear(0 0%, 0.0118 2.1%, 0.0427 4.2%, 0.0868 6.2%, 0.1398 8.3%, 0.4384 18.8%, 0.5457 22.9%, 0.6388 27.1%, 0.7169 31.2%, 0.7809 35.4%, 0.8324 39.6%, 0.8901 45.8%, 0.9394 54.2%, 0.9836 70.8%, 1 100%);
+  --spring-settle: linear(0 0%, 0.0126 2.1%, 0.0463 4.2%, 0.0957 6.2%, 0.1561 8.3%, 0.511 18.8%, 0.6399 22.9%, 0.6974 25%, 0.7496 27.1%, 0.7964 29.2%, 0.838 31.2%, 0.9059 35.4%, 0.9555 39.6%, 0.9896 43.8%, 1.0114 47.9%, 1.0292 56.2%, 1 100%);
+  --dur-press: 250ms;
+  --dur-move: 480ms;
+  --dur-plate: 550ms;
+  --dur-settle: 490ms;
+  --ease: cubic-bezier(0.22, 0.8, 0.2, 1);
+  --dur-1: 110ms;
+  --dur-2: 190ms;
+  --dur-3: 320ms;
+
+  /* The model. Matte forms on a pale cut slab, graphite racks so that bright stock is what the eye finds. */
+  --scene-canvas: #e6e4dd;
+  --scene-slab: #f2f0ea;
+  --scene-grid: #d9d6cd;
+  --scene-wall: #f5f3ee;
+  --scene-wall-top: #ffffff;
+  --scene-column: #c9c6bc;
+  --scene-door: #0f5a44;
+  --scene-upright: #24282a;
+  --scene-shelf: #3a3f41;
+  --scene-shelf-edge: #0f5a44;
+  --scene-machine: #115a45;
+  --scene-machine-detail: #e9e7e0;
+  --scene-lane: #e4e1d9;
+  --scene-lane-mark: #c4bfb1;
+  --scene-zone: #d6dfd5;
+  --scene-zone-line: #a7b6a8;
+  --scene-ground-shadow: 0.2;
+  --scene-sky: 1.55;
+  --scene-sun: 2.5;
+  --scene-sun-color: #fff6e6;
+  --scene-bounce: #cbc6b8;
+  --scene-studio: 0.4;
+  --scene-metal: 0.2;
+  --scene-contact: 0.5;
+  --scene-forklift: #115a45;
+  --scene-stock-natural: #c7ced2;
+  --scene-stock-black: #3a3f43;
+  --scene-stock-white: #eceae4;
+  --scene-stock-bronze: #a6875c;
+  --scene-stock-roll: #565c60;
+  --scene-stock-canister: #7ea89a;
+  --scene-stock-carton: #c6ad8a;
+
+  /* Geometry of the one layout. */
+  --mh-rail: 232px;
+  --mh-dock: clamp(320px, 31vw, 1040px);
+  --mh-side: clamp(400px, 30vw, 560px);
+  --mh-gutter: clamp(20px, 3vw, 64px);
+}
+
+html[data-theme="merhav-dark"] {
+  color-scheme: dark;
+
+  --bg-canvas: #0d100f;
+  --bg-surface: #151917;
+  --bg-raised: #1c211e;
+  --bg-muted: #202622;
+  --bg-sunken: #101412;
+  --bg-inverse: #ecefe9;
+  --bg-inverse-hover: #ffffff;
+  --bg-scrim: rgba(0, 0, 0, 0.5);
+  --bg-glass: rgba(21, 25, 23, 0.82);
+
+  --text-primary: #eef0eb;
+  --text-secondary: #c1c6bf;
+  --text-tertiary: #9aa09a;
+  --text-quiet: #7c827c;
+  --text-disabled: #5b605b;
+  --text-inverse: #101412;
+
+  --border-subtle: rgba(238, 240, 235, 0.07);
+  --border-base: rgba(238, 240, 235, 0.12);
+  --border-strong: rgba(238, 240, 235, 0.2);
+  --border-control: rgba(238, 240, 235, 0.4);
+  --border-inverse: #eef0eb;
+
+  --accent: #2fae86;
+  --accent-hover: #3cc096;
+  --accent-soft: rgba(47, 174, 134, 0.13);
+  --on-accent: #06140f;
+  --accent-text: #52c9a2;
+  --success: #3cbb90;
+  --on-success: #06140f;
+  --success-text: #58cfa7;
+  --qty-in: #58cfa7;
+  --warning: #e0a03c;
+  --on-warning: #241703;
+  --warning-text: #ecb765;
+  --danger: #ee7a64;
+  --on-danger: #2b0d07;
+  --danger-text: #f39683;
+  --short: #ff5a50;
+  --focus: #52c9a2;
+  --chart-bar: #3cbb90;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 1px 1px rgba(0, 0, 0, 0.3), -6px 10px 28px -8px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 0 0 1px var(--border-subtle);
+  --shadow-lift: 0 0 0 1px var(--border-base), -8px 14px 36px -10px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 0 0 1px var(--border-base), -14px 26px 80px -14px rgba(0, 0, 0, 0.8);
+  --shadow-door: -1px 0 0 rgba(238, 240, 235, 0.08), -2px 0 4px rgba(0, 0, 0, 0.4), -24px 0 60px -4px rgba(0, 0, 0, 0.62);
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  --scene-canvas: #0d100f;
+  --scene-slab: #1a1f1c;
+  --scene-grid: #2a302c;
+  --scene-wall: #262c28;
+  --scene-wall-top: #343b36;
+  --scene-column: #333a35;
+  --scene-door: #27876a;
+  --scene-upright: #6d767a;
+  --scene-shelf: #566064;
+  --scene-shelf-edge: #2fae86;
+  --scene-machine: #1f7259;
+  --scene-machine-detail: #a9afa9;
+  --scene-lane: #232925;
+  --scene-lane-mark: #47504a;
+  --scene-zone: #24332c;
+  --scene-zone-line: #3f5a4e;
+  --scene-ground-shadow: 0.5;
+  --scene-sky: 0.95;
+  --scene-sun: 1.9;
+  --scene-sun-color: #f3efe4;
+  --scene-bounce: #39403b;
+  --scene-studio: 0.3;
+  --scene-metal: 0.25;
+  --scene-contact: 0.6;
+  --scene-forklift: #2fae86;
+  --scene-stock-natural: #c3ccd1;
+  --scene-stock-black: #7b8388;
+  --scene-stock-white: #dfdfd8;
+  --scene-stock-bronze: #b4935f;
+  --scene-stock-roll: #8b9398;
+  --scene-stock-canister: #82b2a2;
+  --scene-stock-carton: #b89e78;
+}
+
+@media (hover: none) {
+  html[data-theme^="merhav"] { --control-sm: 44px; --control-md: 44px; --control-lg: 48px; }
+}
+
+/* Large screens stay proportional instead of growing empty: the type and the rail step up with the room. */
+@media (min-width: 2200px) {
+  html[data-theme^="merhav"] {
+    --t-12: 13.5px; --t-13: 14px; --t-14: 15px; --t-15: 16px; --t-16: 17px; --t-17: 18px;
+    --l-16: 18px; --l-18: 20px; --l-20: 22px; --l-21: 23px; --l-22: 24px; --l-23: 25px; --l-24: 26px;
+    --mh-rail: 280px;
+    --row: 62px;
+  }
+}

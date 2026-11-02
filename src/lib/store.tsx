@@ -86,14 +86,20 @@ const NO_LINES: OrderLine[] = [];
 
 type PageResult<T> = { data: T[] | null; error: { message: string } | null };
 
+/** Pages asked for at once, so a year of rows takes a few round trips rather than one per page. */
+const PAGES_AT_ONCE = 4;
+
 /** Reads a table that outgrows one API page, so an open order never loses its lines to the limit. */
 async function allPages<T>(read: (from: number, to: number) => PromiseLike<PageResult<T>>): Promise<PageResult<T>> {
   const rows: T[] = [];
   for (;;) {
-    const { data, error } = await read(rows.length, rows.length + API_PAGE - 1);
-    if (error) return { data: null, error };
-    rows.push(...(data ?? []));
-    if ((data?.length ?? 0) < API_PAGE) return { data: rows, error: null };
+    const start = rows.length;
+    const pages = await Promise.all(Array.from({ length: PAGES_AT_ONCE }, (_, i) => read(start + i * API_PAGE, start + (i + 1) * API_PAGE - 1)));
+    for (const { data, error } of pages) {
+      if (error) return { data: null, error };
+      rows.push(...(data ?? []));
+      if ((data?.length ?? 0) < API_PAGE) return { data: rows, error: null };
+    }
   }
 }
 
@@ -350,8 +356,8 @@ type Api = {
   updateWorker: (id: string, patch: TablesUpdate<"workers">) => Promise<void>;
   createAgent: (input: TablesInsert<"agents">) => Promise<Agent>;
   updateAgent: (id: string, patch: TablesUpdate<"agents">) => Promise<void>;
-  /** Posts the order's out movements, closes it and releases its hold, atomically in the DB. */
-  deliverOrder: (id: string, workerId?: string | null) => Promise<void>;
+  /** Posts the order's out movements against its receipt, closes it and releases its hold, atomically in the DB. */
+  deliverOrder: (id: string, receipt: string) => Promise<void>;
   /** Closes the order and releases its hold; the stock never moved. */
   cancelOrder: (id: string) => Promise<void>;
   createSupplierItem: (input: TablesInsert<"supplier_items">) => Promise<SupplierItem>;
@@ -405,16 +411,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const fetchMovements = useCallback<Api["fetchMovements"]>(
     async (from, to) => {
-      const rows: Movement[] = [];
-      for (;;) {
+      const { data, error } = await allPages<Movement>((start, end) => {
         let query = sb.from("movements").select("*");
         if (from !== null) query = query.gte("created_at", new Date(from).toISOString());
         if (to !== null) query = query.lt("created_at", new Date(to).toISOString());
-        const { data, error } = await query.order("created_at", { ascending: false }).order("id").range(rows.length, rows.length + API_PAGE - 1);
-        if (error) throw new Error(error.message);
-        rows.push(...(data ?? []));
-        if ((data?.length ?? 0) < API_PAGE) return rows;
-      }
+        return query.order("created_at", { ascending: false }).order("id").range(start, end);
+      });
+      if (error) throw new Error(error.message);
+      return data ?? [];
     },
     [sb],
   );
@@ -428,7 +432,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       sb.from("faults").select("*").order("created_at", { ascending: false }),
       sb.from("workers").select("*").order("name"),
       sb.from("item_requests").select("*").order("created_at", { ascending: false }),
-      sb.from("documents").select("*").order("created_at", { ascending: false }),
+      allPages<DocumentRecord>((from, to) => sb.from("documents").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
       sb.from("agents").select("*").order("name"),
       allPages<Order>((from, to) => sb.from("orders").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
       allPages<OrderLine>((from, to) => sb.from("order_lines").select("*").order("id").range(from, to)),
@@ -836,8 +840,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error || !row) throw new Error(error?.message ?? NOT_APPLIED);
       dispatch({ type: "upsert", table: "agents", row });
     },
-    deliverOrder: async (id, workerId) => {
-      const { error } = await sb.rpc("deliver_order", { target_order: id, by_worker: workerId ?? undefined });
+    deliverOrder: async (id, receipt) => {
+      const { error } = await sb.rpc("deliver_order", { target_order: id, receipt });
       if (error) throw new Error(error.message);
       await reload();
     },

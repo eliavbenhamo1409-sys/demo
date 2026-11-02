@@ -38,7 +38,7 @@ const PAINT_DEPTH = 0.016;
 const ZONE_Y = 0.016;
 const ZONE_LINE = 0.1;
 /** The forklift lane through the middle of the building. */
-const LANE = { x: 33, z: 17, w: 5, d: 25 };
+const LANE = { x: 60, z: 30.5, w: 5, d: 55 };
 const DASH = { width: 0.12, length: 0.9, pitch: 2 };
 const ARROW_PITCH = 7;
 /** Metres past a wall's plane before it answers, so a camera near the plane does not toggle it. */

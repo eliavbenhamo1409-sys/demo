@@ -1,0 +1,260 @@
+/* Every shared component, rethought for a plate instead of a card. Only here, only under this style: nothing shared is edited.
+   The rules: no boxes where a rule will do, no fill where a word will do, a press answers at once and lets go on a spring. */
+
+[data-theme^="merhav"] {
+
+  /* ── Type on the plate ── */
+  .sa-page-title { font-size: clamp(30px, 2.6vw, 44px); line-height: 1.12; font-weight: 300; letter-spacing: -0.02em; }
+  .sa-page-sub { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+  .sa-section-title { font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; }
+  .sa-pagehead { grid-template: "title actions" auto "sub sub" var(--l-20) / minmax(0, 1fr) auto; row-gap: 4px; }
+  .sa-pagehead .sa-page-title { line-height: 1.12; }
+  .sa-page > .sa-pagehead + * { margin-block-start: 28px; }
+  .sa-num { font-size: var(--t-15); }
+
+  /* ── Buttons: a machined key. It sits proud of the plate and sinks when pressed ── */
+  .sa-btn {
+    border: 0;
+    border-radius: var(--radius-md);
+    font-size: var(--t-14);
+    font-weight: 500;
+    transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), transform var(--dur-press) var(--spring-press);
+  }
+  .sa-btn:active:not(:disabled) { transform: translateY(1px); transition-duration: 0ms; }
+  .sa-btn svg { stroke-width: 1.5; }
+  .sa-btn-primary, .sa-btn-accent {
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 -1px 0 rgba(0, 0, 0, 0.2), 0 1px 2px rgba(13, 79, 60, 0.28);
+  }
+  .sa-btn-primary:hover:not(:disabled), .sa-btn-accent:hover:not(:disabled) { background: var(--accent-hover); }
+  .sa-btn-primary:active:not(:disabled), .sa-btn-accent:active:not(:disabled) { box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3); }
+  .sa-btn-secondary { background: transparent; color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .sa-btn-secondary:hover:not(:disabled) { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--border-control); }
+  .sa-btn-ghost { color: var(--text-secondary); background: none; }
+  .sa-btn-ghost:hover:not(:disabled) { background: var(--accent-soft); color: var(--text-primary); }
+  .sa-btn-danger { background: transparent; color: var(--danger-text); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .sa-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 8%, transparent); box-shadow: inset 0 0 0 1px var(--danger); }
+  .sa-btn-link { color: var(--accent-text); box-shadow: none; background: none; }
+  .sa-btn:disabled { opacity: 0.4; }
+
+  /* ── Fields: a sunken well with a line that lights, never a drawn box ── */
+  .sa-label { color: var(--text-tertiary); font-weight: 400; }
+  .sa-input, .sa-select-trigger {
+    border: 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: var(--bg-sunken);
+    box-shadow: inset 0 -1px 0 var(--border-control);
+    font-size: var(--t-15);
+    transition: box-shadow var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+  }
+  .sa-input:hover:not(:disabled), .sa-select-trigger:hover:not(:disabled) { box-shadow: inset 0 -1px 0 var(--text-primary); }
+  .sa-input:focus, .sa-select-trigger.is-open { box-shadow: inset 0 -2px 0 var(--accent); background: var(--bg-raised); border: 0; }
+  .sa-input::placeholder { color: var(--text-quiet); }
+  .sa-input.is-error { box-shadow: inset 0 0 0 1px var(--danger), inset 0 -2px 0 var(--danger); }
+  .sa-input.is-error:focus { box-shadow: inset 0 0 0 1px var(--danger), inset 0 -2px 0 var(--danger); }
+  .sa-search { max-width: none; }
+  .sa-search .sa-input { background: transparent; border: 0; box-shadow: inset 0 -1px 0 var(--border-strong); border-radius: 0; }
+  .sa-search .sa-input:hover:not(:disabled) { box-shadow: inset 0 -1px 0 var(--border-control); }
+  .sa-search .sa-input:focus { background: transparent; box-shadow: inset 0 -2px 0 var(--accent); }
+  .sa-toolbar-tools .sa-select { flex: 0 1 164px; }
+  .sa-toolbar-tools .sa-select .sa-select-trigger { background: transparent; box-shadow: inset 0 -1px 0 var(--border-strong); border-radius: 0; font-size: var(--t-14); }
+
+  /* ── Menus: a small plate that rises from the control ── */
+  .sa-menu {
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-lift);
+    animation: mh-settle var(--dur-press) var(--spring-press) both;
+  }
+  .sa-menu-item { border-radius: var(--radius-sm); min-height: 36px; font-size: var(--t-14); }
+  .sa-menu-item:hover, .sa-menu-item.is-active { background: var(--accent-soft); }
+  .sa-menu-item > svg { stroke-width: 1.5; }
+
+  /* ── Tabs: words on a line, and the same carriage as the rail under the one you are on ── */
+  .sa-tabs { gap: 24px; }
+  .sa-tab { position: relative; height: 38px; border-bottom: 0; font-size: var(--t-15); font-weight: 400; color: var(--text-tertiary); }
+  .sa-tab:hover { color: var(--text-primary); }
+  .sa-tab.is-active { color: var(--text-primary); font-weight: 500; }
+  .sa-tab::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform var(--dur-move) var(--spring-move);
+  }
+  .sa-tab.is-active::after { transform: scaleX(1); }
+  .sa-tab .sa-badge { color: var(--text-quiet); font-size: var(--t-13); }
+  .sa-tab.is-active .sa-badge { color: var(--text-tertiary); }
+  .sa-tabs-line { border-bottom: 1px solid var(--border-base); }
+
+  /* ── A card is no card: a rule, a title, and what follows on the same plate ── */
+  .sa-card { background: none; border: 0; border-radius: 0; overflow: visible; }
+  .sa-card-head { min-height: 0; padding: 0 0 12px; border-bottom: 1px solid var(--border-strong); }
+  .sa-card-title { font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; }
+  .sa-card-sub { color: var(--text-tertiary); }
+  .sa-card-body { padding: 16px 0 0; }
+  .sa-card-body.is-flush { padding: 0; }
+  .sa-card-foot { padding: 12px 0 0; border-top: 0; color: var(--text-tertiary); }
+
+  /* ── The table: no box, ruled rows, and a carriage on the row you are on ── */
+  .sa-table-wrap { background: none; border: 0; border-radius: 0; overflow: visible; }
+  .sa-table { font-size: var(--t-15); line-height: var(--l-21); }
+  .sa-table th {
+    top: 0;
+    height: 38px;
+    padding: 0 12px;
+    background: var(--bg-surface);
+    color: var(--text-tertiary);
+    font-size: var(--t-13);
+    font-weight: 400;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .sa-table th:first-child { padding-inline-start: 0; }
+  .sa-table th button:hover { color: var(--text-primary); }
+  .sa-table td { padding: 0 12px; border-bottom: 1px solid var(--border-subtle); transition: background-color var(--dur-2) var(--ease); }
+  .sa-table td:first-child { position: relative; padding-inline-start: 0; }
+  .sa-table td.is-muted { color: var(--text-tertiary); }
+  .sa-table tbody tr:last-child td { border-bottom: 1px solid var(--border-subtle); }
+  .sa-table tbody tr.is-clickable:hover td { background: none; }
+  .sa-table tbody tr.is-selected td { background: var(--accent-soft); }
+  .sa-table td:first-child::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--mh-gutter) * -1);
+    top: 50%;
+    width: 3px;
+    height: 22px;
+    margin-top: -11px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--dur-press) var(--spring-press);
+  }
+  .sa-table tbody tr.is-clickable:hover td:first-child::before, .sa-table tbody tr.is-selected td:first-child::before { transform: scaleY(1); }
+  .sa-table-empty { padding: 56px 16px; }
+  .sa-table-caption { padding: 12px 0; border-top: 0; color: var(--text-tertiary); }
+  .sa-cell-primary { font-weight: 500; }
+  .sa-cell-sub { color: var(--text-tertiary); }
+
+  /* Waiting is one line that fills: no shimmer. */
+  .sa-skeleton { height: 1px; border-radius: 0; background: var(--border-strong); transform-origin: right; animation: mh-sweep 900ms var(--ease) both; }
+
+  /* ── Stats: a figure and its name on the plate, nothing around them ── */
+  .sa-stats { gap: clamp(28px, 4vw, 72px); background: none; border: 0; border-radius: 0; overflow: visible; display: flex; flex-wrap: wrap; }
+  .sa-stat { background: none; padding: 0; gap: 2px; flex: 0 1 auto; }
+  a.sa-stat:hover { background: none; }
+  .sa-stat-label { color: var(--text-tertiary); font-weight: 400; order: -1; }
+  .sa-stat-label svg { display: none; }
+  .sa-stat-value { font-size: clamp(30px, 2.8vw, 46px); line-height: 1.14; font-weight: 300; letter-spacing: -0.03em; }
+  .sa-stat-unit { letter-spacing: 0; }
+  .sa-stat-foot { color: var(--text-quiet); }
+
+  /* ── State is a word ── */
+  .sa-badge { color: var(--text-secondary); }
+  .sa-badge-success { color: var(--success-text); }
+  .sa-badge-warning { color: var(--warning-text); }
+  .sa-badge-danger { color: var(--danger-text); }
+  .sa-badge-dot { width: 5px; height: 5px; }
+  .sa-dot { width: 5px; height: 5px; }
+
+  /* ── What needs a person: a calm list, position does the shouting ── */
+  .sa-attention-item { background: none; padding: 12px 0; transition: padding-inline var(--dur-move) var(--spring-move); }
+  .sa-attention-item:hover { background: none; padding-inline-start: 6px; }
+  .sa-attention-title { font-size: var(--t-15); }
+  .sa-attention-meta { color: var(--text-tertiary); }
+
+  /* ── Empty: one quiet line, the reason, and what to do ── */
+  .sa-empty-title { font-size: var(--t-17); font-weight: 400; color: var(--text-secondary); }
+  .sa-empty-hint { color: var(--text-tertiary); }
+
+  /* ── An alert is a state of the place, not an error box ── */
+  .sa-notice { background: none; border: 0; border-radius: 0; padding: 12px 0; box-shadow: inset 0 1px 0 var(--border-strong), inset 0 -1px 0 var(--border-subtle); }
+  .sa-notice-title { font-weight: 500; }
+
+  /* ── The scrim dims the world only a little: you are still in the room ── */
+  .sa-scrim { background: var(--bg-scrim); }
+
+  /* ── Dialog: a plate that rises from the surface ── */
+  .sa-modal {
+    border: 0;
+    border-radius: var(--radius-xl);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-modal);
+    animation: mh-settle var(--dur-move) var(--spring-move) both;
+  }
+  .sa-modal-head { border-bottom: 0; padding-block-end: 4px; }
+  .sa-modal-title { font-size: 20px; line-height: 28px; font-weight: 500; }
+  .sa-modal-foot { border-top: 0; }
+
+  /* The settings rows use the same key language. */
+  .sa-appearance { border-bottom: 1px solid var(--border-subtle); }
+  .sa-appearance-opts { gap: 18px; background: none; padding: 0; border: 0; }
+  .sa-appearance-opt { position: relative; height: 34px; padding: 0; background: none; border: 0; border-radius: 0; color: var(--text-tertiary); font-size: var(--t-14); box-shadow: none; }
+  .sa-appearance-opt:hover { color: var(--text-primary); }
+  .sa-appearance-opt.is-active { color: var(--text-primary); font-weight: 500; background: none; box-shadow: inset 0 -2px 0 var(--accent); }
+
+  /* ── The drawer: a second door, from the far side ── */
+  .sa-panel { border: 0; background: var(--bg-surface); box-shadow: 1px 0 0 var(--border-base), 26px 0 64px -14px rgba(19, 22, 20, 0.28); }
+  .sa-panel-head { padding: 24px 28px 16px; border-bottom: 0; }
+  .sa-panel-title { font-size: 22px; line-height: 28px; font-weight: 400; letter-spacing: -0.01em; }
+  .sa-panel-tabs { padding: 0 28px; }
+  .sa-panel-body { padding: 20px 28px; }
+  .sa-panel-foot { padding: 16px 28px; border-top: 1px solid var(--border-base); }
+  .app-panelHost { animation: mh-drawer var(--dur-plate) var(--spring-plate) both; }
+  .app-panelHost[data-closing] { animation: mh-drawer-out var(--dur-2) var(--ease) both; }
+
+  /* Where the model is in view it stays in view: the drawer comes out of the door's edge, and the shelf answers beside it. */
+  .mh-app[data-door="dock"] .app-panelHost {
+    left: var(--mh-dock);
+    right: auto;
+    animation-name: mh-unfold;
+  }
+  .mh-app[data-door="dock"] .app-panelHost[data-closing] { animation-name: mh-fold; }
+  .mh-app[data-door="dock"] .app-scrim { left: var(--mh-dock); right: var(--mh-rail); background: color-mix(in srgb, var(--bg-surface) 40%, transparent); }
+  .mh-app[data-door="open"] .app-panelHost {
+    left: auto;
+    right: var(--mh-rail);
+    animation-name: mh-door-in;
+  }
+  .mh-app[data-door="open"] .app-panelHost[data-closing] { animation-name: mh-door-out; }
+  .mh-app[data-door="open"] .sa-panel { box-shadow: var(--shadow-door); }
+  .mh-app[data-door="open"] .app-scrim { background: none; right: var(--mh-rail); left: auto; width: var(--panel); }
+
+  .app-toasts { z-index: 140; }
+  .app-toast { background: var(--bg-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); padding: 12px 16px; animation: mh-settle var(--dur-move) var(--spring-move) both; }
+
+  /* Fields of a record. */
+  .sa-fields dt { color: var(--text-tertiary); }
+
+  /* ── Rows of history ── */
+  .sa-timeline-item + .sa-timeline-item { border-top: 1px solid var(--border-subtle); }
+}
+
+@keyframes mh-drawer {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes mh-drawer-out {
+  to { transform: translateX(-100%); }
+}
+/* Unrolled from the door's edge, so it never crosses the model. */
+@keyframes mh-unfold {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 -120px 0 -120px); }
+}
+@keyframes mh-fold {
+  from { clip-path: inset(0 -120px 0 -120px); }
+  to { clip-path: inset(0 100% 0 0); }
+}
+/* From under the rail, the way the door itself moves. */
+@keyframes mh-door-in {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+@keyframes mh-door-out {
+  to { transform: translateX(100%); }
+}

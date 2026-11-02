@@ -1,0 +1,82 @@
+/* Merhav's foundation: the surface, type and the figure that every page stands on. Component overrides live in controls.css. */
+
+[data-theme^="merhav"] body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--t-15);
+  line-height: var(--l-23);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-theme^="merhav"] ::selection { background: var(--accent); color: var(--on-accent); }
+
+/* Scrollbars are a hairline that thickens when reached for. */
+[data-theme^="merhav"] * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+
+/* A figure that behaves like a machined counter: each digit is a wheel, and only the wheels that change turn. */
+.mh-figure {
+  display: inline-flex;
+  align-items: baseline;
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  font-family: var(--font-figure);
+  font-feature-settings: "tnum", "lnum";
+  --lh: 1.12;
+  line-height: var(--lh);
+}
+.mh-digit {
+  display: inline-block;
+  height: calc(var(--lh) * 1em);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(transparent, #000 7%, #000 93%, transparent);
+}
+.mh-digit-strip {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--d) * var(--lh) * -1em));
+  transition: transform var(--dur-move) var(--spring-move);
+  transition-delay: calc(var(--i, 0) * 16ms);
+}
+@starting-style {
+  .mh-digit-strip { transform: translateY(0); }
+}
+.mh-digit-strip > span { display: block; height: calc(var(--lh) * 1em); }
+.mh-figure-sep { display: inline-block; }
+.mh-figure-sep.is-thin { margin-inline: -0.06em; opacity: 0.55; }
+.mh-figure-sign { font-size: 0.5em; margin-inline-end: 0.12em; align-self: flex-start; margin-top: 0.34em; font-weight: 400; color: var(--text-tertiary); }
+
+/* The small label over a figure: a name, never a sentence. */
+.mh-label { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* What a number says about itself. */
+.mh-tone-in { color: var(--qty-in); }
+.mh-tone-out { color: var(--danger-text); }
+.mh-tone-warn { color: var(--warning-text); }
+.mh-tone-short { color: var(--short); font-weight: 600; }
+.mh-tone-ok { color: var(--success-text); }
+.mh-tone-quiet { color: var(--text-quiet); }
+
+/* The page's arrival: content settles onto the plate once and never loops. */
+@keyframes mh-settle {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mh-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* One line that crosses once while data arrives: a calibration, not a spinner. */
+@keyframes mh-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-digit-strip { transition: none; }
+}

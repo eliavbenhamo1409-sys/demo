@@ -14,6 +14,10 @@ import { Modal } from "@/components/ui/Modal";
 import { Notice } from "@/components/ui/Notice";
 import { PageHead } from "@/components/ui/PageHead";
 import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
+import { MillShell } from "@/components/mill/MillShell";
+import { useMill } from "@/components/mill/use-mill";
+import { MerhavShell } from "@/components/merhav/Shell";
+import { useMerhav } from "@/components/merhav/use-merhav";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { OrderPanel } from "./OrderPanel";
@@ -80,6 +84,8 @@ function ShellInner({ children }: { children: ReactNode }) {
   const ui = useUi();
   const pathname = usePathname();
   const router = useRouter();
+  const mill = useMill();
+  const merhav = useMerhav();
 
   /* ───────── sidebar ───────── */
   const items = useMemo(
@@ -91,7 +97,7 @@ function ShellInner({ children }: { children: ReactNode }) {
       { key: "orders", label: "הזמנות", href: "/orders", icon: "inbox" as const, count: stats.openOrders > 0 ? stats.openOrders : undefined },
       { key: "movements", label: "תנועות", href: "/movements", icon: "activity" as const },
       { key: "faults", label: "תקלות", href: "/faults", icon: "tool" as const, count: stats.openFaults > 0 ? stats.openFaults : undefined },
-      { key: "suppliers", label: "מילון ספקים", href: "/suppliers", icon: "book-open" as const, count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined },
+      { key: "suppliers", label: "מיפוי קטלוג", href: "/suppliers", icon: "book-open" as const, count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined },
     ],
     [stats.pendingMappings, stats.openFaults, stats.openOrders],
   );
@@ -230,6 +236,11 @@ function ShellInner({ children }: { children: ReactNode }) {
   /* ───────── render ───────── */
   const active = activeKey(pathname);
 
+  // A phone's tabs scroll sideways, so the page you are on is never left behind the edge.
+  useEffect(() => {
+    document.querySelector(".sa-sidebar .sa-nav-item.is-active")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [active]);
+
   // A working connection needs no sign; only a lost one is worth a word.
   const liveNode = state.live ? null : (
     <span className="app-live" role="status" aria-live="polite">מתחבר</span>
@@ -283,32 +294,15 @@ function ShellInner({ children }: { children: ReactNode }) {
     page = children;
   }
 
-  return (
-    <div className="sa-shell">
-      <Sidebar
-        items={items}
-        active={active}
-        brand="ניהול מלאי"
-        foot={
-          <>
-            <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={SETTINGS_PAGES.some((p) => p.key === active)} />
-            <NavItem icon="log-out" onClick={onLogOut}>יציאה</NavItem>
-          </>
-        }
-      />
-      <div className="app-main">
-        <TopBar
-          actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} variant="secondary" icon="plus" />}
-          searchValue={query}
-          onSearchChange={onSearchChange}
-          onSearch={() => pick(hits[hit])}
-          onSearchKeyDown={onSearchKeyDown}
-          searchSlot={searchSlot}
-          end={liveNode}
-        />
-        <main className="app-content">{page}</main>
-      </div>
+  const foot = (
+    <>
+      <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={SETTINGS_PAGES.some((p) => p.key === active)} />
+      <NavItem icon="log-out" onClick={onLogOut}>יציאה</NavItem>
+    </>
+  );
 
+  const overlays = (
+    <>
       {panel ? (
         <>
           <div className={`sa-scrim app-scrim`} data-closing={ui.closing || undefined} onClick={requestClose} aria-hidden />
@@ -330,6 +324,61 @@ function ShellInner({ children }: { children: ReactNode }) {
           ))}
         </div>
       ) : null}
+    </>
+  );
+
+  if (merhav) {
+    return (
+      <MerhavShell
+        items={items}
+        active={active}
+        foot={foot}
+        morePages={SETTINGS_PAGES}
+        actions={SHELL_ACTIONS}
+        onAction={onAction}
+        search={{ query, onQuery: onSearchChange, hits, pick }}
+        offline={!state.live}
+        page={page}
+        overlays={overlays}
+        panelOpen={panel !== null}
+      />
+    );
+  }
+
+  if (mill) {
+    return (
+      <MillShell
+        items={items}
+        active={active}
+        foot={foot}
+        morePages={SETTINGS_PAGES}
+        actions={SHELL_ACTIONS}
+        onAction={onAction}
+        search={{ query, onQuery: onSearchChange, hits, pick }}
+        offline={!state.live}
+        page={page}
+        overlays={overlays}
+        panelOpen={panel !== null}
+      />
+    );
+  }
+
+  return (
+    <div className="sa-shell">
+      <Sidebar items={items} active={active} brand="ניהול מלאי" foot={foot} />
+      <div className="app-main">
+        <TopBar
+          actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} variant="secondary" icon="plus" />}
+          searchValue={query}
+          onSearchChange={onSearchChange}
+          onSearch={() => pick(hits[hit])}
+          onSearchKeyDown={onSearchKeyDown}
+          searchSlot={searchSlot}
+          end={liveNode}
+        />
+        <main className="app-content">{page}</main>
+      </div>
+      {overlays}
     </div>
   );
 }

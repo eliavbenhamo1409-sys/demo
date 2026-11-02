@@ -1,0 +1,445 @@
+/* Drawers, forms, dialogs, menus, toasts: everything that rises over a page.
+   A drawer is a plate. A form on it is a calm instrument panel: figures large and light, fields as wells with a line that
+   lights, one primary key at the foot. The other styles' rules stop at their own ids, so what they give is given again here. */
+
+[data-theme^="merhav"] {
+
+  /* Focus has to outrun the keys' own shadows. */
+  .sa-btn:focus-visible { box-shadow: var(--focus-ring); }
+  .sa-btn-danger:focus-visible { box-shadow: var(--focus-ring-danger); }
+  .sa-select-trigger:focus-visible { box-shadow: inset 0 -2px 0 var(--accent); }
+  .sa-appearance-opt.is-active:focus-visible, .sa-appearance-opt:focus-visible { box-shadow: var(--focus-ring); }
+
+  /* A key at work stays solid: the line on it says so. */
+  .sa-btn[aria-busy="true"]:disabled { opacity: 1; }
+
+  /* Waiting is one line that crosses once. A spinner would loop. */
+  .sa-spinner {
+    width: 16px;
+    height: 1.5px;
+    border: 0;
+    border-radius: 0;
+    background: currentColor;
+    transform-origin: right;
+    animation: mh-sweep 900ms var(--ease) both;
+  }
+  .sa-spinner-sm { width: 12px; }
+  .sa-spinner-lg, .sa-spinner-track { width: 120px; height: 1px; background: var(--border-strong); }
+
+  /* ── The plate. The whole of it scrolls, so a scrollbar takes the same width from everything on it ── */
+  .sa-panel { --pad: 28px; }
+  .app-panelHost { --row: 54px; }
+  .app-panelHost > .sa-panel { overflow: hidden auto; overscroll-behavior: contain; scrollbar-gutter: stable; scroll-padding-block: 96px 88px; }
+  .app-panelHost > .sa-panel > .sa-panel-head { position: sticky; top: 0; z-index: 3; background: var(--bg-surface); }
+  .app-panelHost > .sa-panel > .sa-panel-body { flex: none; overflow: visible; }
+  .app-panelHost > .sa-panel > .sa-panel-foot { position: sticky; bottom: 0; z-index: 3; margin-top: auto; }
+  .sa-panel-head { gap: 16px; padding: 24px var(--pad) 16px; }
+  .sa-panel-heading { flex: 1; }
+  .sa-panel-title { font-size: 26px; line-height: 32px; font-weight: 300; letter-spacing: -0.01em; white-space: normal; overflow: visible; text-wrap: pretty; }
+  .sa-panel-eyebrow { margin: 0 0 2px; font-size: var(--t-13); line-height: var(--l-18); font-weight: 400; color: var(--text-tertiary); }
+  .sa-panel-sub { margin-top: 2px; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+  .sa-panel-actions { align-items: center; margin-block-start: -6px; margin-inline-end: -8px; }
+  .sa-panel-actions .sa-btn-icon { width: max(36px, var(--control-sm)); height: max(36px, var(--control-sm)); }
+  .sa-panel-actions .sa-btn-icon svg { width: 18px; height: 18px; }
+  .sa-panel-actions .sa-btn:not(.sa-btn-icon) { height: max(36px, var(--control-sm)); font-size: var(--t-14); }
+  .sa-panel-tabs { padding-inline: var(--pad); }
+  .sa-panel-tabs .sa-tab .sa-badge { color: var(--text-tertiary); }
+  .sa-panel-body { gap: 24px; padding: 8px var(--pad) 28px; }
+  .sa-panel-foot { flex-shrink: 0; flex-wrap: wrap; gap: 8px 12px; padding: 14px var(--pad); padding-bottom: max(14px, env(safe-area-inset-bottom)); background: var(--bg-surface); border-top: 1px solid var(--border-base); }
+  .sa-panel-foot > div:empty { display: none; }
+  .sa-panel-foot > div:last-child { flex: 1 1 auto; justify-content: flex-end; }
+  .sa-panel-foot .sa-btn { height: var(--control-lg); padding-inline: 16px; font-size: var(--t-15); }
+  .sa-panel-foot .sa-btn-primary { flex: 1; }
+  .sa-order-cancel.sa-btn-ghost { color: var(--danger-text); }
+
+  /* Beside the full model the room stays in the room: a veil, not a dimmer. */
+  .mh-app[data-door="side"] .app-scrim { background: color-mix(in srgb, var(--bg-surface) 40%, transparent); }
+
+  /* On סקירה nothing veils the page, so what the door cuts in half steps back until it closes. */
+  .mh-app[data-door="open"] .mh-ov-stage > * { transition: opacity var(--dur-2) var(--ease); }
+  .mh-app[data-door="open"]:has(.app-panelHost:not([data-closing])) .mh-ov-stage > * { opacity: 0; pointer-events: none; }
+
+  /* The head's rule appears once there is something to separate. */
+  @supports (animation-timeline: scroll()) {
+    .app-panelHost > .sa-panel:not(.sa-sheet) > .sa-panel-head { animation: mh-head-rule linear both; animation-timeline: scroll(nearest block); animation-range: 0 24px; }
+  }
+
+  /* A product and an order read as one page: the head scrolls away, and the tabs rise to meet the two actions on one line. */
+  .app-panelHost > .sa-sheet > .sa-panel-head { position: static; display: contents; }
+  .app-panelHost > .sa-sheet > .sa-panel-head > .sa-panel-heading { flex: none; padding: 20px var(--pad) 0; }
+  .sa-sheet .sa-panel-actions { position: sticky; top: 7px; z-index: 4; order: -1; align-self: flex-end; height: 36px; margin-block: 8px -44px; margin-inline: 0 calc(var(--pad) - 8px); }
+  .sa-sheet .sa-panel-actions .sa-btn { background: var(--bg-surface); }
+  .sa-sheet .sa-panel-actions .sa-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 9%, var(--bg-surface)); }
+  .sa-sheet > .sa-panel-tabs { position: sticky; top: 0; z-index: 3; flex: none; margin-top: 6px; padding-top: 6px; background: var(--bg-surface); }
+  .sa-sheet > .sa-panel-body { padding-top: 18px; }
+
+  /* ── A form: zones on the plate, ruled from edge to edge ── */
+  .sa-form { gap: 22px; }
+  .sa-form-break { display: block; height: 1px; margin: 2px calc(var(--pad) * -1); border: 0; background: var(--border-subtle); }
+  :is(.app-panelHost, .sa-modal) .sa-field { gap: 7px; }
+  :is(.app-panelHost, .sa-modal) .sa-label { align-items: baseline; font-size: var(--t-13); line-height: var(--l-18); }
+  .sa-label-opt, .sa-optional, .sa-label .sa-faint { font-weight: 400; color: var(--text-tertiary); }
+  :is(.app-panelHost, .sa-modal) .sa-input::placeholder { color: var(--text-tertiary); }
+  :is(.app-panelHost, .sa-modal) :is(.sa-input:not(.sa-textarea), .sa-select-trigger) { height: 46px; padding-inline: 12px; font-size: var(--t-16); line-height: var(--l-22); }
+  :is(.app-panelHost, .sa-modal) .sa-textarea { display: block; min-height: 92px; padding: 11px 12px; font-size: var(--t-15); line-height: var(--l-22); resize: vertical; }
+  :is(.app-panelHost, .sa-modal) .sa-control-end .sa-hint { font-size: var(--t-14); }
+  .app-panelHost .sa-input[inputmode="decimal"] { font-size: 22px; font-weight: 300; letter-spacing: -0.01em; }
+  .sa-hint { color: var(--text-tertiary); }
+  .sa-error { font-weight: 500; }
+  .sa-select-trigger:disabled { background: var(--bg-muted); color: var(--text-secondary); opacity: 1; }
+  .sa-input:disabled { background: var(--bg-muted); color: var(--text-secondary); }
+
+  /* The line lights from where you read. It is its own element, so it can travel. */
+  :is(.app-panelHost, .sa-modal) :is(.sa-input:focus, .sa-select-trigger.is-open) { box-shadow: inset 0 -1px 0 var(--border-control); }
+  :is(.app-panelHost, .sa-modal) .sa-input.is-error, :is(.app-panelHost, .sa-modal) .sa-input.is-error:focus { box-shadow: inset 0 0 0 1px var(--danger), inset 0 -2px 0 var(--danger); }
+  :is(.app-panelHost, .sa-modal) :is(.sa-control, .sa-select-trigger) { position: relative; }
+  :is(.app-panelHost, .sa-modal) :is(.sa-control, .sa-select-trigger)::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform var(--dur-move) var(--spring-move);
+    pointer-events: none;
+  }
+  :is(.app-panelHost, .sa-modal) :is(.sa-control:focus-within, .sa-select-trigger.is-open)::after { transform: scaleX(1); }
+  :is(.app-panelHost, .sa-modal) .sa-control:has(.is-error)::after { background: var(--danger); }
+  :is(.app-panelHost, .sa-modal) .sa-select-trigger:focus-visible { box-shadow: inset 0 -1px 0 var(--border-control); }
+  :is(.app-panelHost, .sa-modal) .sa-select-trigger:focus-visible::after { transform: scaleX(1); }
+  /* A menu takes no error of its own, so its field says it: the one red edge the language allows. */
+  .sa-field:has(> .sa-error) .sa-select-trigger { box-shadow: inset 0 0 0 1px var(--danger), inset 0 -2px 0 var(--danger); }
+  .sa-field:has(> .sa-error) .sa-select-trigger::after { background: var(--danger); }
+
+  /* The figure every form asks for: large and light, the whole well takes the click, and the unit stands under it so a long number never meets it. */
+  .sa-qtyfield { position: relative; display: block; }
+  .app-panelHost .sa-qtyfield .sa-input.sa-input-mono { height: 88px; padding: 0 12px 18px 116px; font-size: 54px; line-height: 1; font-weight: 200; letter-spacing: -0.03em; }
+  .app-panelHost .sa-qtyfield .sa-input.is-error { color: var(--danger-text); }
+  .app-panelHost .sa-qtyfield .sa-control-end { inset-inline: 12px auto; bottom: 8px; pointer-events: none; }
+  .app-panelHost .sa-qtyfield .sa-control-end .sa-hint { padding: 0; font-size: var(--t-13); line-height: var(--l-18); }
+  .sa-qtyfield > :last-child { position: absolute; top: 22px; inset-inline-end: 12px; display: flex; }
+  .sa-qtyfield .sa-qty { gap: 8px; height: 44px; border: 0; background: none; overflow: visible; }
+  .sa-qtyfield .sa-qty button {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--bg-raised);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 1px var(--border-base), 0 1px 2px rgba(19, 22, 20, 0.08);
+    transition: background-color var(--dur-2) var(--ease), transform var(--dur-press) var(--spring-press);
+  }
+  .sa-qtyfield .sa-qty button svg { width: 18px; height: 18px; stroke-width: 1.5; }
+  .sa-qtyfield .sa-qty button:hover:not(:disabled) { background: var(--bg-raised); box-shadow: 0 0 0 1px var(--border-control), 0 1px 2px rgba(19, 22, 20, 0.08); }
+  .sa-qtyfield .sa-qty button:active:not(:disabled) { transform: translateY(1px); transition-duration: 0ms; }
+  .sa-qtyfield .sa-qty button:disabled { background: none; box-shadow: 0 0 0 1px var(--border-subtle); color: var(--text-disabled); }
+  .sa-qtyfield .sa-qty button:focus-visible { box-shadow: var(--focus-ring); }
+
+  /* On or off is a small slide: a sunken track and a block that rides it. */
+  .sa-switch { justify-content: space-between; min-height: 46px; gap: 16px; font-size: var(--t-15); }
+  .sa-switch input {
+    order: 1;
+    appearance: none;
+    position: relative;
+    flex: none;
+    width: 46px;
+    height: 24px;
+    margin: 0;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+    cursor: pointer;
+    transition: background-color var(--dur-2) var(--ease);
+  }
+  .sa-switch input::before {
+    content: "";
+    position: absolute;
+    inset-block: 3px;
+    inset-inline-start: 3px;
+    width: 20px;
+    border-radius: 2px;
+    background: var(--bg-raised);
+    box-shadow: 0 0 0 1px var(--border-base), 0 1px 1px rgba(19, 22, 20, 0.12);
+    transition: inset-inline-start var(--dur-move) var(--spring-move);
+  }
+  .sa-switch input:checked { background: var(--accent); box-shadow: none; }
+  .sa-switch input:checked::before { inset-inline-start: 23px; box-shadow: none; }
+  .sa-switch input:focus-visible { box-shadow: var(--focus-ring); }
+
+  /* ── Where stock goes: a short list of answers, then the rack drawn as it stands ── */
+  .sa-placefield { gap: 10px; }
+  .sa-quickplaces { gap: 0; border-top: 1px solid var(--border-subtle); }
+  .sa-quickplace {
+    position: relative;
+    min-height: 46px;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background: none;
+    font-size: var(--t-15);
+    font-weight: 500;
+    transition: color var(--dur-2) var(--ease);
+  }
+  .sa-quickplace:hover { background: none; }
+  .sa-quickplace-why { color: var(--text-tertiary); }
+  .sa-quickplace::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--pad) * -1);
+    top: 50%;
+    width: 3px;
+    height: 22px;
+    margin-top: -11px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--dur-press) var(--spring-press);
+  }
+  .sa-quickplace:hover::before { transform: scaleY(1); background: var(--border-strong); }
+  .sa-quickplace.is-selected { border-color: var(--border-subtle); box-shadow: none; color: var(--accent-text); }
+  .sa-quickplace.is-selected::before { transform: scaleY(1); background: var(--accent); }
+
+  /* Shelves are boards, top shelf first, as on the model: no box is drawn around a place. */
+  .sa-shelfgrid { gap: 0; }
+  .sa-shelfrow { gap: 1px; align-items: stretch; box-shadow: 0 2px 0 var(--scene-upright); margin-bottom: 10px; }
+  .sa-shelfrow-no { align-self: center; color: var(--text-tertiary); }
+  .sa-spot {
+    position: relative;
+    min-height: 56px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: none;
+    transition: background-color var(--dur-2) var(--ease);
+  }
+  .sa-spot + .sa-spot { border-inline-start: 1px solid var(--border-strong); }
+  .sa-spot:hover { background: var(--accent-soft); }
+  .sa-spot:active { background: var(--accent-soft); }
+  .sa-spot.is-selected { background: var(--accent); box-shadow: none; }
+  .sa-spot.is-selected :is(.sa-spot-title, .sa-spot-sub) { color: var(--on-accent); }
+  .sa-spot-title { font-weight: 500; }
+  .sa-shelfgrid > .sa-tabs { margin-bottom: 6px; }
+  :is(.sa-quickplace, .sa-spot):focus-visible { box-shadow: var(--focus-ring); }
+  :is(.sa-quickplace, .sa-spot).is-selected:focus-visible { box-shadow: var(--focus-ring); }
+
+  /* A photo on file: a small plate and its two actions. */
+  .app-panelHost .sa-doc-thumb { border: 0; border-radius: var(--radius-md); background: var(--bg-muted); }
+  .sa-doc-nophoto { color: var(--text-tertiary); }
+
+  /* ── The product: its figures lead, because the shelf beside it already shows the goods ── */
+  .sa-product > .sa-panel-head > .sa-panel-heading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "photo sku"
+      "photo name"
+      "photo ."
+      "figs figs"
+      "level level";
+  }
+  .app-panelHost .sa-panel-heading > .sa-product-photo {
+    grid-area: photo;
+    width: 76px;
+    height: 76px;
+    margin: 0;
+    margin-inline-end: 16px;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: #fff;
+    object-fit: cover;
+  }
+  /* The code shares its line with the two actions, so the name below it has the full width. */
+  .sa-product .sa-panel-eyebrow { grid-area: sku; min-height: 30px; margin: 0; }
+  .sa-product .sa-panel-title { grid-area: name; font-size: 22px; line-height: 28px; }
+  /* What can still be promised is the one thing the shelf can't show, so it stands largest. A long figure wraps, it never spills. */
+  .sa-figures { grid-area: figs; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 28px; margin: 22px 0 0; }
+  .sa-figure { min-width: 0; }
+  .sa-figure:nth-child(3) { order: -1; flex: 1 0 auto; }
+  .sa-figure dt { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+  .sa-figure dd { gap: 0 6px; font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.02em; }
+  .sa-figure:nth-child(3) dd { font-size: 76px; line-height: 80px; font-weight: 200; letter-spacing: -0.04em; }
+  .sa-figure-unit { font-size: var(--t-13); line-height: var(--l-18); font-weight: 400; letter-spacing: 0; }
+  .sa-figure.is-quiet dd { color: var(--text-quiet); }
+  .sa-figure.is-short dd { font-weight: 300; }
+  .sa-figure.is-danger ~ .sa-figure:nth-child(3) dd { color: var(--danger-text); }
+  .sa-product-level { grid-area: level; position: relative; gap: 7px; margin-top: 14px; }
+  .sa-product-level .sa-meter { height: 3px; border-radius: 0; background: var(--border-base); overflow: visible; direction: ltr; }
+  .sa-product-level .sa-meter > i { border-radius: 0; background: var(--text-primary); animation: mh-fill var(--dur-plate) var(--spring-plate) backwards; }
+  .sa-product-level .sa-meter.is-low > i { background: var(--warning); }
+  .sa-product-level .sa-meter.is-out > i { background: var(--danger); }
+  .sa-product-level .sa-meter::after { top: -4px; bottom: -4px; width: 1px; margin: 0; background: var(--text-primary); }
+  /* The minimum is written under its own mark, the way a scale is read. */
+  .sa-product-level-words { justify-content: center; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+  .sa-product-state { position: absolute; bottom: 0; inset-inline-end: 0; margin: 0; font-weight: 500; }
+
+  /* A phone has no room for the long form of this row. */
+  @media (max-width: 480px) {
+    .sa-figures { gap: 8px 16px; }
+    .sa-figure dd { font-size: 28px; line-height: 34px; }
+    .sa-figure:nth-child(3) dd { font-size: 60px; line-height: 64px; }
+  }
+
+  /* ── A section on a plate: a title, a rule, ruled rows ── */
+  .app-panelHost .sa-group { gap: 0; }
+  .app-panelHost .sa-section-title { padding-bottom: 8px; font-size: var(--t-15); line-height: var(--l-22); font-weight: 500; border-bottom: 1px solid var(--border-strong); }
+  .app-panelHost .sa-section-title .sa-faint { color: var(--text-tertiary); font-weight: 400; }
+  .app-panelHost .sa-group > .sa-hint { margin: 0; padding-top: 10px; }
+  .app-panelHost .sa-rows { gap: 0; }
+  .app-panelHost .sa-rows > li { position: relative; min-height: var(--row); padding-block: 8px; font-size: var(--t-15); line-height: var(--l-21); border-color: var(--border-subtle); }
+  .app-panelHost .sa-rows .sa-truncate { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
+  .app-panelHost .sa-rows .sa-num { font-size: 20px; line-height: 26px; font-weight: 300; letter-spacing: -0.01em; }
+  :is(.sa-order-line, .sa-dict-supplier)::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--pad) * -1);
+    top: 50%;
+    width: 3px;
+    height: 24px;
+    margin-top: -12px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--dur-press) var(--spring-press);
+  }
+  :is(.sa-order-line, .sa-dict-supplier):hover::before, .sa-order-line:focus-within::before { transform: scaleY(1); }
+  .sa-order-line:hover .sa-truncate { text-decoration: none; }
+  .sa-order-line .sa-attention-open::after { inset-inline: -10px; }
+  .app-panelHost .sa-rows > .sa-order-total { align-items: baseline; padding-block: 12px 4px; border-top: 1px solid var(--border-strong); font-weight: 400; }
+  .app-panelHost .sa-rows > .sa-order-total > :last-child { font-size: 40px; line-height: 46px; font-weight: 200; letter-spacing: -0.03em; }
+  .app-panelHost .sa-rows > .sa-order-total > :last-child::first-letter { font-size: 0.5em; font-weight: 400; color: var(--text-tertiary); vertical-align: 0.62em; }
+
+  .sa-order-status { font-weight: 500; }
+  .sa-order-status .sa-dot { display: none; }
+  .sa-order-status.is-open { color: var(--accent-text); }
+  .sa-order-status.is-delivered { color: var(--success-text); }
+  .sa-order-status.is-cancelled { color: var(--text-tertiary); }
+
+  /* A record reads as a rating plate: every value under its name, on its own rule. */
+  .app-panelHost .sa-fields { gap: 0 24px; }
+  .app-panelHost .sa-fields > div { padding-block: 9px 10px; border-top: 1px solid var(--border-subtle); }
+  .app-panelHost .sa-fields dt { margin: 0 0 1px; font-size: var(--t-13); line-height: var(--l-18); }
+  .app-panelHost .sa-fields dd { font-size: var(--t-15); line-height: var(--l-22); font-weight: 400; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+  .app-panelHost .sa-fields dd.is-empty { color: var(--text-quiet); }
+  .app-panelHost .sa-fields dd .sa-btn-link { height: auto; padding: 0; font-size: inherit; line-height: inherit; font-weight: 500; }
+  .app-panelHost .sa-fields + .sa-fields { margin-block-start: -24px; }
+  .sa-form .sa-fields :is(dd.is-num, &.is-3 dd) { font-size: 20px; line-height: 26px; font-weight: 300; letter-spacing: -0.01em; }
+
+  /* History: the same ledger as תנועות, the figure in its colour. */
+  .app-panelHost .sa-timeline-item { padding-block: 10px; }
+  .app-panelHost .sa-timeline-body { justify-content: flex-start; gap: 12px; min-height: 40px; }
+  .app-panelHost .sa-timeline-body > .min-w-0 { flex: 1; }
+  .app-panelHost .sa-timeline-icon { display: block; flex: none; color: var(--text-quiet); }
+  .app-panelHost .sa-timeline-title { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; }
+  .app-panelHost .sa-timeline-meta { color: var(--text-tertiary); }
+  .app-panelHost .sa-timeline-qty { font-size: 22px; line-height: 28px; font-weight: 300; letter-spacing: -0.02em; }
+  .app-panelHost .sa-timeline-detail { padding-inline-start: 32px; }
+  .app-panelHost .sa-timeline-note { font-size: var(--t-14); line-height: var(--l-21); }
+  .sa-fault-photo { border: 0; border-radius: var(--radius-md); }
+
+  /* The suppliers list. */
+  .app-panelHost.app-panelHost .sa-dict-suppliers .sa-panel-body { padding: 0 var(--pad) 28px; }
+  .app-panelHost .sa-dict-suppliers-list { border-top: 1px solid var(--border-strong); }
+  .app-panelHost .sa-dict-supplier { position: relative; min-height: var(--row); padding: 8px 0; font-size: var(--t-15); }
+  .app-panelHost .sa-dict-supplier:hover { background: none; }
+  .app-panelHost .sa-dict-supplier-name { font-weight: 500; }
+  .sa-dict-form-missing { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; color: var(--text-secondary); }
+
+  /* ── Notice: the word carries its own colour ── */
+  .sa-notice { gap: 10px; }
+  .sa-notice > .sa-dot { display: none; }
+  .sa-notice-text { color: var(--text-secondary); }
+  .sa-notice:has(> .sa-dot-danger) :is(.sa-notice-title, .sa-notice-text:only-child) { color: var(--danger-text); }
+  .sa-notice:has(> .sa-dot-warning) :is(.sa-notice-title, .sa-notice-text:only-child) { color: var(--warning-text); }
+  .sa-notice .sa-btn-link { font-size: var(--t-14); align-self: center; }
+  /* On a plate that is already ruled, a notice is only its words. */
+  :is(.app-panelHost, .sa-modal) .sa-notice { padding-block: 0; box-shadow: none; }
+
+  /* ── A question: its words at reading size, two keys under it ── */
+  .sa-modal-head { padding: 24px 28px 0; }
+  .sa-modal-title { font-size: 22px; line-height: 30px; font-weight: 300; letter-spacing: -0.01em; }
+  .sa-modal-head .sa-btn-icon { margin-block-start: -4px; margin-inline-end: -8px; }
+  .sa-modal-body { padding: 8px 28px 22px; font-size: var(--t-15); line-height: var(--l-23); color: var(--text-secondary); }
+  .sa-modal-body:empty { padding: 0 0 20px; }
+  .sa-modal-foot { padding: 0 28px 24px; background: none; }
+  .sa-modal-foot .sa-btn { height: var(--control-lg); padding-inline: 18px; font-size: var(--t-15); }
+  /* The countdown is read, so it keeps its contrast while disabled. */
+  .sa-modal .sa-btn-link:disabled { opacity: 1; color: var(--text-tertiary); }
+
+  /* The settings: two groups of rows, every choice a word on a line. */
+  .sa-modal:has(.sa-settings-group) .sa-modal-body { padding-block-end: 24px; }
+  .sa-settings-group + .sa-settings-group { margin-top: 20px; padding-top: 0; border-top: 0; }
+  .sa-settings-group { border-top: 1px solid var(--border-strong); }
+  .sa-settings-group .sa-appearance { min-height: 52px; padding-block: 8px; border-bottom: 1px solid var(--border-subtle); }
+  .sa-settings-group .sa-appearance + .sa-appearance { margin-top: 0; padding-top: 8px; border-top: 0; }
+  .sa-settings-group .sa-appearance-label { font-size: var(--t-15); line-height: var(--l-22); }
+  .sa-settings-group .sa-appearance-link svg { color: var(--text-quiet); }
+
+  /* ── Menus ── */
+  .sa-menu { min-width: 220px; }
+  .sa-menu-search { border-bottom: 1px solid var(--border-subtle); }
+  .sa-menu-search svg { color: var(--text-quiet); stroke-width: 1.5; }
+  .sa-menu-search input { height: 44px; font-size: var(--t-15); }
+  .sa-menu-search input::placeholder { color: var(--text-quiet); }
+  .sa-menu-list { padding: 6px; max-height: 288px; }
+  .sa-menu-item { min-height: 40px; padding: 6px 10px; font-size: var(--t-15); line-height: var(--l-21); }
+  .sa-menu-item.is-selected { font-weight: 500; }
+  .sa-menu-item.is-all { color: var(--text-tertiary); }
+  .sa-menu-item .sa-menu-check { color: var(--accent-text); stroke-width: 2; }
+  .sa-menu-item-sub { color: var(--text-tertiary); }
+  .sa-menu-empty { padding: 18px 12px; font-size: var(--t-14); color: var(--text-tertiary); }
+  /* What the mapping suggests needs the width of the whole row, not of the one field that asked. */
+  .sa-form-pair .sa-menu { inset-inline-end: calc(-66.67% - 12px); }
+  .sa-menu-item .sa-mono { flex: none; white-space: nowrap; }
+  .sa-actionmenu .sa-menu-item.ends-group { position: relative; margin-bottom: 9px; }
+  .sa-actionmenu .sa-menu-item.ends-group::after { content: ""; position: absolute; inset-inline: 10px; bottom: -5px; height: 1px; background: var(--border-base); }
+
+  /* ── The calendar and the hours: one sheet, a band in the green, the two ends as keys ── */
+  .app-when-sheet { --band: var(--accent-soft); --cell: 42px; --cell-height: 40px; min-width: 0; }
+  .app-when-presets { gap: 0; padding: 10px; border-inline-end: 1px solid var(--border-subtle); }
+  .app-when-preset { min-height: 38px; padding-inline: 10px; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: var(--t-14); font-weight: 400; }
+  .app-when-preset:hover:not(.is-on) { background: var(--accent-soft); color: var(--text-primary); }
+  .app-when-preset.is-on { background: var(--accent-soft); color: var(--text-primary); font-weight: 500; }
+  .app-when-caption { font-size: var(--t-15); font-weight: 500; }
+  .app-when-week { color: var(--text-tertiary); font-weight: 400; }
+  .app-when-days .app-when-cell:is(:nth-child(7n + 1), .is-month-first)::before,
+  .app-when-hours .app-when-cell:nth-child(6n + 1)::before { border-start-start-radius: var(--radius-sm); border-end-start-radius: var(--radius-sm); }
+  .app-when-days .app-when-cell:is(:nth-child(7n), .is-month-last)::before,
+  .app-when-hours .app-when-cell:nth-child(6n)::before { border-start-end-radius: var(--radius-sm); border-end-end-radius: var(--radius-sm); }
+  .app-when-pick { border-radius: var(--radius-sm); font-size: var(--t-15); transition: background-color var(--dur-2) var(--ease), transform var(--dur-press) var(--spring-press); }
+  .app-when-pick:hover:not(:disabled, .is-end) { background: var(--accent-soft); }
+  .app-when-pick:active:not(:disabled) { transform: translateY(1px); transition-duration: 0ms; }
+  .app-when-pick.is-today { color: var(--accent-text); font-weight: 600; }
+  .app-when-pick.is-end { background: var(--accent); color: var(--on-accent); font-weight: 500; }
+  .app-when-foot { border-top: 1px solid var(--border-subtle); }
+  .app-when-sum { font-size: var(--t-15); font-weight: 500; }
+  .app-when-sum small { font-size: var(--t-13); }
+  .app-when-times { padding: 14px 16px 6px; }
+  .app-when-times label { color: var(--text-tertiary); font-weight: 400; }
+
+  /* ── A toast rises beside the rail, never over it ── */
+  .app-toasts { inset-inline-start: calc(var(--mh-rail) + 24px); bottom: 24px; }
+  .app-toast { gap: 12px; align-items: center; }
+
+  /* ── The large photo: lifted off its row, on the same spring as a press ── */
+  .sa-thumb-zoom { border: 0; border-radius: var(--radius-lg); box-shadow: var(--shadow-modal); transform: scale(0.96); transform-origin: top right; transition: opacity var(--dur-2) var(--ease), transform var(--dur-press) var(--spring-press), visibility 0s linear var(--dur-2); }
+  .sa-thumb-zoom.is-open { transform: none; transition-delay: 0s; }
+}
+
+/* The drawer's shadow in the dark needs more than ink can give. */
+[data-theme="merhav-dark"] .sa-panel { box-shadow: 1px 0 0 var(--border-base), 26px 0 64px -14px rgba(0, 0, 0, 0.6); }
+
+/* A studio photo is shot on white: in the dark it comes down a step, or it outshouts the figures. */
+[data-theme="merhav-dark"] :is(.sa-thumb, .sa-product-photo) { filter: brightness(0.8); }
+
+@keyframes mh-head-rule { to { box-shadow: 0 1px 0 var(--border-subtle); } }
+/* The level climbs to where it stands, once, when the product opens. */
+@keyframes mh-fill { from { width: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme^="merhav"] :is(.app-panelHost, .app-scrim, .app-toast, .sa-modal, .sa-menu, .sa-spinner, .sa-meter > i) { animation: none !important; }
+  [data-theme^="merhav"] :is(.sa-control, .sa-select-trigger)::after,
+  [data-theme^="merhav"] .sa-switch input::before,
+  [data-theme^="merhav"] :is(.sa-order-line, .sa-dict-supplier, .sa-quickplace)::before,
+  [data-theme^="merhav"] .sa-thumb-zoom { transition: none; }
+}

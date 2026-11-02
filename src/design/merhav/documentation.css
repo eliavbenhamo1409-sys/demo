@@ -1,0 +1,371 @@
+/* תיעוד: a kept archive. Sheets lie on the plate under their day, the photograph is the content, one quiet line names it. */
+
+.mh-docs {
+  --mh-docs-top: 72px;
+  --mh-docs-leaf: clamp(140px, 9.4vw, 200px);
+  padding: 34px var(--mh-gutter) 72px;
+  min-width: 0;
+}
+.mh-docs > .sa-page-title { margin: 0 0 12px; }
+
+/* The lens and the search stay at hand, however deep the archive goes. */
+.mh-docs-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px clamp(20px, 3vw, 56px);
+  min-height: var(--mh-docs-top);
+  padding-block: 8px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+.mh-docs-bar .mh-lens { margin: 0; flex: 0 1 auto; }
+.mh-docs-tools { display: flex; align-items: center; gap: 12px; flex: 1 1 320px; min-width: 0; }
+.mh-docs-search { position: relative; flex: 1 1 auto; min-width: 0; }
+.mh-docs-found { position: absolute; inset-inline-end: 38px; top: 50%; transform: translateY(-50%); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; pointer-events: none; }
+.mh-docs-tools .sa-select { flex: 0 0 auto; width: 156px; min-width: 0; }
+.mh-docs-tools .sa-select .sa-select-trigger { background: transparent; box-shadow: inset 0 -1px 0 var(--border-strong); border-radius: 0; font-size: var(--t-14); }
+
+.mh-docs-body { display: grid; grid-template-columns: minmax(0, 1fr); }
+.mh-docs-body.has-scale { grid-template-columns: minmax(0, 1fr) 96px; column-gap: clamp(20px, 2.4vw, 44px); }
+
+/* One day: its date stands at the edge of the plate and rides down beside its sheets. Off screen a day costs nothing. */
+.mh-docs-day {
+  display: grid;
+  grid-template-columns: clamp(80px, 7vw, 128px) minmax(0, 1fr);
+  gap: 0 clamp(14px, 1.6vw, 32px);
+  padding-block: 26px 38px;
+  padding-inline-end: 48px;
+  margin-inline-end: -48px;
+  border-top: 1px solid var(--border-base);
+  scroll-margin-top: var(--mh-docs-top);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+}
+.mh-docs-day:first-child { border-top: 0; }
+
+.mh-docs-wall.is-sparse {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--mh-docs-leaf) + clamp(96px, 8.6vw, 160px)), 1fr));
+  column-gap: clamp(20px, 2.4vw, 44px);
+  margin-top: -1px;
+}
+.mh-docs-wall.is-sparse .mh-docs-day { padding-inline-end: 0; margin-inline-end: 0; border-top: 1px solid var(--border-base); }
+.mh-docs-wall.is-sparse .mh-docs-leaves { grid-template-columns: repeat(auto-fill, var(--mh-docs-leaf)); }
+.mh-docs-wall.is-sparse .mh-docs-day.is-wide { grid-column: span 2; }
+.mh-docs-wall.is-sparse .mh-docs-more { grid-column: 1 / -1; }
+
+.mh-docs-date {
+  position: sticky;
+  top: calc(var(--mh-docs-top) + 22px);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+  font-weight: 400;
+}
+.mh-docs-dayword { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+.mh-docs-daynum { font-size: clamp(46px, 4.4vw, 76px); line-height: 1.06; font-weight: 200; letter-spacing: -0.04em; color: var(--text-primary); }
+.mh-docs-month { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+
+.mh-docs-leaves {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--mh-docs-leaf), 1fr));
+  gap: 26px clamp(14px, 1.5vw, 28px);
+}
+
+/* A sheet. Paper in its own proportions, flat on the plate, with a hairline for an edge. */
+.mh-docs-leaf {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  outline: none;
+}
+.mh-docs-paper {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--border-base);
+  transition: transform var(--dur-press) var(--spring-press), box-shadow var(--dur-2) var(--ease);
+}
+.mh-docs-paper img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mh-docs-name { display: block; max-width: 100%; font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-docs-line { display: block; max-width: 100%; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Picked up: it truly rises, so here it has a shadow. */
+@media (hover: hover) {
+  .mh-docs-leaf:hover .mh-docs-paper { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+}
+.mh-docs-leaf:active .mh-docs-paper { transform: none; transition-duration: 0ms; }
+.mh-docs-leaf:focus-visible { box-shadow: none; }
+.mh-docs-leaf:focus-visible .mh-docs-paper { box-shadow: var(--focus-ring); }
+
+/* While it is in hand the plate shows where it lay. */
+.mh-docs-leaf.is-lifted .mh-docs-paper { transform: none; box-shadow: 0 0 0 1px var(--border-subtle); background: none; }
+.mh-docs-leaf.is-lifted .mh-docs-paper > * { visibility: hidden; }
+
+/* A report with no photo: its own words are the sheet. */
+.mh-docs-paper.is-note {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--bg-raised);
+}
+.mh-docs-words {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: clamp(16px, 1.25vw, 20px);
+  line-height: 1.4;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+.mh-docs-paper.is-note .sa-thumb { margin-top: auto; }
+
+.mh-docs-more { display: flex; align-items: center; gap: 16px; padding-block: 20px 0; border-top: 1px solid var(--border-base); color: var(--text-tertiary); font-size: var(--t-14); }
+.mh-docs-empty .sa-empty { padding-block: 72px; }
+
+/* In the dark a white receipt would be the brightest thing in the room. */
+[data-theme="merhav-dark"] .mh-docs-paper img { filter: brightness(0.88); transition: filter var(--dur-2) var(--ease); }
+[data-theme="merhav-dark"] .mh-docs-leaf:hover .mh-docs-paper img { filter: none; }
+
+/* ── The scale: the rail's own language, a ruled edge and one carriage, measuring the archive instead of the pages ── */
+.mh-docs-scale {
+  position: sticky;
+  top: calc(var(--mh-docs-top) + 22px);
+  align-self: start;
+  height: calc(100dvh - var(--mh-docs-top) - 54px);
+  min-height: 240px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+  border-radius: var(--radius-sm);
+}
+.mh-docs-scale:focus-visible { box-shadow: var(--focus-ring); }
+.mh-docs-rule { position: absolute; inset: 10px 0; box-shadow: -1px 0 0 var(--bg-surface), inset 1px 0 0 var(--border-base); }
+.mh-docs-tick {
+  position: absolute;
+  left: 0;
+  width: calc(5px + var(--reach) * 22px);
+  height: 1px;
+  background: var(--border-control);
+  pointer-events: none;
+}
+.mh-docs-monthmark {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  pointer-events: none;
+  background: var(--bg-surface);
+  padding-inline-end: 4px;
+}
+.mh-docs-carriage { margin-top: -11px; transform: none; height: 22px; transition: top var(--dur-move) var(--spring-move), opacity var(--dur-2) var(--ease); }
+.mh-docs-peek {
+  position: absolute;
+  left: calc(100% + 10px);
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  white-space: nowrap;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lift);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── The reader: a second door from the far side, wide enough for the sheet to stand at full height beside its record ── */
+html[data-theme^="merhav"] {
+  --mh-docs-side: 400px;
+  --mh-docs-pad: 24px;
+  --mh-docs-reader: min(calc((100dvh - 2 * var(--mh-docs-pad)) * 0.75 + 2 * var(--mh-docs-pad) + var(--mh-docs-side)), calc(100vw - var(--mh-rail) - 48px));
+}
+
+[data-theme^="merhav"] .app-panelHost.mh-docs-reader {
+  width: var(--mh-docs-reader);
+  display: block;
+  animation: none;
+}
+/* Focus rests on the dialog so the arrows and Tab start here. It is no control, so it wears no ring. */
+[data-theme^="merhav"] .app-panelHost.mh-docs-reader:focus-visible { outline: none; box-shadow: none; }
+
+/* The door moves; the sheet does not ride on it, it flies on its own. */
+.mh-docs-side,
+.mh-docs-reader::before {
+  animation: mh-docs-door-in var(--dur-plate) var(--spring-plate) both;
+}
+.mh-docs-reader::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--mh-docs-side) 0;
+  background: var(--bg-sunken);
+}
+.mh-docs-side {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--mh-docs-side);
+  max-width: 100%;
+  z-index: 1;
+  display: flex;
+  background: var(--bg-surface);
+  box-shadow: 1px 0 0 var(--border-base), 26px 0 64px -14px rgba(19, 22, 20, 0.28);
+}
+.mh-docs-side > .sa-panel { flex: 1; width: 100%; height: 100%; min-width: 0; box-shadow: none; }
+
+.mh-docs-reader[data-closing] .mh-docs-side,
+.mh-docs-reader[data-closing]::before { animation: mh-docs-door-out 320ms var(--ease) both; }
+
+.mh-docs-stage {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--mh-docs-side) 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mh-docs-pad);
+  pointer-events: none;
+}
+.mh-docs-held {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  pointer-events: auto;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  box-shadow: 0 0 0 1px var(--border-base);
+  transform-origin: 0 0;
+  cursor: zoom-in;
+  outline: none;
+}
+.mh-docs-held:focus-visible { box-shadow: var(--focus-ring); }
+.mh-docs-held img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 2 * var(--mh-docs-pad));
+  width: auto;
+  height: auto;
+  border-radius: inherit;
+}
+.mh-docs-held.is-note {
+  width: min(100%, 460px);
+  aspect-ratio: 3 / 4;
+  padding: 28px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  background: var(--bg-raised);
+  font-size: 20px;
+  line-height: 1.5;
+  font-weight: 300;
+  cursor: auto;
+}
+.mh-docs-wait { display: block; width: 60%; }
+
+.mh-docs-held.is-next { --turn: -16px; animation: mh-docs-turn var(--dur-2) var(--ease) both; }
+.mh-docs-held.is-prev { --turn: 16px; animation: mh-docs-turn var(--dur-2) var(--ease) both; }
+.mh-docs-held.is-lifting { animation: mh-docs-lift var(--dur-plate) var(--spring-plate) both; }
+.mh-docs-held.is-landing { animation: mh-docs-land 320ms var(--ease) both; }
+
+@keyframes mh-docs-turn {
+  from { opacity: 0; transform: translateX(var(--turn)); }
+}
+@keyframes mh-docs-lift {
+  from { transform: translate(var(--lift-x, 0), var(--lift-y, 0)) scale(var(--lift-s, 1)); }
+}
+@keyframes mh-docs-land {
+  to { transform: translate(var(--lift-x, 0), var(--lift-y, 0)) scale(var(--lift-s, 1)); }
+}
+@keyframes mh-docs-door-in {
+  from { transform: translateX(calc(var(--mh-docs-reader) * -1)); }
+}
+@keyframes mh-docs-door-out {
+  to { transform: translateX(calc(var(--mh-docs-reader) * -1)); }
+}
+
+/* The record beside the sheet. Where you are in the archive is one line over the name. */
+.mh-docs-record .sa-panel-head { flex-wrap: wrap; row-gap: 6px; }
+.mh-docs-record .sa-panel-actions { order: -1; flex: 1 0 100%; align-items: center; justify-content: space-between; margin-inline: -8px; }
+.mh-docs-walk { display: inline-flex; align-items: center; gap: 2px; }
+.mh-docs-place { margin-inline-start: 6px; font-size: var(--t-13); color: var(--text-tertiary); white-space: nowrap; }
+.mh-docs-record .sa-panel-heading { flex: 1 1 100%; }
+.mh-docs-record .sa-panel-title { white-space: normal; }
+.mh-docs-record .sa-panel-body { display: flex; flex-direction: column; gap: 24px; }
+.mh-docs-lines h3 { margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--border-strong); font-size: var(--t-15); line-height: var(--l-21); font-weight: 600; }
+.mh-docs-lines .mh-rows > li { min-height: var(--row); gap: 12px; padding-block: 8px; }
+.mh-docs-lines .mh-row-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-size: var(--t-14); line-height: var(--l-20); }
+.mh-docs-qty { display: inline-flex; align-items: baseline; gap: 5px; flex: none; font-size: var(--t-16); }
+.mh-docs-qty small { font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-docs-kept { margin: 0; max-width: 150px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* The bar takes two lines before the sheets run out of room. */
+@media (max-width: 1230px) {
+  .mh-docs { --mh-docs-top: 122px; }
+  .mh-docs-tools { flex-basis: 100%; }
+}
+
+@media (max-width: 1040px) {
+  .mh-docs-scale { display: none; }
+  .mh-docs-body.has-scale { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phones and portrait tablets: the sheets take the width, the date stands over them, and the reader is a sheet to scroll. */
+@media (max-width: 899px) {
+  html[data-theme^="merhav"] { --mh-docs-side: 100%; }
+
+  .mh-docs { --mh-docs-top: 0px; --mh-docs-leaf: 148px; padding: 24px var(--mh-gutter) 40px; }
+  .mh-docs-bar { position: static; padding-block: 0 4px; box-shadow: none; }
+  .mh-docs-tools .sa-select { flex: 0 1 40%; }
+
+  .mh-docs-wall.is-sparse { display: block; }
+  .mh-docs-day { display: block; padding-block: 18px 26px; padding-inline-end: 0; margin-inline-end: 0; content-visibility: visible; }
+  .mh-docs-date { position: static; flex-direction: row; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .mh-docs-daynum { order: -1; font-size: 40px; }
+  .mh-docs-dayword { order: 1; color: var(--text-tertiary); }
+  .mh-docs-leaves, .mh-docs-wall.is-sparse .mh-docs-leaves { grid-template-columns: repeat(auto-fill, minmax(var(--mh-docs-leaf), 1fr)); gap: 20px 14px; }
+
+  [data-theme^="merhav"] .app-panelHost.mh-docs-reader { width: 100%; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; background: var(--bg-surface); animation: mh-settle var(--dur-settle) var(--spring-settle) both; }
+  [data-theme^="merhav"] .app-panelHost.mh-docs-reader[data-closing] { animation: mh-fade var(--dur-2) var(--ease) reverse both; }
+  .mh-docs-reader::before { display: none; }
+  .mh-docs-reader > .mh-docs-stage { position: static; order: -1; flex: none; height: auto; padding: 14px var(--mh-gutter); background: var(--bg-sunken); }
+  .mh-docs-held { max-height: none; }
+  .mh-docs-held img { max-height: 64dvh; }
+  .mh-docs-reader > .mh-docs-side { position: static; flex: 1 0 auto; height: auto; width: auto; box-shadow: none; animation: none; }
+  .mh-docs-reader[data-closing] .mh-docs-side { animation: none; }
+  .mh-docs-side > .sa-panel { height: auto; }
+  .mh-docs-record .sa-panel-body { overflow: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-docs-paper, .mh-docs-carriage { transition: none; }
+  .mh-docs-side, .mh-docs-reader::before, .mh-docs-held.is-next, .mh-docs-held.is-prev, .mh-docs-held.is-lifting, .mh-docs-held.is-landing,
+  .mh-docs-reader[data-closing] .mh-docs-side, .mh-docs-reader[data-closing]::before { animation: none; }
+}

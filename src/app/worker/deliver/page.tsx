@@ -476,7 +476,7 @@ export default function DeliverPage() {
                     <div className="wk-group">
                       {candidates?.map((c) => {
                         const match = product(c.productId);
-                        return match ? <Row key={c.productId} product={match} title={match.name} sub={c.alias && c.alias !== match.name ? `במילון: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id, confirmed: true })} /> : null;
+                        return match ? <Row key={c.productId} product={match} title={fmtName(match.name)} sub={c.alias && c.alias !== match.name ? `במיפוי: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id, confirmed: true })} /> : null;
                       })}
                       <Row title={candidates?.length ? "זה מוצר אחר מהמחסן" : "יש כזה במחסן"} end={<Icon name="chevron-left" size={20} />} onClick={() => setPickFor(l.id)} />
                       <Row title="העברה למנהל" end={<Icon name="user" size={20} />} onClick={() => patch(l.id, { route: "manager" })} />

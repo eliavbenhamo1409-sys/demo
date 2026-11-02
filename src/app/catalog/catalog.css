@@ -244,6 +244,10 @@ html:has(.cg-notice[open]):not(:has(.cg-drawer.is-open)) { overflow: hidden; }
 .cg-order__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .cg-order__line { display: flex; justify-content: space-between; gap: 24px; font-size: 15px; }
 .cg-order__line span:last-child { flex: none; font-weight: 300; }
+.cg-order__line:has(> .cg-order__photo) { align-items: center; gap: 14px; }
+.cg-order__photo { flex: none; width: 48px; height: 48px; overflow: hidden; background: var(--plate); }
+.cg-order__photo img { width: 100%; height: 100%; object-fit: cover; }
+.cg-order__name { flex: 1; min-width: 0; line-height: 1.4; }
 .cg-order__note { font-size: 15px; color: var(--ink-2); font-weight: 300; }
 .cg-order__foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .cg-order__ask { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 24px; font-size: 14px; font-weight: 400; color: var(--ink-3); }

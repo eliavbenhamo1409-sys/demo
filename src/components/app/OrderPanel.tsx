@@ -5,8 +5,12 @@
  * Opened via useUi().openOrder(id); reads ui.panel of type "order".
  */
 import { useState } from "react";
+import { deliverOrderWithoutReceipt } from "@/lib/exit-pass";
 import { orderTotal, useData, type Order } from "@/lib/store";
+import { changeWords, keptChanges } from "@/lib/worker/order-check";
 import { useUi } from "./ui-state";
+import { CodeDialog } from "./forms/CodeDialog";
+import { ReceiptField, useExitProof } from "./forms/ReceiptField";
 import { errorMessage } from "./forms/useForm";
 import { ProductThumb } from "./Viz";
 import { Button, Dot, Fields, Modal, Notice, SidePanel, type Tone } from "@/components/ui";
@@ -24,9 +28,11 @@ export function OrderPanel() {
 }
 
 function OrderPanelInner({ id }: { id: string }) {
-  const { order, agent, product, linesOf, deliverOrder, cancelOrder } = useData();
+  const { order, agent, product, linesOf, deliverOrder, cancelOrder, reload } = useData();
   const { close, notify, openProduct } = useUi();
+  const proof = useExitProof();
   const [asking, setAsking] = useState<Closing | null>(null);
+  const [proving, setProving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +45,7 @@ function OrderPanelInner({ id }: { id: string }) {
   const dot = STATUS_DOT[o.status];
   const isOpen = o.status === "open";
   const late = isOpen && !!o.promised_on && daysUntil(o.promised_on) < 0;
+  const changes = keptChanges(o);
 
   // A line the shelf can't cover: delivering it zeroes the stock, the same as a manual issue.
   const shortages = isOpen
@@ -48,15 +55,24 @@ function OrderPanelInner({ id }: { id: string }) {
       })
     : [];
 
+  const finish = () => {
+    notify({ tone: "success", title: asking === "deliver" ? `הזמנה ${o.number} נמסרה` : `הזמנה ${o.number} בוטלה` });
+    setAsking(null);
+    close();
+  };
+
   const onConfirm = async () => {
+    if (asking === "deliver" && !proof.check()) return;
+    if (asking === "deliver" && proof.without) {
+      setProving(true);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      if (asking === "deliver") await deliverOrder(id);
+      if (asking === "deliver") await deliverOrder(id, await proof.save({ customer: o.customer, reference: `הזמנה ${o.number}` }));
       else await cancelOrder(id);
-      notify({ tone: "success", title: asking === "deliver" ? `הזמנה ${o.number} נמסרה` : `הזמנה ${o.number} בוטלה` });
-      setAsking(null);
-      close();
+      finish();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -136,6 +152,33 @@ function OrderPanelInner({ id }: { id: string }) {
           )}
         </section>
 
+        {changes.length > 0 ? (
+          <section className="sa-group flex flex-col gap-[var(--space-2)]" aria-labelledby="order-changes-title">
+            <h3 id="order-changes-title" className="sa-section-title">
+              חריגות
+              <span className="sa-mono sa-faint ms-[var(--space-2)] font-normal">{fmtQty(changes.length)}</span>
+            </h3>
+            <ul className="sa-rows flex list-none flex-col divide-y divide-line-subtle">
+              {changes.map((c, i) => {
+                const p = product(c.product_id);
+                const sides = [c.ordered ? `בהזמנה ${fmtQty(c.ordered)}` : "לא בהזמנה", !o.receipt_read ? null : c.read === null ? "לא בקבלה" : `בקבלה ${fmtQty(c.read)}`];
+                return (
+                  <li key={i} className="sa-order-line relative flex items-center gap-[var(--space-3)] py-[var(--space-2)]">
+                    <ProductThumb product={p} />
+                    <span className="min-w-0 flex-1">
+                      <span className="sa-truncate block">{p ? fmtName(p.name) : c.name}</span>
+                      <span className="sa-cell-sub">{sides.filter(Boolean).join(" · ")}</span>
+                    </span>
+                    <span className="shrink-0 text-end">
+                      {c.manager ? "אצל המנהל" : c.delivered === 0 ? "לא יצא" : <>יצאו <span className="sa-num">{fmtQty(c.delivered)}</span> {p?.unit}</>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+
         <Fields
           items={[
             {
@@ -154,6 +197,7 @@ function OrderPanelInner({ id }: { id: string }) {
             },
             { label: "נוצרה", value: fmtFull(o.created_at), num: true },
             { label: "נסגרה", value: o.closed_at ? fmtFull(o.closed_at) : undefined, num: true },
+            ...(o.receipt_read === null ? [] : [{ label: "קבלה", value: !o.receipt_read ? "לא נקראה" : changes.length ? `${changeWords(changes.length)} מול ההזמנה` : "תואמת להזמנה" }]),
           ]}
         />
         {o.note ? (
@@ -162,11 +206,11 @@ function OrderPanelInner({ id }: { id: string }) {
       </SidePanel>
 
       {/* Closed from elsewhere while asking, the question no longer stands; this panel's own closing and a refusal stay on screen. */}
-      {asking && (isOpen || busy || error) ? (
+      {asking && !proving && (isOpen || busy || error) ? (
         <Modal
           title={asking === "deliver" ? `לסמן את הזמנה ${o.number} כנמסרה?` : `לבטל את הזמנה ${o.number}?`}
           tone={asking === "cancel" ? "danger" : undefined}
-          confirmLabel={asking === "deliver" ? "סימון כנמסרה" : "ביטול הזמנה"}
+          confirmLabel={asking === "cancel" ? "ביטול הזמנה" : proof.without ? "שליחת קוד" : "סימון כנמסרה"}
           cancelLabel="חזרה"
           busy={busy}
           onConfirm={() => void onConfirm()}
@@ -174,9 +218,23 @@ function OrderPanelInner({ id }: { id: string }) {
         >
           <div className="flex flex-col gap-[var(--space-3)]">
             <p className="m-0">{asking === "deliver" ? "המלאי יירד לפי השורות" : "המלאי המשוריין ישוחרר"}</p>
+            {asking === "deliver" ? <ReceiptField proof={proof} disabled={busy} /> : null}
             {error ? <Notice tone="danger">{error}</Notice> : null}
           </div>
         </Modal>
+      ) : null}
+
+      {proving && proof.phone ? (
+        <CodeDialog
+          phone={proof.phone}
+          title={`הזמנה ${o.number} בלי קבלה`}
+          action={async (client) => {
+            await deliverOrderWithoutReceipt(client, id, proof.why.trim());
+            await reload();
+          }}
+          onDone={finish}
+          onClose={() => setProving(false)}
+        />
       ) : null}
     </>
   );

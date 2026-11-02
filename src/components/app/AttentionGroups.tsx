@@ -20,7 +20,7 @@ type GroupDef = { key: GroupKey; title: string; hint: string; icon: IconName; ki
 
 const GROUPS: GroupDef[] = [
   { key: "request", title: "בקשות", hint: "ממתינים לאישור", icon: "book-open", kinds: ["request"] },
-  { key: "mapping", title: "מילון ספקים", hint: "ממתינים לאישור", icon: "truck", kinds: ["mapping"] },
+  { key: "mapping", title: "מיפוי קטלוג", hint: "ממתינים לאישור", icon: "truck", kinds: ["mapping"] },
 ];
 
 export function AttentionGroups({ items }: { items: GroupedItem[] }) {

@@ -9,7 +9,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cx } from "@/components/ui/cx";
-import { fmtQty } from "@/lib/format";
+import { fmtName, fmtQty } from "@/lib/format";
 import type { Product } from "@/lib/store";
 import "./worker.css";
 
@@ -377,13 +377,16 @@ export function Row({ product, title, sub, end, selected, quiet, onClick }: { pr
 /* ── Full-screen searchable picker ───────────────────────────── */
 export type PickItem = { id: string; title: string; sub?: ReactNode; keywords?: string; end?: ReactNode; product?: Photographed };
 
-/** A warehouse product as a picker row. `stock` shows how much is on hand, for the flows that take from it. */
+/**
+ * A warehouse product as a picker row. `stock` shows how much is on hand, for the flows that take from it.
+ * The plain name stays in `keywords`: the direction marks in the title would stop a search for its size from matching.
+ */
 export function productPick(p: Product, stock = false): PickItem {
   return {
     id: p.id,
-    title: p.name,
+    title: fmtName(p.name),
     sub: <span className="sa-num">{p.sku}</span>,
-    keywords: `${p.sku} ${p.barcode ?? ""}`,
+    keywords: `${p.name} ${p.sku} ${p.barcode ?? ""}`,
     end: stock ? <span>במלאי <span className="sa-num">{fmtQty(p.qty)}</span> {p.unit}</span> : undefined,
     product: p,
   };

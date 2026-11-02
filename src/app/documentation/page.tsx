@@ -258,6 +258,9 @@ function EntryPanel({ entry, src, onClose }: { entry: Entry; src: string | null;
     fetchDocumentMovements(docId).then(setMoved, () => setMoved([]));
   }, [docId, fetchDocumentMovements]);
 
+  // The receipt behind goods that left stays: without it the exit would be undocumented.
+  const kept = doc?.kind === "out" && (moved === null || moved.some((m) => m.type === "out"));
+
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const overflow = document.body.style.overflow;
@@ -335,7 +338,8 @@ function EntryPanel({ entry, src, onClose }: { entry: Entry; src: string | null;
           <EntryForm entry={entry} onClose={() => setEditing(false)}>{photo}</EntryForm>
         ) : (
           <SidePanel
-            className="sa-doc-panel"
+            className="sa-sheet sa-doc-sheet"
+            media={photo}
             eyebrow={KIND_LABEL[entry.kind]}
             title={entry.title}
             subtitle={fmtFull(entry.at)}
@@ -343,7 +347,7 @@ function EntryPanel({ entry, src, onClose }: { entry: Entry; src: string | null;
             footer={
               <>
                 <div>
-                  <Button variant="danger" isLoading={deleting} onClick={() => setConfirmDelete(true)}>מחיקה</Button>
+                  {kept ? null : <Button variant="danger" isLoading={deleting} onClick={() => setConfirmDelete(true)}>מחיקה</Button>}
                 </div>
                 <div>
                   <Button variant="secondary" disabled={deleting} onClick={() => setEditing(true)}>עריכה</Button>
@@ -356,22 +360,20 @@ function EntryPanel({ entry, src, onClose }: { entry: Entry; src: string | null;
               </>
             }
           >
-            {photo}
-
-            <Fields items={fields} className="sa-doc-facts" />
+            <Fields items={fields} />
 
             {docId && moved === null ? (
               <span className="sa-skeleton" style={{ width: 200 }} />
             ) : lines.length > 0 ? (
-              <section className="sa-doc-lines" aria-label="שורות">
-                <h3>שורות</h3>
-                <ul>
+              <section className="sa-group flex flex-col gap-[var(--space-2)]" aria-labelledby="doc-lines-title">
+                <h3 id="doc-lines-title" className="sa-section-title">שורות</h3>
+                <ul className="sa-rows flex list-none flex-col divide-y divide-line-subtle">
                   {lines.map((l) => (
-                    <li key={l.key}>
-                      <ProductThumb product={l.product} small />
-                      <span className="sa-truncate">{l.name}</span>
+                    <li key={l.key} className="relative flex items-center gap-[var(--space-3)] py-[var(--space-2)]">
+                      <ProductThumb product={l.product} />
+                      <span className="sa-truncate min-w-0 flex-1">{l.name}</span>
                       {l.status ? <Badge tone={l.status.tone} dot={false}>{l.status.label}</Badge> : null}
-                      <span className="sa-doc-qty"><span className="sa-num">{fmtQty(l.qty)}</span>{l.unit ? ` ${l.unit}` : ""}</span>
+                      <span className="shrink-0 text-end"><span className="sa-num">{fmtQty(l.qty)}</span>{l.unit ? ` ${l.unit}` : ""}</span>
                     </li>
                   ))}
                 </ul>

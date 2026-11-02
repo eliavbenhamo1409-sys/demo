@@ -249,7 +249,7 @@ export default function ReceivePage() {
           await receive({ productId: p.id, qty: part?.qty ?? l.qty, supplierId, workerId: worker.id, reference: reference.trim() || null, note, externalName: l.externalName.trim(), documentId, place: part?.place ?? null });
           savedParts.current.add(mark);
         }
-        saved.current.set(l.id, { key: l.id, title: p.name, sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p });
+        saved.current.set(l.id, { key: l.id, title: fmtName(p.name), sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p });
         setProgress(saved.current.size);
       }
       for (const l of toReview) {
@@ -439,13 +439,13 @@ export default function ReceivePage() {
                   onChange={(e) => patch(l.id, { externalName: e.target.value, sku: null, suggestedId: undefined, productId: null, unknown: false })}
                 />
                 {suggestions.length ? (
-                  <div className="wk-suggest" role="listbox" aria-label="הצעות מהמילון">
+                  <div className="wk-suggest" role="listbox" aria-label="הצעות מהמיפוי">
                     {suggestions.map((s) => (
                       <button key={s.id} type="button" role="option" aria-selected={false} onClick={() => patch(l.id, { externalName: s.external_name, productId: null, unknown: false })}>
                         <ProductThumb product={product(s.product_id)} small />
                         <span className="wk-suggest-text">
                           <span className="sa-truncate">{s.external_name}</span>
-                          <span className="wk-suggest-sub sa-truncate">{product(s.product_id)?.name ?? ""}</span>
+                          <span className="wk-suggest-sub sa-truncate">{fmtName(product(s.product_id)?.name ?? "")}</span>
                         </span>
                       </button>
                     ))}
@@ -456,7 +456,7 @@ export default function ReceivePage() {
                   <>
                     <div className="wk-status">
                       <ProductThumb product={prod} small />
-                      <span>זוהה: {prod.name}</span>
+                      <span>זוהה: {fmtName(prod.name)}</span>
                       {r.status === "pending" && !l.productId ? <Badge tone="warning">ממתין לאישור</Badge> : null}
                     </div>
                     <button type="button" className="wk-textlink is-start" onClick={() => setPickProductFor(l.id)}>{l.productId ? "החלפת מוצר" : "זה מוצר אחר?"}</button>
@@ -472,7 +472,7 @@ export default function ReceivePage() {
                     <div className="wk-group">
                       {candidates.map((c) => {
                         const match = product(c.productId);
-                        return match ? <Row key={c.productId} product={match} title={match.name} sub={c.alias && c.alias !== match.name ? `במילון: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id, unknown: false })} /> : null;
+                        return match ? <Row key={c.productId} product={match} title={fmtName(match.name)} sub={c.alias && c.alias !== match.name ? `במיפוי: ${c.alias}` : match.sku} onClick={() => patch(l.id, { productId: match.id, unknown: false })} /> : null;
                       })}
                       <Row title={candidates.length ? "זה מוצר אחר מהמחסן" : "יש כזה במחסן"} end={<Icon name="chevron-left" size={20} />} onClick={() => setPickProductFor(l.id)} />
                       <Row title="העברה למנהל" end={<Icon name="user" size={20} />} onClick={() => patch(l.id, { productId: null, unknown: true })} />
@@ -572,7 +572,7 @@ export default function ReceivePage() {
   }
 
   /* ── step 4: summary ── */
-  const receivedLines: SummaryLine[] = toReceive.map((l) => { const p = effectiveProduct(l)!; return { key: l.id, title: p.name, sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p }; });
+  const receivedLines: SummaryLine[] = toReceive.map((l) => { const p = effectiveProduct(l)!; return { key: l.id, title: fmtName(p.name), sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p }; });
   const reviewLines: SummaryLine[] = toReview.map((l) => ({ key: l.id, title: l.externalName.trim(), qty: l.qty }));
   const total = toReceive.length + toReview.length;
   return (

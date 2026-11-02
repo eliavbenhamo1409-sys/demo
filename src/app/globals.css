@@ -2,6 +2,7 @@
 @import "../design/tokens.css";
 @import "../design/components.css";
 @import "../design/minimal.css";
+@import "../design/mill/index.css";
 
 /* Map design tokens into Tailwind v4 so utilities and `sa-*` classes share one source. */
 @theme inline {

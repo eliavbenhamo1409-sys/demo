@@ -1,0 +1,501 @@
+/* Phones, tablets and very large screens. One more file on top: everything here only changes how the same plates sit in
+   a different room, so it loads last and nothing under it has to know. */
+
+/* What rises must rise over the way between the systems too, which lives outside this tree. One stack for all of it. */
+.mh-app { isolation: auto; }
+
+/* Locking the page for a drawer or the search must not move what stands behind it by a scrollbar's width. */
+html[data-theme^="merhav"] { scrollbar-gutter: stable; }
+
+/* The phone's bar and the scrim of its sheet don't exist on a desk. */
+.mh-bar, .mh-more-scrim { display: none; }
+
+/* The app's own ring for a place in the navigation: inside the row, so a calm rail never gets a drawn box. */
+.mh-nav-row:focus-visible, .mh-seek:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); }
+
+/* ── The way between the three systems: three quiet words at the very foot of the rail ── */
+html[data-theme^="merhav"] { --mh-ways: 42px; }
+.mh-rail { padding-bottom: calc(8px + var(--mh-ways)); }
+
+[data-theme^="merhav"] body:has(.mh-app) .sys-switch {
+  display: flex;
+  justify-content: flex-start;
+  gap: 14px;
+  height: var(--mh-ways);
+  padding: 0 28px 0 0;
+  align-items: center;
+  background: none;
+  border-top: 0;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+}
+[data-theme^="merhav"] body:has(.mh-app) .sys-switch a { min-width: 0; min-height: 32px; color: var(--text-tertiary); }
+[data-theme^="merhav"] body:has(.mh-app) .sys-switch a:hover { color: var(--text-primary); }
+[data-theme^="merhav"] body:has(.mh-app) .sys-switch a[aria-current="page"] { color: var(--text-primary); font-weight: 500; }
+
+/* ── The command plate ── */
+/* The field is plainly in use: the caret says so, and the ring would only draw a box inside a box. */
+.mh-command-field input:focus-visible { box-shadow: none; }
+.mh-command-group { margin: 10px 14px 2px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.mh-command-group:first-child { margin-top: 4px; }
+.mh-command-list { overscroll-behavior: contain; }
+.mh-command-sub { min-width: 0; flex: 0 1 auto; max-width: 52%; overflow: hidden; text-overflow: ellipsis; }
+.mh-command-close { display: none; }
+/* Where the model is in view the plate stands on the door, so the shelf that lights stays in sight, and the room dims less. */
+@media (min-width: 900px) {
+  body:has(.mh-app[data-door="dock"]) .mh-command-scrim { padding-left: calc(var(--mh-dock) + 16px); padding-right: calc(var(--mh-rail) + 16px); }
+  body:has(.mh-app:is([data-door="open"], [data-door="side"])) .mh-command-scrim { justify-content: flex-start; padding-right: calc(var(--mh-rail) + 24px); }
+  body:has(.mh-app:not([data-door="closed"])) .mh-command-scrim { background: color-mix(in srgb, var(--bg-scrim) 45%, transparent); }
+}
+
+/* ── Phones and portrait tablets: the rail turns on its side along the bottom edge ── */
+@media (max-width: 899px) {
+  html[data-theme^="merhav"] {
+    --mh-rail: 0px;
+    /* Above any width set by hand on a wider window: there is no edge to hold here. */
+    --mh-dock: 0px !important;
+    --mh-side: 0px;
+    --mh-bar: 56px;
+    --mh-foot: calc(var(--mh-bar) + env(safe-area-inset-bottom, 0px));
+    /* The floor is wider than it is deep, so the band follows the width, and the height only limits it. */
+    --mh-band: max(236px, min(76vw, 46dvh));
+    --mh-hero: 100vw;
+    --mh-hero-right: 0px;
+    --mh-hero-bottom: 0px;
+    --mh-hero-bleed: 36px;
+  }
+
+  /* The housing is at the bottom now, so the door rises out of it, and its edge and its shadow run along the top. */
+  .mh-door { transform: translateY(var(--door-y, 0)); box-shadow: 0 -1px 0 var(--border-base), 0 -22px 54px -10px rgba(19, 22, 20, 0.16); }
+  .mh-door::after { inset: 0 0 auto; width: auto; height: 1px; }
+  .mh-app[data-door="open"] .mh-door { --door-y: 100%; }
+  .mh-app[data-door="dock"] .mh-door, .mh-app[data-door="closed"] .mh-door { --door-y: 0px; }
+  .mh-app[data-door="side"] .mh-door { --door-y: var(--mh-band); }
+
+  /* The model keeps one band at the top, and only סקירה and מחסן show it. The door covers it everywhere else. */
+  .mh-world { inset-block: 0 auto; height: var(--mh-band); }
+  .mh-app[data-door="dock"] .mh-world { visibility: hidden; transition: visibility 0s linear var(--dur-plate); }
+
+  /* With the door shut there is nothing for the camera to dodge, so it stays fitted to the floor. */
+  .mh-app[data-door="dock"] .mh-gauge { min-width: 100%; }
+
+  .mh-door-handle { display: none; }
+  .mh-app[data-door="dock"] .mh-page, .mh-app[data-door="side"] .mh-page { margin-left: 0; }
+  .mh-app[data-door="side"] .mh-page { margin-top: var(--mh-band); }
+  .mh-stage { display: flow-root; padding-bottom: var(--mh-foot); }
+
+  /* ── The bar: the same scale on its side. Ticks hang from the ruled edge, and one carriage rides it ── */
+  .mh-bar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 6;
+    display: flex;
+    align-items: stretch;
+    height: var(--mh-foot);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bg-surface);
+    box-shadow: inset 0 1px 0 var(--border-strong);
+  }
+  .mh-bar-seek {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding-inline: var(--mh-gutter) 12px;
+    border: 0;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--t-15);
+    cursor: pointer;
+  }
+  .mh-bar-seek svg { color: var(--text-tertiary); stroke-width: 1.5; }
+  .mh-scale { position: relative; flex: 1; min-width: 0; display: flex; }
+  .mh-stop {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 44px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0 10px;
+    border: 0;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: var(--t-15);
+    line-height: var(--l-20);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color var(--dur-2) var(--ease);
+  }
+  .mh-stop:not([data-near]):not(button) { display: none; }
+  .mh-stop::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 9px;
+    background: var(--border-strong);
+  }
+  .mh-stop:is([aria-current="page"], [data-here], [aria-expanded="true"]) { color: var(--text-primary); }
+  .mh-stop:is([aria-current="page"], [data-here], [aria-expanded="true"]) .mh-stop-word { font-weight: 600; }
+  /* One word is marked at a time: with the sheet up, you are in the sheet. */
+  .mh-scale:has([aria-expanded="true"]) .mh-stop:is([aria-current="page"], [data-here]):not([aria-expanded="true"]) { color: var(--text-secondary); }
+  .mh-scale:has([aria-expanded="true"]) .mh-stop:is([aria-current="page"], [data-here]):not([aria-expanded="true"]) .mh-stop-word { font-weight: 400; }
+  /* The width of the word when it is marked, held in reserve, so neighbours never move. */
+  .mh-stop-word::before { content: attr(data-word); display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 600; }
+  /* A count reads the way a numeral reads on a ruler: beside its tick. */
+  .mh-stop-count { position: absolute; top: 3px; left: calc(50% + 5px); font-size: var(--t-13); line-height: 16px; color: var(--text-tertiary); }
+  .mh-stop:focus-visible, .mh-bar-seek:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); }
+  .mh-bar-carriage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    width: 22px;
+    height: 3px;
+    margin-left: -11px;
+    background: var(--accent);
+    transform: translateX(var(--x, 0));
+    transition: transform var(--dur-move) var(--spring-move), opacity var(--dur-2) var(--ease);
+  }
+
+  /* The rail's foot is out of sight here, so a lost connection says its word on the bar's own edge. */
+  .mh-bar-offline { position: absolute; bottom: 100%; inset-inline-start: 0; margin: 0; padding: 2px var(--mh-gutter) 4px 12px; background: var(--bg-surface); font-size: var(--t-13); line-height: var(--l-18); color: var(--warning-text); }
+
+  /* ── עוד: the rest of the rail rises from behind the bar ── */
+  .mh-rail {
+    inset: auto 0 0 0;
+    z-index: 4;
+    width: auto;
+    max-height: calc(100dvh - 24px);
+    padding: 14px 28px calc(var(--mh-foot) + 56px) 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: var(--shadow-modal);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform var(--dur-plate) var(--spring-plate), visibility 0s linear var(--dur-plate);
+  }
+  .mh-rail[data-more] { transform: none; visibility: visible; transition: transform var(--dur-plate) var(--spring-plate), visibility 0s; }
+  .mh-brand, .mh-rail > .mh-seek, .mh-nav-gap, .mh-carriage.is-ghost { display: none; }
+  .mh-nav { margin-top: 0; flex: none; }
+  /* The sheet is wide, so the scale moves to the words' own edge and the count comes along. */
+  .mh-nav-row { justify-content: flex-start; gap: 12px; height: 52px; line-height: 52px; }
+  .mh-nav-row[data-near] { display: none; }
+  .mh-nav-row::after, .mh-carriage { left: auto; right: -28px; }
+  .mh-rail-foot { padding-top: 8px; }
+  .mh-rail .sa-nav-item, .mh-rail .mh-seek { height: 48px; font-size: var(--t-15); }
+
+  .mh-more-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    background: var(--bg-scrim);
+    opacity: 0;
+    pointer-events: none;
+    touch-action: none;
+    transition: opacity var(--dur-3) var(--ease);
+  }
+  .mh-more-scrim[data-open] { opacity: 1; pointer-events: auto; }
+
+  /* The way between the systems stands at the foot of the sheet and rises with it. */
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch {
+    inset: auto 0 var(--mh-foot) 0;
+    z-index: 5;
+    width: auto;
+    height: 52px;
+    justify-content: space-between;
+    padding: 0 28px;
+    background: var(--bg-surface);
+    box-shadow: inset 0 1px 0 var(--border-subtle);
+    font-size: var(--t-14);
+    transform: translateY(calc(100% + var(--mh-foot)));
+    visibility: hidden;
+    transition: transform var(--dur-plate) var(--spring-plate), visibility 0s linear var(--dur-plate);
+  }
+  [data-theme^="merhav"] body:has(.mh-rail[data-more]) .sys-switch { transform: none; visibility: visible; transition: transform var(--dur-plate) var(--spring-plate), visibility 0s; }
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch a { min-height: 44px; }
+
+  [data-theme^="merhav"] .app-toasts { inset-inline: var(--mh-gutter); bottom: calc(var(--mh-foot) + 12px); width: auto; }
+
+  /* The search takes the whole screen, with the field at the top where the keyboard can't reach it. */
+  .mh-command-scrim { display: block; padding: 0; background: var(--bg-raised); }
+  .mh-command { width: 100%; height: var(--mh-seen, 100dvh); max-height: none; border-radius: 0; box-shadow: none; padding-top: env(safe-area-inset-top, 0px); }
+  .mh-command-field { flex: none; height: 60px; padding-inline: var(--mh-gutter) 0; }
+  .mh-command-field input { font-size: 17px; }
+  .mh-command-close { display: block; flex: none; height: 100%; padding-inline: 14px var(--mh-gutter); border: 0; background: none; color: var(--accent-text); font: inherit; font-size: var(--t-15); font-weight: 500; cursor: pointer; }
+  .mh-command-list { flex: 1; min-height: 0; padding: 6px 6px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .mh-command-row { min-height: 52px; }
+  /* What a result is sits under its name on a narrow line. */
+  .mh-command-row:has(.mh-command-sub) { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; align-items: center; align-content: center; }
+  .mh-command-row:has(.mh-command-sub) svg { grid-row: span 2; }
+  .mh-command-sub { grid-column: 2; margin-inline-start: 0; max-width: 100%; line-height: var(--l-18); }
+
+  /* What stands up from the floor shares a small band: tighter tags on two heights of stem, so neighbours don't collide. */
+  .mh-tag-body { gap: 5px; padding: 2px 7px 3px; bottom: 18px; }
+  .mh-tag::after { height: 18px; }
+  .mh-tag:nth-child(2n) .mh-tag-body { bottom: 42px; }
+  .mh-tag:nth-child(2n)::after { height: 42px; }
+
+  /* ── The pages on a phone ── */
+  /* In RTL anything too wide runs off to the left, and a phone answers by widening the whole layout, bar and all.
+     Clip, not hidden: it makes no scroller, so a sticky head still sticks to the window. */
+  .mh-page { overflow-x: clip; }
+  .mh-page > .sa-page { padding: 24px var(--mh-gutter) 40px; }
+  /* A table with no box on a desk still has to scroll in a hand. */
+  [data-theme^="merhav"] .sa-table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
+
+  /* סקירה: the band of model, then one plate that carries the figures and rises over it. */
+  /* Painted once and clipped under the band, so the plate has no seam for the model to show through. */
+  .mh-ov-stage {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    padding-top: var(--mh-band);
+    opacity: 1;
+    background: var(--bg-surface) content-box;
+  }
+  /* The shadow belongs to the plate's top edge alone, on a line of its own, or it would fall on the plate too. */
+  .mh-ov-stage::before { content: ""; position: absolute; top: var(--mh-band); inset-inline: 0; height: 1px; box-shadow: 0 -1px 0 var(--border-base), 0 -22px 54px -10px rgba(19, 22, 20, 0.16); pointer-events: none; }
+  .mh-ov-figures { position: relative; width: auto; padding: 22px var(--mh-gutter) 0; }
+  .mh-ov-date { margin-bottom: 14px; }
+  /* The measure of the plate, a little over, because the digits are narrower than the formula's guess. */
+  .mh-ov-worth-n { --room: calc((100vw - 2 * var(--mh-gutter)) * 1.13); }
+  .mh-ov-floor { position: relative; inset: auto; padding: 28px var(--mh-gutter) 8px; pointer-events: auto; }
+  .mh-ov-bottom { flex-direction: column; align-items: stretch; gap: 26px; margin-bottom: 18px; }
+  .mh-ov-answers { width: 100%; }
+  .mh-ov-answers a { padding-block: 11px; }
+  .mh-ov-week { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .mh-day-hour { font-size: var(--t-13); }
+  .mh-sheet { gap: 36px; margin-top: -1px; padding: 28px var(--mh-gutter) 40px; box-shadow: none; }
+  .mh-sheet-split { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+
+  /* מחסן: the door stops under the model and the plate scrolls inside itself, so a row lights its place in plain view. */
+  .mh-app[data-route="map"] { --mh-band: max(300px, min(96vw, 46dvh)); }
+  .mh-wh { height: calc(100dvh - var(--mh-band) - var(--mh-foot)); padding-block: 20px 0; overflow-y: auto; overscroll-behavior: contain; }
+  /* The plan is measured for a whole window; here it has the band, down to the time ruler. */
+  .mh-app:has(.mh-wh[data-plan]) .mh-world :is(.mh-twin, .mh-wh-tags) { inset: 0 0 auto; height: calc(var(--mh-band) - 58px); }
+  [data-theme^="merhav"] {
+    .mh-wh > .sa-tabs { position: sticky; top: -20px; z-index: 3; align-self: stretch; margin-inline: calc(var(--mh-gutter) * -1); padding-inline: var(--mh-gutter); overflow-x: auto; scrollbar-width: none; background: var(--bg-surface); }
+    .mh-wh .m3d-rail { flex: none; overflow: visible; }
+    .mh-wh .m3d-ledger-head { top: 18px; }
+  }
+
+  /* מלאי: a name and its figure. The skyline stays. */
+  .mh-inv { padding: 24px var(--mh-gutter) 40px; }
+  .mh-inv-tools { flex-wrap: wrap; }
+  .mh-inv-tools .sa-search { flex: 1 0 100%; }
+  .mh-inv-tools .sa-select { flex: 1 1 0; width: auto; }
+  .mh-led { --cols: minmax(0, 1fr) 104px; }
+  .mh-led-head, .mh-led-row { gap: 12px; }
+  .mh-led-head .is-place, .mh-led-head .is-gauge, .mh-led-row .is-place, .mh-led-row .is-gauge { display: none; }
+  .mh-led-row .is-name { gap: 12px; }
+  /* The end of a name is what tells two sizes apart, so it takes a second line before it is cut. */
+  .mh-led-row .mh-row-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+  .mh-lens-item { height: 44px; }
+  .mh-skyline { gap: 0; }
+}
+
+/* A bar of the skyline is a pixel or two wide: a finger would open whichever one it landed on, and every one is a row below. */
+@media (hover: none) {
+  .mh-sky { pointer-events: none; }
+}
+
+/* ── A tablet held upright: every place fits on the bar, and the plate has room for two columns ── */
+@media (min-width: 700px) and (max-width: 899px) {
+  html[data-theme^="merhav"] { --mh-bar: 60px; --mh-gutter: 32px; }
+
+  .mh-stop:not([data-near]):not(button) { display: flex; }
+  .mh-stop { padding-bottom: 12px; }
+
+  /* עוד holds only what is left, so it is a small plate over its own word. */
+  .mh-nav { display: none; }
+  .mh-rail { right: auto; width: 320px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch { right: auto; width: 320px; }
+
+  .mh-ov-figures { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 48px; padding-top: 26px; }
+  .mh-ov-date, .mh-ov-worth { grid-column: 1 / -1; }
+  .mh-ov-cover { margin-top: clamp(12px, 2vh, 20px); }
+  .mh-ov-bottom { flex-direction: row; align-items: flex-end; gap: 48px; }
+  .mh-ov-answers { flex: 1 1 0; width: auto; }
+  .mh-ov-week { flex: 1.5 1 0; }
+  .mh-sheet-split { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 44px 40px; }
+
+  .mh-led { --cols: minmax(0, 1fr) 76px 120px; }
+  .mh-led-head .is-place, .mh-led-row .is-place { display: flex; }
+
+  .mh-command { width: 100%; }
+}
+
+/* The smallest phones: the bar's words step down rather than touch. */
+@media (max-width: 359px) {
+  .mh-stop, .mh-bar-seek { font-size: var(--t-14); }
+  .mh-bar-seek { gap: 5px; padding-inline: 14px 6px; }
+}
+
+/* A phone on its side is someone who wants to see the warehouse: the model stands beside the plate, the way it does on a desk. */
+@media (max-width: 899px) and (max-height: 500px) {
+  html[data-theme^="merhav"] { --mh-band: 0px; --mh-gutter: 24px; --mh-beside: 46vw; }
+  .mh-app[data-route="map"] { --mh-band: 0px; }
+
+  .mh-world { right: auto; width: var(--mh-beside); height: calc(100dvh - var(--mh-foot)); }
+  .mh-door { left: var(--mh-beside); box-shadow: var(--shadow-door); }
+  .mh-app[data-door="dock"] .mh-door, .mh-app[data-door="closed"] .mh-door { left: 0; }
+  .mh-app:is([data-door="open"], [data-door="side"]) .mh-page { margin-left: var(--mh-beside); }
+  .mh-app[data-door="side"] .mh-page { margin-top: 0; }
+  .mh-ov { box-shadow: var(--shadow-door); background: var(--bg-surface); }
+  .mh-ov-stage::before { display: none; }
+  .mh-ov-figures { display: block; padding-top: 20px; }
+  .mh-ov-worth-n { --room: calc((100vw - var(--mh-beside) - 2 * var(--mh-gutter)) * 1.13); }
+  .mh-ov-bottom { flex-direction: column; align-items: stretch; gap: 22px; }
+  .mh-ov-answers, .mh-ov-week { flex: none; }
+  .mh-ov-answers { width: 100%; }
+  .mh-sheet-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Small laptops and tablets on their side: the door still works, and the list wins the room ── */
+@media (min-width: 900px) and (max-width: 1279px) {
+  html[data-theme^="merhav"] {
+    --mh-rail: 208px;
+    --mh-dock: clamp(200px, 23vw, 300px);
+    --mh-hero: clamp(340px, 35vw, 440px);
+    --mh-hero-right: clamp(210px, 26vw, 320px);
+  }
+  .mh-rail { padding-right: 22px; }
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch { padding-right: 22px; }
+  .mh-inv-tools .sa-select { width: 128px; }
+}
+
+/* A low window keeps the whole rail in reach: it tightens first, and only then scrolls. */
+@media (min-width: 900px) and (max-height: 760px) {
+  .mh-rail { padding-top: 20px; overflow-y: auto; scrollbar-width: none; }
+  .mh-brand { margin-bottom: 14px; }
+  .mh-nav { margin-top: 12px; }
+  .mh-nav-row { height: 38px; line-height: 38px; }
+  .mh-nav-gap { height: 12px; }
+  .mh-rail-foot { padding-top: 6px; }
+  .mh-rail .sa-nav-item, .mh-rail .mh-rail-foot .mh-seek { height: 32px; }
+}
+
+/* A tablet on its side keeps the rail, and a finger still needs its 44 pixels. */
+@media (hover: none) and (min-width: 900px) {
+  html[data-theme^="merhav"] { --mh-ways: 52px; }
+  .mh-nav-row { height: 46px; line-height: 46px; }
+  .mh-rail .sa-nav-item, .mh-rail .mh-rail-foot .mh-seek { height: 44px; }
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch a { min-height: 44px; }
+}
+
+/* ── Very large rooms: the list keeps a width that can be read, the model takes the rest, and the figures grow into it ── */
+@media (min-width: 2200px) {
+  html[data-theme^="merhav"] {
+    --mh-plate: clamp(1180px, 50vw, 1640px);
+    --mh-dock: calc(100vw - var(--mh-rail) - var(--mh-plate));
+    --mh-side: clamp(520px, 24vw, 760px);
+    --mh-gutter: clamp(64px, 3vw, 112px);
+    --mh-hero: clamp(760px, 34vw, 1180px);
+    --mh-hero-right: clamp(300px, 15vw, 560px);
+    --mh-hero-bottom: 96px;
+    --mh-ways: 48px;
+    --panel: 560px;
+    --modal: 560px;
+  }
+
+  .mh-nav-row { height: 46px; line-height: 46px; }
+  .mh-rail .sa-nav-item, .mh-rail .mh-rail-foot .mh-seek { height: 40px; }
+
+  .sa-page-title { font-size: 52px; }
+  [data-theme^="merhav"] .sa-page-title { font-size: 52px; }
+
+  /* סקירה: the same corners of the L, at the size of the room. */
+  .mh-ov-figures { padding: 48px 64px 0 0; }
+  .mh-ov-worth-n { font-size: min(calc(var(--room) / (var(--len, 9) * 0.5 + 0.7)), 196px); }
+  .mh-ov-note, .mh-ov-held dt, .mh-ov-date { font-size: var(--t-15); }
+  .mh-ov-held dd { font-size: 24px; font-weight: 400; }
+  .mh-ov-bar { height: 4px; }
+  .mh-ov-cover-n { font-size: clamp(68px, 3.9vw, 136px); }
+  .mh-ov-floor { padding: 0 64px 20px 48px; }
+  .mh-ov-bottom { margin-bottom: 18px; }
+  .mh-ov-answers { width: min(520px, 100%); }
+  .mh-ov-answers dt, .mh-ov-answers dd { font-size: var(--t-16); }
+  .mh-ov-answers a { padding-block: 11px; }
+  .mh-ov-week { gap: clamp(64px, 4.4vw, 150px); }
+  .mh-ov-week dd { font-size: clamp(36px, 2.1vw, 70px); }
+  .mh-ov-week dt, .mh-ov-week .mh-ov-before { font-size: var(--t-14); }
+
+  /* The lists stand side by side: a row stays short enough for the eye to cross it. */
+  .mh-sheet { flex-flow: row wrap; align-items: flex-start; gap: 56px clamp(56px, 3.6vw, 120px); padding-block: 56px 96px; }
+  .mh-sheet > .sa-notice { flex: 0 0 100%; }
+  .mh-sheet-split { display: contents; }
+  .mh-col { flex: 1 1 0; }
+
+  /* מלאי: the skyline stands taller and the ledger gives its width to the scale, not to the gap after the name. */
+  .mh-skyline { height: clamp(120px, 5.6vw, 200px); }
+  .mh-lens-n { font-size: clamp(30px, 1.5vw, 44px); }
+  .mh-lens-item { height: 54px; }
+  .mh-led { --cols: minmax(0, 1.25fr) 120px minmax(200px, 1fr) 190px; }
+  .mh-led-head, .mh-led-row { gap: 28px; }
+  .mh-led-fig { font-size: 26px; line-height: 32px; }
+  .mh-inv-tools .sa-select { width: 200px; }
+  [data-theme^="merhav"] .sa-thumb { width: 48px; height: 48px; }
+}
+
+/* A 4K room, read from further back: the type takes a second step, so the hierarchy stays the same picture at a new size. */
+@media (min-width: 3000px) {
+  html[data-theme^="merhav"] {
+    --t-12: 16px; --t-13: 17px; --t-14: 18px; --t-15: 19px; --t-16: 20px; --t-17: 22px;
+    --l-16: 22px; --l-18: 24px; --l-20: 26px; --l-21: 27px; --l-22: 28px; --l-23: 30px; --l-24: 32px;
+    --mh-rail: 360px;
+    --row: 84px;
+    --control-sm: 40px;
+    --control-md: 46px;
+    --control-lg: 52px;
+    --mh-ways: 60px;
+    --panel: 680px;
+    --modal: 640px;
+  }
+
+  .mh-brand { font-size: 22px; line-height: 30px; margin-bottom: 44px; }
+  .mh-seek { height: 52px; font-size: var(--t-16); }
+  .mh-nav-row { height: 60px; line-height: 60px; font-size: 22px; }
+  .mh-nav-row::after { width: 12px; }
+  .mh-nav-gap { height: 30px; }
+  .mh-carriage { width: 4px; height: 30px; margin-top: calc((var(--h, 60px) - 30px) / 2); }
+  .mh-rail .sa-nav-item, .mh-rail .mh-rail-foot .mh-seek { height: 48px; font-size: var(--t-15); }
+  .mh-rail svg { width: 20px; height: 20px; }
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch { gap: 22px; }
+
+  [data-theme^="merhav"] .sa-page-title { font-size: 72px; }
+  .mh-ov-figures { padding: 72px 96px 0 0; }
+  .mh-ov-worth-n { font-size: min(calc(var(--room) / (var(--len, 9) * 0.5 + 0.7)), 260px); }
+  .mh-ov-held dd { font-size: 30px; }
+  .mh-ov-bar { height: 5px; }
+  .mh-ov-floor { padding: 0 96px 28px 72px; }
+  .mh-ov-answers { width: min(680px, 100%); }
+  .mh-ov-answers a { padding-block: 16px; }
+  .mh-day { height: 48px; }
+  .mh-day-hour { font-size: var(--t-13); line-height: var(--l-18); }
+
+  .mh-led-fig { font-size: 34px; line-height: 42px; }
+  .mh-led-fig small { font-size: var(--t-15); }
+  .mh-lens-item { height: 66px; }
+  .mh-inv-tools .sa-select { width: 260px; }
+  [data-theme^="merhav"] .sa-thumb { width: 60px; height: 60px; }
+  .mh-command { width: min(860px, 100%); }
+  .mh-command-field { height: 84px; }
+  .mh-command-field input { font-size: 26px; }
+  .mh-command-row { min-height: 60px; }
+}
+
+/* Reduced motion turns it all off: the door, both carriages, the sheet and whatever settles on arrival simply are where they go. */
+@media (prefers-reduced-motion: reduce) {
+  .mh-door, .mh-carriage, .mh-bar-carriage, .mh-rail, .mh-stop, .mh-more-scrim,
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch { transition: none; }
+  .mh-page, .mh-command, .mh-command-scrim, .mh-leader path, .mh-leader circle { animation: none; }
+  .mh-leader path { stroke-dashoffset: 0; }
+}

@@ -289,14 +289,14 @@
   }
 }
 
-/* ── The ledger: a list that breathes. Its rule starts at the text ── */
+/* ── The ledger: a list that breathes. Its rule starts at the text, and its figures close up so the photo costs a name no line ── */
 [data-theme^="minimal"] .m3d-ledger {
-  --ledger-columns: minmax(0, 1fr) 44px 60px 84px;
+  --ledger-columns: minmax(0, 1fr) 40px 52px 68px;
   padding-block-end: var(--space-1);
 }
 
 [data-theme^="minimal"] .m3d-ledger.is-count {
-  --ledger-columns: minmax(0, 1fr) 44px 84px 52px;
+  --ledger-columns: minmax(0, 1fr) 40px 72px 48px;
 }
 
 [data-theme^="minimal"] .m3d-ledger.is-value {
@@ -304,7 +304,7 @@
 }
 
 [data-theme^="minimal"] :is(.m3d-ledger-head, .m3d-line) {
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   padding-inline: var(--space-4);
 }
 
@@ -335,6 +335,14 @@
   height: var(--hair);
   background: var(--border-subtle);
   pointer-events: none;
+}
+
+[data-theme^="minimal"] .m3d-line:has(.sa-thumb)::after {
+  inset-inline-start: calc(var(--space-4) + 36px + var(--space-2));
+}
+
+[data-theme^="minimal"] .m3d-line-product {
+  gap: var(--space-2);
 }
 
 [data-theme^="minimal"] .m3d-line-name {
@@ -398,6 +406,10 @@
   height: var(--hair);
   background: var(--border-subtle);
   pointer-events: none;
+}
+
+[data-theme^="minimal"] .m3d-row:has(> .sa-thumb)::after {
+  inset-inline-start: calc(var(--space-4) + 36px + var(--space-3));
 }
 
 [data-theme^="minimal"] .m3d-list > :last-child > .m3d-row::after,
@@ -602,9 +614,9 @@
   }
 }
 
-/* The ledger's name column is narrow beside the scene: a long name takes a third line before it is cut. */
+/* The ledger's name column is narrow beside the scene and its photo: a long name takes a fourth line before it is cut. */
 [data-theme^="minimal"] .m3d-line-name {
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
 }
 
 /* On a phone three racks stand closer than three tags. The figure stays and the code returns on a tap. */
@@ -704,21 +716,17 @@
 
 /* ── Where the rail runs out of room. The stage keeps what it can, and the ledger closes up before a name is cut ── */
 @media (max-width: 1239px) {
-  [data-theme^="minimal"] .m3d-ledger {
-    --ledger-columns: minmax(0, 1fr) 40px 52px 68px;
-  }
-  [data-theme^="minimal"] .m3d-ledger.is-count {
-    --ledger-columns: minmax(0, 1fr) 40px 72px 48px;
-  }
   [data-theme^="minimal"] .m3d-ledger.is-value {
     --ledger-columns: 40px minmax(0, 1fr) 76px 44px;
   }
   [data-theme^="minimal"] :is(.m3d-ledger-head, .m3d-line) {
-    column-gap: var(--space-2);
     padding-inline: var(--space-3);
   }
   [data-theme^="minimal"] .m3d-line:has(+ .m3d-line)::after {
     inset-inline-start: var(--space-3);
+  }
+  [data-theme^="minimal"] .m3d-line:has(.sa-thumb)::after {
+    inset-inline-start: calc(var(--space-3) + 36px + var(--space-2));
   }
   [data-theme^="minimal"] .m3d-line-share .sa-meter {
     width: 100%;
@@ -728,15 +736,15 @@
 @media (min-width: 1100px) and (max-width: 1239px) {
   [data-theme^="minimal"] .sa-page.m3d-page {
     --m3d-gutter: var(--space-6);
-    --m3d-rail: 396px;
+    --m3d-rail: 420px;
   }
   [data-theme^="minimal"] .m3d-side {
     padding-inline-end: var(--space-3);
   }
 }
 
-/* Too narrow for four columns beside a map: each line turns into two, the name on its own. The heads stay for a reader. */
-@media (min-width: 900px) and (max-width: 1099px) {
+/* Too narrow for four columns and a photo: each line turns into two, the name on its own. The heads stay for a reader. */
+@media (max-width: 1099px) {
   [data-theme^="minimal"] .m3d-ledger-head {
     position: absolute;
     width: 1px;
@@ -752,7 +760,7 @@
     row-gap: var(--space-1);
     padding-block: var(--space-3);
   }
-  [data-theme^="minimal"] .m3d-line > :is(.m3d-line-name, .m3d-line-text) {
+  [data-theme^="minimal"] .m3d-line > :is(.m3d-line-name, .m3d-line-product) {
     grid-column: 1 / -1;
     order: -1;
   }

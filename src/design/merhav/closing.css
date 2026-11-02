@@ -1,0 +1,184 @@
+/* סגירת יום: a statement, set on one strict grid. A closed day is cut into the plate; today is still ink. */
+
+.mh-dc {
+  --mh-dc-margin: calc((100vw - var(--mh-rail) - var(--mh-gutter) * 2 - var(--mh-dc-gap) * 3) / 4);
+  --mh-dc-gap: clamp(24px, 2.6vw, 56px);
+  --mh-dc-rule-h: 92px;
+  padding: 34px var(--mh-gutter) 96px;
+  min-width: 0;
+}
+
+.mh-dc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.mh-dc-date { margin: 6px 0 0; font-size: clamp(18px, 1.5vw, 24px); line-height: 1.3; font-weight: 300; color: var(--text-primary); }
+.mh-dc-keys { display: flex; align-items: center; gap: 8px; flex: none; }
+
+/* ── The rule of days ── */
+.mh-dr {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  height: var(--mh-dc-rule-h);
+  margin-top: 18px;
+  padding-block: 12px 8px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+.mh-dr-axis { display: flex; flex-direction: column; justify-content: space-between; height: 56px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.mh-dr-track {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  cursor: ew-resize;
+  touch-action: pan-x;
+  outline: none;
+  user-select: none;
+}
+.mh-dr-track::-webkit-scrollbar { display: none; }
+.mh-dr-track:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+.mh-dr-strip { position: relative; display: flex; height: 100%; margin-inline-start: auto; }
+.mh-dr-strip::before { content: ""; position: absolute; inset-inline: 0; top: 28px; height: 1px; background: var(--border-strong); }
+.mh-dr-day { position: relative; flex: none; width: var(--pitch); height: 100%; }
+.mh-dr-day::before, .mh-dr-day::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  background: var(--text-primary);
+}
+.mh-dr-day::before { bottom: calc(100% - 28px); height: calc(3px + var(--in) * 25px); }
+.mh-dr-day::after { top: 29px; height: calc(3px + var(--out) * 25px); }
+.mh-dr-day.is-week::after, .mh-dr-day.is-week::before { min-height: 7px; }
+.mh-dr-day.is-today::before, .mh-dr-day.is-today::after { background: var(--accent); }
+.mh-dr-day.is-on::before, .mh-dr-day.is-on::after { background: var(--accent); }
+.mh-dr-day em, .mh-dr-day b {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-style: normal;
+  font-weight: 400;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.mh-dr-day b { color: var(--text-secondary); font-weight: 500; }
+.mh-dr-carriage {
+  position: absolute;
+  top: 0;
+  left: -1.5px;
+  width: 3px;
+  height: 56px;
+  background: var(--accent);
+  transition: transform var(--dur-move) var(--spring-move);
+}
+.mh-dr-tip {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: var(--x);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  white-space: nowrap;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lift);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ── The face: the five answers ── */
+.mh-dc-face { padding-top: 32px; transition: opacity var(--dur-2) var(--ease); }
+.mh-dc.is-reading .mh-dc-face, .mh-dc.is-reading .mh-dc-ledger { opacity: 0.45; }
+.mh-dc-money { --room: calc((100vw - var(--mh-rail) - var(--mh-gutter) * 2 - var(--mh-dc-gap)) / 2); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--mh-dc-gap); }
+.mh-dc-hero, .mh-dc-count { display: flex; flex-direction: column; align-items: flex-start; color: inherit; text-decoration: none; min-width: 0; }
+.mh-dc-n {
+  font-size: min(calc(var(--room) / (var(--len, 7) * 0.56 + 0.8)), 148px);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+}
+.mh-dc-n .mh-figure-sign { font-weight: 300; color: var(--text-secondary); margin-top: 0.28em; }
+.mh-dc-sub { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+
+.mh-dc-band { position: relative; height: 32px; margin-block: 26px 22px; }
+.mh-dc-band::before { content: ""; position: absolute; inset-inline: 0; top: 50%; height: 1px; background: var(--border-strong); }
+.mh-dc-band svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--bg-surface);
+  clip-path: inset(0 var(--cut) 0 0);
+  transition: clip-path var(--dur-plate) var(--spring-plate);
+}
+@starting-style {
+  .mh-dc-band svg { clip-path: inset(0 100% 0 0); }
+}
+.mh-dc-band path { fill: none; stroke: var(--text-primary); stroke-width: 0.5; opacity: 0.55; vector-effect: non-scaling-stroke; }
+
+.mh-dc-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--mh-dc-gap); }
+.mh-dc-state { line-height: 1.12; }
+.mh-dc-c { font-size: clamp(40px, 4vw, 72px); font-weight: 200; letter-spacing: -0.03em; color: var(--text-primary); }
+
+/* ── The ledger: margin heads, and one grid for every section ── */
+.mh-dc-ledger { margin-top: 44px; transition: opacity var(--dur-2) var(--ease); }
+.mh-dc-sec {
+  display: grid;
+  grid-template-columns: var(--mh-dc-margin) minmax(0, 1fr);
+  column-gap: var(--mh-dc-gap);
+  padding-block: 14px 40px;
+  border-top: 1px solid var(--border-strong);
+  scroll-margin-top: calc(var(--mh-dc-rule-h) + 8px);
+}
+.mh-dc-sec-head { position: sticky; top: calc(var(--mh-dc-rule-h) + 14px); align-self: start; display: flex; align-items: baseline; gap: 10px; }
+.mh-dc-sec-head h2 { margin: 0; font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; }
+.mh-dc-size { font-size: var(--t-14); color: var(--text-tertiary); }
+.mh-dc-sec-body { min-width: 0; }
+.mh-dc-lines { list-style: none; margin: 0; padding: 0; }
+.mh-dc-line {
+  --cols: 40px minmax(0, 5fr) minmax(0, 3fr) 112px 112px;
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: var(--row);
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.mh-dc-line { cursor: pointer; }
+button.mh-dc-line:hover { background: var(--accent-soft); }
+.mh-dc-title { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mh-dc-meta { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The figure and its unit are two columns, so ones stand under ones whatever the unit. */
+.mh-dc-fig { display: grid; grid-template-columns: minmax(0, 1fr) 44px; column-gap: 6px; align-items: baseline; font-size: var(--t-16); line-height: var(--l-22); white-space: nowrap; }
+.mh-dc-fig > .ltr { justify-self: end; }
+.mh-dc-fig small { font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-dc-word { text-align: end; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); white-space: nowrap; }
+.mh-dc-word.is-short { color: var(--short); font-weight: 600; }
+.mh-dc-word.is-out { color: var(--danger-text); }
+.mh-dc-word.is-low { color: var(--warning-text); }
+.mh-dc-none { margin: 0; color: var(--text-tertiary); padding-block: 2px; }
+.mh-dc-note { margin: 10px 0 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* A closed day is ruled off twice, the way books are closed. Today keeps one line: it can still change. */
+.mh-dc-total { display: flex; align-items: baseline; justify-content: flex-end; gap: 16px; margin: 0; padding-block: 8px 0; font-size: var(--t-16); line-height: var(--l-23); font-weight: 500; }
+.mh-dc-total > span:first-child { font-size: var(--t-13); font-weight: 400; color: var(--text-tertiary); }
+.mh-dc-total > span:last-child { min-width: 112px; text-align: end; padding-block-end: 3px; border-block-end: 1px solid var(--text-primary); }
+.mh-dc.is-closed .mh-dc-total > span:last-child { border-block-end: 3px double var(--text-primary); }
+
+.mh-dc-failed { margin-top: 28px; }
+.mh-dc-wait { padding-top: 40px; }

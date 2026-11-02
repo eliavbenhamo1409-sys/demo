@@ -150,9 +150,9 @@ export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | 
             <p className="m-0">
               הפעולה אינה הפיכה.
               {itemCount > 0 ? (
-                <> יימחקו גם {itemCount} שמות של הספק במילון.</>
+                <> יימחקו גם {itemCount} שמות של הספק במיפוי.</>
               ) : (
-                <> שמות של הספק במילון יימחקו גם הם.</>
+                <> שמות של הספק במיפוי יימחקו גם הם.</>
               )}
             </p>
             {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}

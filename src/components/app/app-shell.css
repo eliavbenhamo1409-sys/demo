@@ -266,7 +266,11 @@
   box-shadow: var(--focus-ring);
 }
 
+/* Above that target, so a code can still be selected and copied. */
 .sa-dict-product-codes {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
   font-size: var(--t-13);
   line-height: var(--l-18);
   color: var(--text-tertiary);
@@ -635,8 +639,6 @@
 
 [data-theme^="minimal"] .sa-dict-head {
   padding-inline: var(--inset);
-  border-start-start-radius: var(--radius-lg);
-  border-start-end-radius: var(--radius-lg);
 }
 
 [data-theme^="minimal"] .sa-dict-row,
@@ -644,6 +646,11 @@
   position: relative;
   padding: var(--space-2) var(--inset);
   border-bottom: 0;
+}
+
+/* Loading keeps the height of the row it stands for, so nothing moves when the names arrive. */
+[data-theme^="minimal"] .sa-dict-skeleton {
+  min-height: var(--row);
 }
 
 [data-theme^="minimal"] :is(.sa-dict-row, .sa-dict-skeleton):not(:last-child)::after {
@@ -660,6 +667,7 @@
   overflow: visible;
   overflow-wrap: anywhere;
   white-space: normal;
+  text-wrap: pretty;
   font-size: var(--t-15);
   line-height: var(--l-22);
   font-weight: 600;
@@ -754,24 +762,7 @@
   margin-inline-start: 0;
 }
 
-/* The suppliers panel is the same list: a large name, a rule from the text, the count as a quiet figure. */
-[data-theme^="minimal"] .sa-dict-supplier {
-  position: relative;
-  min-height: 64px;
-  padding: var(--space-2) var(--inset);
-  border-bottom: 0;
-}
-
-[data-theme^="minimal"] .sa-dict-suppliers-list li:not(:last-child) .sa-dict-supplier::after {
-  content: "";
-  position: absolute;
-  inset-inline: var(--inset);
-  bottom: 0;
-  height: var(--hair);
-  background: var(--border-subtle);
-  pointer-events: none;
-}
-
+/* The suppliers panel: the drawers draw the group, this sets its words. */
 [data-theme^="minimal"] .sa-dict-supplier-name {
   overflow: visible;
   overflow-wrap: anywhere;
@@ -789,6 +780,10 @@
   [data-theme^="minimal"] .sa-dict-list {
     --dict-product: minmax(220px, 270px);
   }
+}
+
+/* A to-do's controls take the width of a name, so the line breaks before the name is squeezed. */
+@media (max-width: 1339px) {
   [data-theme^="minimal"] .sa-dict-inbox-row {
     grid-template-columns: 22px minmax(0, 1fr);
   }
@@ -1014,6 +1009,7 @@ a.sa-fault-thumb:focus-visible {
 }
 
 [data-theme^="minimal"] .sa-fault-product .sa-mono {
+  flex-shrink: 0;
   font-size: var(--t-13);
   font-weight: 400;
 }
@@ -1034,11 +1030,24 @@ a.sa-fault-thumb:focus-visible {
     --fault-gap: var(--space-4);
   }
   [data-theme^="minimal"] .sa-fault-row {
+    align-items: flex-start;
     padding-block: var(--space-4);
   }
-  /* The button is the row's way out: a full line, where a thumb reaches it. */
+  /* The product's name is the story here; its code is one tap away. */
+  [data-theme^="minimal"] .sa-fault-product .sa-mono {
+    display: none;
+  }
+  [data-theme^="minimal"] .sa-fault-product .sa-truncate {
+    white-space: normal;
+    text-wrap: pretty;
+    text-align: start;
+  }
+  /* The button is the row's way out: a full line, where a thumb reaches it. The rule runs under it. */
   [data-theme^="minimal"] .sa-fault-actions .sa-btn {
     flex: 1;
+  }
+  [data-theme^="minimal"] .sa-faults.has-photos .sa-fault-row:not(:last-child)::after {
+    inset-inline-start: var(--inset);
   }
 }
 
@@ -1192,41 +1201,6 @@ a.sa-fault-thumb:focus-visible {
   height: 280px;
 }
 
-.sa-doc-lines h3 {
-  margin: 0 0 var(--space-1);
-  font-size: var(--t-13);
-  line-height: var(--l-18);
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.sa-doc-lines ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.sa-doc-lines li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) 0;
-  font-size: var(--t-14);
-  line-height: var(--l-20);
-  color: var(--text-primary);
-  border-bottom: var(--hair) solid var(--border-subtle);
-}
-
-.sa-doc-lines li:last-child {
-  border-bottom: 0;
-}
-
-.sa-doc-qty {
-  flex-shrink: 0;
-  margin-inline-start: auto;
-  color: var(--text-secondary);
-}
-
 @media (max-width: 599px) {
   .sa-doc-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1293,6 +1267,12 @@ a.sa-fault-thumb:focus-visible {
   padding: var(--space-5);
 }
 
+/* The product carries a tile that has no photo of its own, so it stands large enough to read as one. */
+[data-theme^="minimal"] .sa-doc-grid .sa-doc-thumb .sa-thumb {
+  width: 96px;
+  height: 96px;
+}
+
 [data-theme^="minimal"] .sa-doc-note {
   font-size: 20px;
   line-height: 28px;
@@ -1309,11 +1289,17 @@ a.sa-fault-thumb:focus-visible {
   font-weight: 600;
 }
 
-/* The panel: the photo whole, never cropped, then the facts as a list. */
-[data-theme^="minimal"] .sa-doc-panel .sa-panel-title {
-  overflow: visible;
-  overflow-wrap: anywhere;
-  white-space: normal;
+/* The panel is a sheet like a product's. The photo stays whole, whichever way the phone was held. */
+[data-theme^="minimal"] .sa-doc-sheet .sa-panel-heading:has(> :is(.sa-doc-photo, .sa-doc-photo-wait)) {
+  padding: var(--space-2) var(--space-2) var(--space-5);
+}
+
+[data-theme^="minimal"] .sa-doc-sheet .sa-panel-heading > :not(.sa-doc-photo, .sa-doc-photo-wait) {
+  margin-inline: var(--space-2);
+}
+
+[data-theme^="minimal"] .sa-doc-sheet .sa-panel-heading > :is(.sa-doc-photo, .sa-doc-photo-wait) {
+  margin-block-end: var(--space-4);
 }
 
 [data-theme^="minimal"] .sa-doc-photo {
@@ -1322,86 +1308,28 @@ a.sa-fault-thumb:focus-visible {
   width: fit-content;
   max-width: 100%;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: calc(var(--group-radius) - var(--space-2));
   background: none;
+}
+
+[data-theme^="minimal"] .sa-panel-body > .sa-doc-photo {
   box-shadow: var(--shadow-card);
 }
 
 [data-theme^="minimal"] .sa-doc-photo img {
   width: auto;
   max-width: 100%;
-  max-height: 60vh;
+  max-height: 80vh;
 }
 
 [data-theme^="minimal"] .sa-doc-photo-wait {
   flex-shrink: 0;
-  border-radius: var(--radius-md);
+  border-radius: calc(var(--group-radius) - var(--space-2));
 }
 
-[data-theme^="minimal"] .sa-fields.sa-doc-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-[data-theme^="minimal"] .sa-doc-facts > div {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-5);
-  padding-block: 11px;
-}
-
-[data-theme^="minimal"] .sa-doc-facts > div + div {
-  border-top: var(--hair) solid var(--border-subtle);
-}
-
-[data-theme^="minimal"] .sa-doc-facts dt {
-  flex-shrink: 0;
-  margin: 0;
-  font-size: var(--t-14);
-  line-height: var(--l-22);
-}
-
-[data-theme^="minimal"] .sa-doc-facts dd {
-  min-width: 0;
-  overflow: visible;
+[data-theme^="minimal"] .sa-doc-sheet .sa-rows .sa-truncate {
   overflow-wrap: anywhere;
   white-space: normal;
-  text-align: end;
-  font-size: var(--t-15);
-  line-height: var(--l-22);
-}
-
-[data-theme^="minimal"] .sa-doc-lines h3 {
-  margin-block-end: var(--space-1);
-  font-size: var(--t-15);
-  line-height: var(--l-22);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-[data-theme^="minimal"] .sa-doc-lines li {
-  gap: var(--space-3);
-  min-height: 56px;
-  font-size: var(--t-15);
-  line-height: var(--l-22);
-  font-weight: 500;
-}
-
-[data-theme^="minimal"] .sa-doc-lines li .sa-truncate {
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-[data-theme^="minimal"] .sa-doc-qty {
-  font-size: var(--t-13);
-  color: var(--text-tertiary);
-}
-
-[data-theme^="minimal"] .sa-doc-qty .sa-num {
-  font-size: var(--t-17);
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 @supports (corner-shape: squircle) {
@@ -1419,8 +1347,8 @@ a.sa-fault-thumb:focus-visible {
     padding: var(--space-4);
   }
   [data-theme^="minimal"] .sa-doc-grid .sa-doc-thumb .sa-thumb {
-    width: 36px;
-    height: 36px;
+    width: 56px;
+    height: 56px;
   }
   [data-theme^="minimal"] .sa-doc-note {
     -webkit-line-clamp: 3;
@@ -1550,6 +1478,22 @@ a.sa-fault-thumb:focus-visible {
   font-weight: 500;
 }
 
+/* A product's size sits at the end of its name, so the name takes a second line before it is cut. */
+[data-theme^="minimal"] .sa-order-what .sa-truncate {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Below this width a table scrolls, so a long customer must not close the column up on a wrapping name. */
+@media (max-width: 1099px) {
+  [data-theme^="minimal"] .sa-thumbed > .sa-order-what {
+    min-width: 140px;
+  }
+}
+
 .sa-order-more {
   flex-shrink: 0;
   color: var(--text-tertiary);
@@ -1610,6 +1554,11 @@ a.sa-fault-thumb:focus-visible {
   }
 }
 
+/* Three sizes in a row: the figure, the words, and the second lines. */
+[data-theme^="minimal"] .sa-moves .sa-table td {
+  font-size: var(--t-15);
+}
+
 /* The figure is the row's largest thing, what happened a word under it, as stock reads on the inventory page. */
 .sa-mv-qty {
   display: flex;
@@ -1668,28 +1617,30 @@ a.sa-fault-thumb:focus-visible {
     padding-inline-end: var(--space-3);
   }
   .sa-mv-source {
-    max-width: 124px;
-  }
-}
-
-/* Phones hide the columns after the quantity, so the quantity takes the row's far edge and the rule stops where the text does.
-   A name is what a phone row is for: it takes two lines before it is cut, and the word under the figure gives up its icon. */
-@media (max-width: 600px) {
-  [data-theme^="minimal"] .sa-moves .sa-table td:nth-child(2) {
-    padding-inline-end: var(--inset);
-  }
-  [data-theme^="minimal"] .sa-moves .sa-table tbody tr:not(:last-child) td:nth-child(2)::after {
-    inset-inline-end: var(--inset);
+    max-width: 140px;
   }
   [data-theme^="minimal"] .sa-moves .sa-table td {
     padding-block: var(--space-3);
   }
-  [data-theme^="minimal"] .sa-moves .sa-cell-primary {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    white-space: normal;
-    overflow-wrap: anywhere;
+}
+
+/* Phones hide the columns after the quantity, so the quantity takes the row's far edge and the rule stops where the text does.
+   The word under the figure gives up its icon, for the name's sake. */
+@media (max-width: 600px) {
+  [data-theme^="minimal"] .sa-moves .sa-table td:nth-child(2),
+  [data-theme^="minimal"] .sa-inventory-table .sa-table td:nth-child(4) {
+    padding-inline-end: var(--inset);
+  }
+  [data-theme^="minimal"] .sa-moves .sa-table tbody tr:not(:last-child) td:nth-child(2)::after,
+  [data-theme^="minimal"] .sa-inventory-table .sa-table tbody tr:not(:last-child) td:nth-child(4)::after {
+    inset-inline-end: var(--inset);
+  }
+  /* A figure's cell runs left to right, so its far edge is its start. */
+  [data-theme^="minimal"] .ov-recent .sa-table td:nth-child(3) {
+    padding-inline-start: var(--inset);
+  }
+  [data-theme^="minimal"] .ov-recent .sa-table tbody tr:not(:last-child) td:nth-child(3)::after {
+    inset-inline-start: var(--inset);
   }
   .sa-mv-qty .sa-move svg {
     display: none;
@@ -1755,4 +1706,14 @@ a.sa-fault-thumb:focus-visible {
   .app-filters .sa-select {
     flex: 1 1 calc(50% - var(--space-2));
   }
+}
+
+/* The room for a search's clear button is only needed once there is something to clear. A phone needs it for the words. */
+[data-theme^="minimal"] .sa-search .sa-input:placeholder-shown {
+  padding-inline-end: var(--space-3);
+}
+
+/* A product shot on white would be the brightest thing on a dark sheet, brighter than the figures beside it. */
+[data-theme="minimal-dark"] .sa-thumb {
+  filter: brightness(0.86);
 }

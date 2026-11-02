@@ -7,6 +7,7 @@
  * isn't asked about until the line is answered: the two may be the same goods.
  */
 
+import type { Json } from "@/lib/database.types";
 import type { Candidate } from "@/lib/worker/match";
 
 type OrderedLine = { id: string; product_id: string; qty: number };
@@ -56,6 +57,12 @@ export function rowChanges(rows: OrderRow[], wasRead: boolean): OrderChange[] {
     ? [{ product_id: r.productId, name: null, read: r.read, delivered: r.left ?? r.ordered, manager: false }]
     : []));
 }
+
+/** A difference as the order keeps it: post_order adds the order's own figure. */
+export type KeptChange = OrderChange & { ordered: number };
+
+/** What an order closed with. Only post_order writes the column, so its shape holds. */
+export const keptChanges = (order: { changes: Json }): KeptChange[] => (Array.isArray(order.changes) ? (order.changes as unknown as KeptChange[]) : []);
 
 /** How many exceptions, as a phrase. */
 export const changeWords = (n: number) => (n === 1 ? "חריגה אחת" : `${n} חריגות`);

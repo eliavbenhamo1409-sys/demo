@@ -1,0 +1,334 @@
+/* מחסן: the model with a narrow door beside it. The rail stands on the door, the tags and the controls stand in the
+   world, and the shared .m3d-* parts are spoken here in this language. map3d.css stays their bones. */
+
+/* ── The door: a head that stays and a ledger that scrolls under it ── */
+.mh-app[data-route="map"] { --mh-clear: var(--mh-side); }
+.mh-app[data-route="map"] .mh-stage { overflow-x: clip; }
+
+/* The plan on its shorter canvas, and what stands on it in the same box. 0.84 keeps the camera inside its reach. */
+.mh-app:has(.mh-wh[data-plan]) .mh-world {
+  --mh-plan: min(100dvh, calc((100vw - var(--mh-rail) - var(--mh-clear)) * 0.84));
+  .mh-twin, .mh-wh-tags { position: absolute; inset: calc((100dvh - var(--mh-plan)) / 2) 0 auto; height: var(--mh-plan); }
+  .mh-wh-tags { display: block; pointer-events: none; }
+}
+.mh-app:has(.mh-wh[data-plan]) .mh-world:fullscreen { --mh-plan: 100dvh; }
+
+/* A walk is stepping into the model: the door slides away with all it holds, and the rail stays. */
+.mh-app:has(.mh-wh[data-walk]) { --mh-clear: 0px; }
+.mh-app:has(.mh-wh[data-walk]) .mh-door { --door-x: 100%; }
+
+.mh-wh {
+  --mh-gutter: clamp(22px, 1.7vw, 34px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-width: 0;
+  padding: 34px var(--mh-gutter) 0;
+  transition: transform var(--dur-plate) var(--spring-plate);
+}
+.mh-wh[data-walk] { transform: translateX(100%); }
+
+.mh-wh-head { flex: none; }
+.mh-wh-head[hidden] { display: none; }
+.mh-wh-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+/* Three figures that lead the screen, each a name over its number. Pointing at one asks the model where; pressing it opens its list. */
+.mh-wh-figures { display: flex; align-items: flex-end; justify-content: space-between; gap: 0 20px; margin: 18px 0 0; }
+.mh-wh-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: clamp(30px, 2.5vw, 40px);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  text-align: start;
+  cursor: pointer;
+}
+.mh-wh-figure .mh-label { letter-spacing: 0; font-weight: 400; white-space: nowrap; }
+.mh-wh-figure:hover .mh-label { color: var(--text-primary); }
+
+[data-theme^="merhav"] {
+  .mh-wh > .sa-tabs { flex: none; margin-top: 16px; gap: clamp(16px, 1.5vw, 24px); }
+  .mh-wh .m3d-editbar { flex: none; margin-top: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border-strong); }
+
+  /* ── The rail: bleeds to the door's edge, so the carriage rides in the gutter ── */
+  .mh-wh .m3d-rail {
+    flex: 1;
+    gap: 28px;
+    margin-inline: calc(var(--mh-gutter) * -1);
+    padding: 0 var(--mh-gutter) 40px;
+    scrollbar-width: thin;
+  }
+
+  /* ── The ledger ── */
+  .m3d-ledger { --ledger-columns: minmax(0, 1fr) 42px 56px 60px; flex: none; }
+  .m3d-ledger.is-count { --ledger-columns: minmax(0, 1fr) 42px 74px 48px; }
+  .m3d-ledger.is-value { --ledger-columns: 42px minmax(0, 1fr) 88px 50px; }
+  .m3d-ledger-head, .m3d-line { column-gap: 10px; }
+  .m3d-ledger-head {
+    z-index: 2;
+    height: 36px;
+    padding: 0;
+    background: var(--bg-surface);
+    border-bottom: 0;
+    box-shadow: 0 1px 0 var(--border-strong);
+    font-weight: 400;
+    color: var(--text-tertiary);
+  }
+  .m3d-group { padding: 20px 0 6px; font-size: var(--t-15); line-height: var(--l-21); font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
+  .m3d-count { margin-inline-start: 8px; font-size: var(--t-14); font-weight: 400; color: var(--text-tertiary); }
+
+  .m3d-line {
+    position: relative;
+    min-height: var(--row);
+    padding-block: 7px;
+    transition: none;
+  }
+  .m3d-line:hover:not(:disabled) { background: none; }
+  .m3d-line-product { gap: 10px; }
+  .m3d-line-name { font-size: var(--t-14); line-height: var(--l-20); }
+  .m3d-line-unit { font-size: var(--t-13); line-height: var(--l-18); }
+  .m3d-line-place { font-size: var(--t-14); }
+  .m3d-line-place.is-none { color: var(--text-quiet); }
+  .m3d-line-qty { font-size: 18px; line-height: 24px; font-weight: 400; letter-spacing: -0.01em; }
+  .m3d-line-percent, .m3d-move-qty { font-size: 18px; line-height: 24px; font-weight: 400; letter-spacing: -0.01em; }
+  .m3d-num-short { font-weight: 600; }
+  .m3d-line-when { color: var(--text-secondary); }
+  .m3d-note { color: var(--text-tertiary); }
+
+  /* The same carriage as the rail, in the gutter of the row you are on. */
+  :is(.m3d-line, .m3d-row, .m3d-shelf)::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--mh-gutter) * -1);
+    top: 50%;
+    width: 3px;
+    height: 24px;
+    margin-top: -12px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--dur-press) var(--spring-press);
+  }
+  :is(.m3d-line, .m3d-row, .m3d-shelf):is(:hover, .is-lit)::before { transform: scaleY(1); }
+  .m3d-line:disabled::before { display: none; }
+
+  /* A scale, not a battery: how far along the minimum, with the minimum cut across it. */
+  .m3d-line-share .sa-meter { direction: ltr; width: 100%; height: 4px; border-radius: 0; background: var(--bg-muted); overflow: visible; }
+  .sa-meter > i { border-radius: 0; background: var(--text-primary); }
+  .sa-meter.is-low > i { background: var(--warning); }
+  .sa-meter.is-out > i { background: var(--danger); }
+  .sa-meter::after { inset-block: -3px; width: 1px; margin-inline-start: 0; background: var(--text-primary); }
+
+  /* ── Rows outside the ledger ── */
+  .m3d-list { flex: none; }
+  .m3d-rail > .m3d-list { padding-block-start: 6px; }
+  .m3d-row { min-height: var(--row); gap: 10px; padding-block: 7px; }
+  .m3d-list > .m3d-row:last-child { border-bottom: 1px solid var(--border-subtle); }
+  .m3d-row-end { font-size: var(--t-14); color: var(--text-secondary); }
+  .m3d-row-end .sa-num { font-size: 18px; color: var(--text-primary); }
+  .m3d-move-meta { margin-block-start: 0; gap: 6px; }
+  .m3d-move-meta .sa-move svg { display: none; }
+  .m3d-move-meta > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sa-order-line { position: relative; }
+
+  .m3d-empty { padding-block: 18px; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-tertiary); }
+  .m3d-section { flex: none; gap: 0; }
+  .m3d-section > .sa-section-title { padding-bottom: 10px; border-bottom: 1px solid var(--border-strong); }
+
+  .m3d-all { flex: none; }
+  .m3d-all > summary { min-height: 46px; font-size: var(--t-15); font-weight: 500; color: var(--text-primary); border-top: 1px solid var(--border-strong); border-radius: 0; }
+  .m3d-all > summary svg { stroke-width: 1.5; }
+
+  /* An order opens in place: its lines are the shelves it takes from. */
+  .m3d-order.is-open { padding-block-end: 12px; }
+  .m3d-order.is-open > .m3d-row { border-bottom: 1px solid var(--border-subtle); }
+
+  /* ── One object: the rail turned to it ── */
+  .m3d-card { flex: none; gap: 18px; animation: mh-settle var(--dur-settle) var(--spring-settle) both; }
+  .m3d-card-back { align-self: flex-start; margin-inline-start: -10px; margin-block-end: -10px; }
+  .m3d-card-head .sa-panel-eyebrow { margin: 0; font-size: clamp(38px, 3.4vw, 56px); line-height: 1.12; font-weight: 200; letter-spacing: -0.03em; color: var(--text-primary); }
+  .m3d-card-title { font-size: var(--t-16); line-height: var(--l-22); font-weight: 500; }
+  .m3d-card-sub { color: var(--text-tertiary); }
+
+  /* The rack as it stands, top shelf first. One grid for the head and the lines. */
+  .m3d-shelves { --shelf-columns: 54px minmax(0, 1fr) 52px 56px 14px; display: flex; flex-direction: column; }
+  :is(.m3d-shelf-head, .m3d-shelf) { display: grid; grid-template-columns: var(--shelf-columns); column-gap: 10px; align-items: center; }
+  .m3d-shelf-head { height: 36px; font-size: var(--t-13); color: var(--text-tertiary); box-shadow: 0 1px 0 var(--border-strong); }
+  .m3d-shelf { position: relative; width: 100%; min-height: var(--row); padding-block: 7px; text-align: start; border-bottom: 1px solid var(--border-subtle); }
+  .m3d-shelf.is-empty { min-height: 44px; grid-template-columns: 54px minmax(0, 1fr) auto; }
+  .m3d-shelf-no { font-size: var(--t-14); font-weight: 500; color: var(--text-secondary); }
+  .m3d-shelf-free { font-size: var(--t-14); color: var(--text-quiet); }
+  .m3d-shelf-add { font-size: var(--t-14); font-weight: 500; color: var(--accent-text); }
+  .m3d-shelf.is-picked::before { transform: scaleY(1); }
+  .m3d-shelf-chevron { color: var(--text-quiet); stroke-width: 1.5; transition: transform var(--dur-move) var(--spring-move); }
+  .m3d-shelfblock.is-open .m3d-shelf-chevron { transform: rotate(180deg); }
+  .m3d-shelfblock.is-open > .m3d-shelf::before { transform: scaleY(1); }
+  .m3d-shelfblock.is-open > .m3d-item { padding-block: 14px 18px; border-bottom: 1px solid var(--border-subtle); }
+
+  .m3d-item { gap: 14px; }
+  .m3d-item + .m3d-item { padding-block-start: 18px; border-top-color: var(--border-subtle); }
+  .m3d-name { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; }
+  .m3d-qty { color: var(--text-tertiary); }
+  .m3d-qty .sa-num { font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.02em; }
+
+  /* The figures of one product: the same three as the head of the page, one size down. */
+  .m3d-card .m3d-summary { display: flex; justify-content: space-between; gap: 16px; border: 0; border-radius: 0; background: none; }
+  .m3d-card .m3d-summary > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; padding: 0; }
+  .m3d-card .m3d-summary > div + div { border: 0; }
+  .m3d-card .m3d-summary dd { font-size: 28px; line-height: 34px; font-weight: 300; letter-spacing: -0.02em; }
+  .m3d-card .m3d-summary dt { color: var(--text-tertiary); }
+
+  .m3d-actions { gap: 8px; }
+  .m3d-actions-wide { grid-column: 1 / -1; }
+
+  /* ── The editor ── */
+  .m3d-form { gap: 14px; }
+  .m3d-form-sizes { gap: 10px 12px; }
+
+  /* ── In the world: nothing here has a frame, and what stands on the model keeps clear of the door ── */
+  .mh-world > .m3d-labels { z-index: 1; }
+  .mh-world .m3d-fail { top: 24px; inset-inline: calc(var(--mh-clear) + 24px) auto; }
+  .mh-world .m3d-corner { top: 20px; inset-inline: calc(var(--mh-clear) + 24px) 24px; align-items: flex-start; transition: inset-inline-start var(--dur-plate) var(--spring-plate); }
+  .mh-world .m3d-walkhint { bottom: 72px; inset-inline: calc(var(--mh-clear) + 24px) auto; color: var(--text-secondary); }
+  .mh-app[data-route="map"] .mh-back { top: 68px; left: 24px; }
+  .m3d-bar { flex-basis: 280px; }
+  .m3d-bar .sa-search .sa-input,
+  .m3d-views { height: var(--control-md); border-radius: var(--radius-md); background: var(--bg-raised); box-shadow: var(--shadow-md); }
+  .m3d-bar .sa-search .sa-input:hover:not(:disabled) { box-shadow: var(--shadow-md); }
+  .m3d-bar .sa-search .sa-input:focus { background: var(--bg-raised); box-shadow: inset 0 -2px 0 var(--accent), var(--shadow-lift); }
+  .m3d-results { border: 0; border-radius: var(--radius-lg); background: var(--bg-raised); box-shadow: var(--shadow-lift); animation: mh-settle var(--dur-press) var(--spring-press) both; }
+
+  /* One small plate on the model: the way out when there is one, the whole screen, and how to look. */
+  .m3d-views { gap: 14px; padding-inline: 14px; }
+  .m3d-views > .sa-btn-primary { margin-inline-start: -11px; height: 30px; border-radius: var(--radius-sm); }
+  .m3d-views > .sa-btn-secondary { height: 100%; padding-inline: 0; background: none; box-shadow: none; color: var(--text-tertiary); font-weight: 400; }
+  .m3d-views > .sa-btn-secondary:hover:not(:disabled) { background: none; box-shadow: none; color: var(--text-primary); }
+  .m3d-views .sa-appearance-opts { gap: 14px; height: 100%; }
+  .m3d-views .sa-appearance-opt { height: 100%; }
+
+  /* The tags: the same ones as on סקירה, standing on a stem. */
+  .m3d-labels { transition: none; }
+  .m3d-label { transition: opacity var(--dur-2) var(--ease); }
+  .m3d-tag {
+    bottom: 24px;
+    gap: 7px;
+    padding: 3px 9px 4px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-lift);
+    transform: translateX(round(-50%, 1px));
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .m3d-label::after {
+    content: "";
+    position: absolute;
+    left: -0.5px;
+    bottom: 0;
+    width: 1px;
+    height: 24px;
+    background: var(--text-primary);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .m3d-tag-code { font-weight: 600; color: var(--text-primary); }
+  .m3d-tag-more { font-weight: 400; color: var(--text-secondary); }
+  .m3d-label.is-selected .m3d-tag { box-shadow: 0 0 0 1.5px var(--accent), var(--shadow-lift); }
+
+  /* A place with nothing to say keeps its name, on the model itself. */
+  .m3d-label.is-quiet:not(.is-attention, .is-hover, .is-selected, .is-shelf)::after { display: none; }
+  .m3d-label.is-quiet:not(.is-attention, .is-hover, .is-selected, .is-shelf) .m3d-tag { bottom: 4px; padding: 0 5px; background: color-mix(in srgb, var(--bg-surface) 74%, transparent); box-shadow: none; }
+  .m3d-label.is-quiet:not(.is-attention, .is-hover, .is-selected, .is-shelf) .m3d-tag-code { font-weight: 500; color: var(--text-secondary); }
+
+  /* A name lying on the floor needs no stem. */
+  .m3d-label.is-flat::after { display: none; }
+  .m3d-label.is-flat .m3d-tag { bottom: 0; transform: translate(round(-50%, 1px), 50%); }
+
+  /* What the model lets recede, its tags recede with. */
+  .m3d-label.is-faded { opacity: 0.45; }
+  .m3d-labels:has(.m3d-label.is-faded) .m3d-label.is-shelf:not(.is-selected) { opacity: 0; pointer-events: none; }
+
+  /* A shelf from afar says one figure, on a short stem. */
+  .m3d-label.is-shelf .m3d-tag { bottom: 14px; padding: 1px 7px 2px; font-weight: 600; }
+  .m3d-label.is-shelf::after { height: 14px; }
+
+  /* Pointed at from afar it says what stands there, high enough to leave the shelf in view. */
+  .m3d-label.is-shelf .m3d-tag:has(.m3d-tag-name) {
+    bottom: 40px;
+    width: max-content;
+    max-width: 220px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 8px;
+    padding: 4px 10px 5px;
+    white-space: normal;
+    text-align: center;
+    font-size: var(--t-14);
+    line-height: var(--l-20);
+    font-weight: 500;
+  }
+  .m3d-label.is-shelf:has(.m3d-tag-name)::after { height: 40px; }
+  .m3d-tag-name { flex-basis: 100%; font-weight: 500; color: var(--text-primary); }
+  .m3d-tag-shelf { font-size: var(--t-13); font-weight: 400; color: var(--text-tertiary); white-space: nowrap; }
+  .m3d-tag-qty { font-size: var(--t-13); font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
+
+  /* Close up every shelf speaks on the shelf itself: what stands there and how much, in one line, because the stock is
+     what is being looked at and the ledger stands right beside it. The row you point at says the rest. */
+  .mh-wh-tags { display: contents; }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf::after { display: none; }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf .m3d-tag { bottom: 0; transform: translate(round(-50%, 1px), 50%); }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf:not(.is-selected) .m3d-tag:has(.m3d-tag-name) { max-width: 176px; flex-wrap: nowrap; padding: 1px 8px 2px; font-size: var(--t-13); line-height: var(--l-18); }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf:not(.is-selected) .m3d-tag-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf:not(.is-selected) .m3d-tag-shelf { display: none; }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf.is-quiet:not(.is-selected) .m3d-tag-qty ~ .ltr { display: none; }
+  .mh-wh-tags[data-close] .m3d-label.is-shelf.is-quiet .m3d-tag:not(:has(.m3d-tag-name)) { padding: 1px 8px 2px; background: color-mix(in srgb, var(--bg-surface) 74%, transparent); box-shadow: none; font-weight: 400; color: var(--text-secondary); }
+
+  /* ── Time along the floor: left to right, today at the end. A tick up is goods in, a tick down is goods out ── */
+  .mh-world .m3d-ruler {
+    position: absolute;
+    left: 24px;
+    right: calc(var(--mh-clear) + 24px);
+    bottom: 12px;
+    height: 44px;
+    padding: 0;
+    column-gap: 16px;
+    font-size: var(--t-14);
+    line-height: var(--l-20);
+    transition: right var(--dur-plate) var(--spring-plate);
+  }
+  .m3d-track::before { background: var(--border-strong); }
+  .m3d-ticks { top: calc(50% - 5px); }
+  .m3d-ticks .is-in { stroke: var(--qty-in); transform: translateY(-5px); }
+  .m3d-ticks .is-out { stroke: var(--danger-text); transform: translateY(5px); }
+  .m3d-ticks path { stroke: var(--text-quiet); }
+
+  /* The same carriage again, riding the time. */
+  .m3d-handle { width: 3px; height: 22px; margin-inline-start: -1.5px; border-radius: 0; background: var(--accent); cursor: ew-resize; }
+  .m3d-when {
+    bottom: calc(100% + 2px);
+    padding: 3px 9px 4px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-lift);
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+    font-weight: 500;
+  }
+  .m3d-edge { color: var(--text-secondary); }
+}
+
+/* The drawer stands on the far side here and its shelf answers between the two doors, so the veil stays on the door. */
+[data-theme^="merhav"] .mh-app[data-route="map"] .app-scrim { left: calc(100vw - var(--mh-rail) - var(--mh-side)); right: var(--mh-rail); }
+
+/* Fullscreen is the world alone: nothing to keep clear of. */
+.mh-world:fullscreen { --mh-clear: 0px; }

@@ -1,0 +1,266 @@
+/* ניהול מלאי — the third style in the settings dialog (ids minimal-bokeh, minimal-bokeh-dark; the ids stay so a saved choice stays).
+   Its language is called Mill: one matte plate, deep industrial green, graphite, and figures you could pick up.
+   These are its tokens. The rules that use them live next to this file and only run under html[data-mill], which MillShell sets,
+   so the worker's phone and the catalogue read these colours and none of these shapes.
+   The ids start with "minimal", so minimal.css still reaches this style; everything here is written to win against it, never to edit it. */
+
+[data-theme="minimal-bokeh"] {
+  color-scheme: light;
+  /* The plate: a rich warm white, never paper-white. The sheet is one step nearer the light. */
+  --bg-canvas: #f3f2ec;
+  --bg-surface: #fbfaf6;
+  --bg-muted: #e7e5dc;
+  --bg-hover: #ecebe3;
+  --bg-thumb: #fbfaf6;
+  --bg-fill: rgba(22, 26, 27, 0.055);
+  --bg-fill-hover: rgba(22, 26, 27, 0.1);
+  --bg-selected: rgba(14, 79, 60, 0.085);
+  --bg-glass: rgba(243, 242, 236, 0.88);
+  --bg-sheet: #fbfaf6;
+  --bg-inverse: #161a1b;
+  --bg-inverse-hover: #2b3031;
+  --bg-scrim: rgba(20, 24, 23, 0.22);
+  --text-primary: #141819;
+  --text-secondary: #33393a;
+  --text-tertiary: #515757;
+  --text-quiet: #666b69;
+  --text-disabled: #989a93;
+  --text-inverse: #f6f5f0;
+  --border-subtle: #e4e2d8;
+  --border-base: #d8d6ca;
+  --border-strong: #bfbdb1;
+  --border-control: #8a8b83;
+  --border-inverse: #141819;
+  /* Green is what you can press and where you are. It is deep enough to read as a material. */
+  --accent: #0e4f3c;
+  --accent-hover: #0a3d2e;
+  --on-accent: #f6f5f0;
+  --accent-text: #0e5a44;
+  --success: #17835d;
+  --on-success: #ffffff;
+  --success-text: #0d6749;
+  --qty-in: #0d6749;
+  --chart-in: #17835d;
+  --chart-out: #141819;
+  --chart-other: #cfcdc1;
+  --chart-track: #e2e0d6;
+  --chart-bar: #b9b7aa;
+  --chart-today: #0e4f3c;
+  --selection: rgba(14, 79, 60, 0.16);
+  --warning: #c67b12;
+  --on-warning: #ffffff;
+  --warning-text: #8f5607;
+  --danger: #c5331f;
+  --on-danger: #ffffff;
+  --danger-text: #aa2a18;
+  --short: #d8120a;
+  --focus: #0e5a44;
+  /* The series, darkest first, so a chart still reads printed in grey. */
+  --viz-1: #0e4f3c;
+  --viz-2: #4b585c;
+  --viz-3: #b28b52;
+  --viz-4: #7da494;
+  --viz-5: #b45a3c;
+  --viz-other: #cfcdc1;
+  --viz-grid: #e4e2d8;
+  /* Light comes from one side of the room (see useDaylight); these are what it throws. */
+  --sun-x: 0;
+  --sun-warm: 0;
+  --shadow-sm: 0 0 0 1px rgba(22, 26, 27, 0.05), calc(var(--sun-x) * 1px) 1px 2px rgba(22, 26, 27, 0.07);
+  --shadow-card: none;
+  --shadow-lift: 0 0 0 1px rgba(22, 26, 27, 0.05), calc(var(--sun-x) * 2px) 6px 14px -6px rgba(22, 26, 27, 0.16);
+  --shadow-md: 0 0 0 1px rgba(22, 26, 27, 0.07), calc(var(--sun-x) * 3px) 4px 10px -2px rgba(22, 26, 27, 0.08), calc(var(--sun-x) * 8px) 18px 44px -12px rgba(22, 26, 27, 0.2);
+  --shadow-modal: 0 0 0 1px rgba(22, 26, 27, 0.08), calc(var(--sun-x) * 4px) 6px 16px -4px rgba(22, 26, 27, 0.1), calc(var(--sun-x) * 14px) 32px 72px -18px rgba(22, 26, 27, 0.32);
+  --focus-ring: 0 0 0 1px var(--bg-canvas), 0 0 0 3px var(--focus);
+  --focus-ring-danger: 0 0 0 1px var(--bg-canvas), 0 0 0 3px var(--danger);
+  /* The rail: green anodised plate. */
+  --rail-bg: #0c3a2d;
+  --rail-edge: #082a21;
+  --rail-ink: #f2f4ee;
+  --rail-quiet: #a9c0b4;
+  --rail-rule: rgba(242, 244, 238, 0.14);
+  --rail-mark: #e9f0e7;
+  --rail-hover: rgba(242, 244, 238, 0.07);
+}
+
+[data-theme="minimal-bokeh-dark"] {
+  color-scheme: dark;
+  --bg-canvas: #131615;
+  --bg-surface: #1a1e1c;
+  --bg-muted: #2a2f2c;
+  --bg-hover: #212623;
+  --bg-thumb: #2a2f2c;
+  --bg-fill: rgba(236, 240, 233, 0.07);
+  --bg-fill-hover: rgba(236, 240, 233, 0.12);
+  --bg-selected: rgba(92, 196, 156, 0.14);
+  --bg-glass: rgba(19, 22, 21, 0.88);
+  --bg-sheet: #1a1e1c;
+  --bg-inverse: #eceee7;
+  --bg-inverse-hover: #ffffff;
+  --bg-scrim: rgba(0, 0, 0, 0.5);
+  --text-primary: #eceee7;
+  --text-secondary: #c9ccc4;
+  --text-tertiary: #a6aaa2;
+  --text-quiet: #92968e;
+  --text-disabled: #666a63;
+  --text-inverse: #141819;
+  --border-subtle: #272c29;
+  --border-base: #323833;
+  --border-strong: #454c46;
+  --border-control: #6c736c;
+  --border-inverse: #eceee7;
+  --accent: #2c8a6c;
+  --accent-hover: #37a07e;
+  --on-accent: #06140f;
+  --accent-text: #6fcfa8;
+  --success: #3fbf8c;
+  --on-success: #06281a;
+  --success-text: #6fcfa8;
+  --qty-in: #6fcfa8;
+  --chart-in: #3fbf8c;
+  --chart-out: #eceee7;
+  --chart-other: #4a504b;
+  --chart-track: #2a2f2c;
+  --chart-bar: #545b55;
+  --chart-today: #6fcfa8;
+  --selection: rgba(92, 196, 156, 0.26);
+  --warning: #e3a33b;
+  --on-warning: #241803;
+  --warning-text: #eab65f;
+  --danger: #ee6a55;
+  --on-danger: #2b0e08;
+  --danger-text: #f28f7e;
+  --short: #ff5147;
+  --focus: #6fcfa8;
+  --viz-1: #5ec7a0;
+  --viz-2: #a7b1b4;
+  --viz-3: #cfa86c;
+  --viz-4: #7aa897;
+  --viz-5: #dd7f60;
+  --viz-other: #4a504b;
+  --viz-grid: #272c29;
+  --sun-x: 0;
+  --sun-warm: 0;
+  --shadow-sm: 0 0 0 1px rgba(236, 240, 233, 0.07);
+  --shadow-card: none;
+  --shadow-lift: 0 0 0 1px rgba(236, 240, 233, 0.1), 0 6px 14px -6px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 0 0 1px rgba(236, 240, 233, 0.09), 0 18px 44px -12px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 0 0 1px rgba(236, 240, 233, 0.1), 0 32px 72px -18px rgba(0, 0, 0, 0.8);
+  --focus-ring: 0 0 0 1px var(--bg-canvas), 0 0 0 3px var(--focus);
+  --focus-ring-danger: 0 0 0 1px var(--bg-canvas), 0 0 0 3px var(--danger);
+  --rail-bg: #0d2c23;
+  --rail-edge: #081d17;
+  --rail-ink: #eceee7;
+  --rail-quiet: #9db3a8;
+  --rail-rule: rgba(236, 240, 233, 0.12);
+  --rail-mark: #cfe6d9;
+  --rail-hover: rgba(236, 240, 233, 0.06);
+}
+
+/* Geometry and motion, one set for both. */
+[data-theme^="minimal-bokeh"] {
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --hair: 1px;
+  --shell-gap: 0px;
+  --topbar: 0px;
+  --sidebar: 228px;
+  --content: 1640px;
+  --gap: 24px;
+  --inset: 0px;
+  --panel: 480px;
+  --font-sans: 'IBM Plex Sans Hebrew', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-mono: var(--font-sans);
+
+  /* The type: Hebrew in sizes, figures in steps of their own. */
+  --m-display: clamp(64px, 7.4vw, 136px);
+  --m-title: clamp(34px, 3vw, 44px);
+  --m-figure-l: clamp(30px, 2.5vw, 44px);
+  --m-figure-m: 26px;
+  --m-figure-s: 19px;
+
+  /* Springs, sampled to linear(): a critically damped glide, and a snap with three percent of overshoot. No bounce anywhere. */
+  --ease: linear(0, 0.025, 0.085, 0.167, 0.258, 0.352, 0.443, 0.528, 0.605, 0.673, 0.733, 0.784, 0.827, 0.863, 0.893, 0.918, 0.937, 0.953, 0.966, 0.975, 0.983, 0.988, 0.993, 0.996, 1);
+  --m-snap: linear(0, 0.044, 0.148, 0.282, 0.423, 0.557, 0.676, 0.776, 0.856, 0.917, 0.962, 0.993, 1.013, 1.024, 1.029, 1.03, 1.028, 1.024, 1.02, 1.016, 1.012, 1.009, 1.006, 1.004, 1);
+  --m-settle: linear(0, 0.039, 0.129, 0.241, 0.357, 0.467, 0.565, 0.651, 0.723, 0.783, 0.831, 0.87, 0.901, 0.925, 0.944, 0.958, 0.969, 0.977, 0.983, 0.988, 0.991, 0.994, 0.996, 0.997, 1);
+  --dur-1: 90ms;
+  --dur-2: 240ms;
+  --dur-3: 340ms;
+  --m-roll: 560ms;
+
+  /* The scale: every level in the product is read off the same ruled ticks. */
+  --m-tick: 4px;
+  --m-tick-on: var(--accent);
+  --m-tick-off: var(--border-base);
+}
+
+/* drawers.css asks each theme for these by exact id. A drawer here is one plate, so sheet and group are the same surface. */
+[data-theme^="minimal-bokeh"] :is(.app-panelHost, .sa-modal:has(.sa-settings-group)) { --sheet: var(--bg-surface); --group: var(--bg-surface); }
+[data-theme="minimal-bokeh-dark"] :is(.sa-dot-accent, .sa-badge-accent .sa-badge-dot) { background: var(--accent-text); }
+/* A studio photo is shot on white. In the dark there is nothing to multiply against, so it comes down a step instead. */
+[data-theme="minimal-bokeh-dark"] :is(.sa-thumb, .sa-product-photo) { filter: brightness(0.84); }
+:root[data-theme="minimal-bokeh-dark"][data-mill] :is(.sa-thumb, .ml-cmd-preview img) { mix-blend-mode: normal; border-radius: var(--radius-sm); }
+
+/* The floor, for the 3D stage here and on the overview. palette.ts needs --scene-sky and --scene-sun, or it draws nothing. */
+[data-theme="minimal-bokeh"] {
+  --scene-canvas: var(--bg-canvas);
+  --scene-slab: #d8d4c6;
+  --scene-grid: #cbc7b7;
+  --scene-wall: #ebe8df;
+  --scene-wall-top: #f9f8f3;
+  --scene-column: #a4a59b;
+  --scene-door: #4b6a60;
+  --scene-upright: #24332f;
+  --scene-shelf: #8b8f86;
+  --scene-shelf-edge: #0f5a45;
+  --scene-machine: #2d4840;
+  --scene-machine-detail: #e8e5da;
+  --scene-lane: #c5c9b6;
+  --scene-lane-mark: #d9bb62;
+  --scene-zone: #cfd6c6;
+  --scene-zone-line: #b7a155;
+  --scene-ground-shadow: 0.13;
+  --scene-sky: 1.5;
+  --scene-sun: 2.25;
+  --scene-sun-color: #fff6e6;
+  --scene-bounce: #cdc7b6;
+  --scene-studio: 0.45;
+  --scene-metal: 0.2;
+  --scene-contact: 0.3;
+  --scene-forklift: #c99a36;
+  --scene-stock-natural: #b6c6ce;
+  --scene-stock-black: #39434a;
+  --scene-stock-white: #f1f2ec;
+  --scene-stock-bronze: #b28450;
+  --scene-stock-roll: #2c363b;
+  --scene-stock-canister: #3a897c;
+  --scene-stock-carton: #d2b482;
+}
+[data-theme="minimal-bokeh-dark"] {
+  --scene-canvas: var(--bg-canvas);
+  --scene-slab: #2b302c;
+  --scene-grid: #39403a;
+  --scene-wall: #3a413b;
+  --scene-wall-top: #4c544e;
+  --scene-column: #5e665f;
+  --scene-door: #4d6a60;
+  --scene-upright: #8f9b95;
+  --scene-shelf: #79807a;
+  --scene-shelf-edge: #3fa583;
+  --scene-machine: #6c7a73;
+  --scene-machine-detail: #c6cbc2;
+  --scene-lane: #39403a;
+  --scene-lane-mark: #98926f;
+  --scene-zone: #363e38;
+  --scene-zone-line: #98926f;
+  --scene-ground-shadow: 0.5;
+  --scene-sky: 1;
+  --scene-sun: 1.6;
+  --scene-sun-color: #ffffff;
+  --scene-bounce: #4a524c;
+  --scene-studio: 0.3;
+  --scene-metal: 0.7;
+  --scene-contact: 0.5;
+}

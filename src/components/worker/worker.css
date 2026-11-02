@@ -22,10 +22,10 @@
 .wk-root .sa-empty-hint { font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); }
 .wk-root .sa-settings-link { min-height: 48px; }
 
-/* The settings dialog is portaled to body, outside .wk-root. */
-.sa-modal .sa-appearance-opt { min-height: 48px; min-width: 64px; font-size: var(--t-16); }
-.sa-modal .sa-appearance-label { font-size: var(--t-16); }
-.sa-modal .sa-btn-icon.sa-btn-sm { width: 48px; height: 48px; }
+/* The settings dialog is portaled to body, outside .wk-root. This sheet stays loaded after the worker is left, so each rule says whose dialog it is. */
+body:has(.wk-root) .sa-modal .sa-appearance-opt { min-height: 48px; min-width: 64px; font-size: var(--t-16); }
+body:has(.wk-root) .sa-modal .sa-appearance-label { font-size: var(--t-16); }
+body:has(.wk-root) .sa-modal .sa-btn-icon.sa-btn-sm { width: 48px; height: 48px; }
 
 /* ── Thinking ──────────────────────────────────────────────── */
 .wk-thinking { display: inline-flex; align-items: center; gap: var(--space-3); }
@@ -155,6 +155,9 @@
 .wk-sheet-list .wk-row.is-quiet { margin-top: var(--space-4); padding-inline: var(--space-4); border-width: 1px; border-color: var(--border-strong); border-radius: var(--radius-lg); }
 .wk-sheet-lead { margin: 0; font-size: var(--t-16); line-height: var(--l-24); color: var(--text-secondary); }
 .wk-sheet-form { display: flex; flex-direction: column; gap: var(--space-4); flex: 1; }
+/* On a short screen a form scrolls, so its button is never out of reach. Its parts keep their height, or the title would slide under the first field. */
+.wk-sheet-inner:has(> .wk-sheet-form) { overflow-y: auto; }
+.wk-sheet-inner:has(> .wk-sheet-form) > * { flex-shrink: 0; }
 .wk-sheet-actions { display: flex; flex-direction: column; margin-top: auto; }
 .wk-head { display: flex; align-items: center; gap: var(--space-2); min-height: var(--touch); }
 .wk-head-title { font-size: 20px; line-height: 28px; font-weight: 600; margin: 0; flex: 1; min-width: 0; }
@@ -218,7 +221,8 @@
 .wk-shot-text span { display: block; font-size: var(--t-15); line-height: var(--l-22); font-weight: 400; color: var(--text-secondary); }
 
 /* ── Summary: a ruled record, heading above the first rule ─── */
-.wk-sum { border-bottom: var(--hair) solid var(--border-base); }
+/* Scoped: the overview's weekly chart has its own .wk-sum, and this sheet stays loaded after the worker is left. */
+.wk-root .wk-sum { border-bottom: var(--hair) solid var(--border-base); }
 .wk-sum-heading { margin: 0; padding-bottom: var(--space-2); font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); }
 .wk-sum-row { display: flex; align-items: baseline; gap: var(--space-3); padding-block: var(--space-3); border-top: var(--hair) solid var(--border-base); }
 .wk-sum-row:has(.sa-thumb) { align-items: center; }
@@ -226,7 +230,7 @@
 .wk-sum-v { flex: 1; min-width: 0; font-size: var(--t-17); line-height: var(--l-24); font-weight: 500; overflow-wrap: anywhere; }
 .wk-sum-sub { display: block; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); font-weight: 400; }
 .wk-sum-qty { font-size: 20px; line-height: var(--l-24); font-weight: 500; font-variant-numeric: tabular-nums; unicode-bidi: isolate; flex-shrink: 0; }
-.wk-sum-unit { font-size: var(--t-15); font-weight: 400; color: var(--text-secondary); margin-inline-start: 4px; }
+.wk-root .wk-sum-unit { font-size: var(--t-15); font-weight: 400; color: var(--text-secondary); margin-inline-start: 4px; }
 .wk-sum-photo { display: block; width: 96px; height: 72px; object-fit: cover; border-radius: var(--radius-md); border: var(--hair) solid var(--border-base); }
 
 /* ── Done screen: same margins as a step, the button where the last one was ── */
@@ -318,6 +322,8 @@
    Everything above is the classic phone and the base of this one; nothing below reaches the classic style. */
 [data-theme^="minimal"] .wk-root { --wk-enter: var(--ease); --wk-sheet: var(--ease); --wk-point: var(--accent); font-size: 18px; line-height: 26px; }
 [data-theme^="minimal"] .wk-root svg { stroke-width: 1.6; }
+/* The settings dialog's close mark, at the size of this app's other icons. */
+[data-theme^="minimal"] body:has(.wk-root) .sa-modal .sa-btn-icon.sa-btn-sm svg { width: 22px; height: 22px; stroke-width: 1.6; }
 
 /* The large title, and the one short line under it. */
 [data-theme^="minimal"] :is(.wk-greet, .wk-title, .wk-done-title, .wk-head-title, .wk-scan-title) { font-size: 34px; line-height: 42px; font-weight: 700; overflow-wrap: anywhere; }
@@ -337,14 +343,18 @@
 [data-theme^="minimal"] :is(.wk-group > .wk-row + .wk-row, .wk-group > .wk-sum-row + .wk-sum-row, .wk-who-row + .wk-who-row, .wk-read + .wk-read, .wk-suggest button + button, .wk-recent-item:nth-child(n + 3), .wk-line > .wk-qty-row, .wk-line > .wk-row, .wk-line .wk-group > .wk-row:first-child)::before { content: ""; position: absolute; top: 0; inset-inline: var(--wk-rule, var(--space-4)) 0; height: var(--hair); background: var(--border-base); pointer-events: none; }
 
 /* ── Home ──────────────────────────────────────────────────── */
-[data-theme^="minimal"] .wk-home { gap: 0; padding-top: calc(var(--space-2) + env(safe-area-inset-top)); padding-bottom: max(var(--space-4), env(safe-area-inset-bottom)); }
+[data-theme^="minimal"] .wk-home { gap: 0; padding-top: calc(var(--space-2) + env(safe-area-inset-top)); padding-bottom: max(var(--space-4), env(safe-area-inset-bottom)); animation: none; }
+/* The screen arrives once, its surfaces one after another, as the admin's pages do. */
+[data-theme^="minimal"] .wk-home > * { animation: sa-enter 420ms var(--ease) backwards; }
+[data-theme^="minimal"] .wk-home > :nth-child(n + 4) { animation-delay: 40ms; }
+[data-theme^="minimal"] .wk-home > :nth-child(n + 5) { animation-delay: 80ms; }
 [data-theme^="minimal"] .wk-sys { min-height: 36px; border-bottom: 0; }
 [data-theme^="minimal"] .wk-sys-name { font-size: 17px; line-height: 24px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-live { font-size: 17px; line-height: 24px; color: var(--text-primary); font-weight: 600; }
 [data-theme^="minimal"] .wk-greet { margin: var(--space-1) 0 0; }
 [data-theme^="minimal"] .wk-sub { margin-top: 2px; }
-[data-theme^="minimal"] :is(.wk-actions, .wk-home > .wk-stack, .wk-home > .wk-hint) { margin-top: var(--space-6); }
-[data-theme^="minimal"] .wk-actions { margin-bottom: var(--space-6); }
+[data-theme^="minimal"] :is(.wk-actions, .wk-home > .wk-stack) { margin-top: var(--space-6); }
+[data-theme^="minimal"] :is(.wk-actions, .wk-home > .wk-hint) { margin-bottom: var(--space-6); }
 [data-theme^="minimal"] .sa-bigaction { min-height: 108px; padding: var(--space-4) var(--space-5); transition: background-color var(--dur-1) linear; }
 [data-theme^="minimal"] .sa-bigaction:active { transition-duration: 0ms; }
 [data-theme^="minimal"] .sa-bigaction + .sa-bigaction::before { inset-inline-start: 66px; }
@@ -366,13 +376,19 @@
 
 /* ── Navigation bar: back, and the steps beside it, quiet ──── */
 [data-theme^="minimal"] .wk-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); padding: env(safe-area-inset-top) max(var(--space-4), calc(50% - var(--worker) / 2 + var(--space-4))) 0; background: var(--bg-glass); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
+/* The rule and the glass arrive once content passes under the bar. They start from clear, because a page too short to scroll runs no timeline at all. The blur comes with them: at rest its saturation would tint the desk blue. */
+@supports (animation-timeline: scroll()) {
+  @keyframes wk-edge { to { background-color: var(--bg-glass); border-bottom-color: var(--border-base); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); } }
+  [data-theme^="minimal"] .wk-root .wk-bar { background: transparent; border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; animation: wk-edge linear both; animation-timeline: scroll(root block); animation-range: 0 24px; }
+}
 [data-theme^="minimal"] .wk-bar-top { width: auto; max-width: none; min-height: 56px; margin-inline: 0; flex-shrink: 0; }
 [data-theme^="minimal"] .wk-progress { width: 176px; max-width: none; margin-inline: 0; gap: 6px; }
 [data-theme^="minimal"] .wk-progress:has(> :nth-child(4)) { width: 244px; }
 [data-theme^="minimal"] .wk-progress-step { gap: 3px; }
 [data-theme^="minimal"] .wk-progress-line { height: 4px; border-radius: var(--radius-full); background: var(--bg-fill); }
 [data-theme^="minimal"] .wk-progress-line::after { border-radius: inherit; transition: transform var(--dur-3) var(--ease); }
-[data-theme^="minimal"] .wk-progress-label { font-size: 14px; line-height: 18px; }
+/* Still to come, but on the desk, where the quiet tier no longer clears 4.5:1. */
+[data-theme^="minimal"] .wk-progress-label { font-size: 16px; line-height: 20px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-back { gap: 0; padding-inline: 0 var(--space-3); margin-inline-start: -5px; color: var(--accent-text); font-size: 19px; line-height: 26px; transition: opacity var(--dur-1) linear; }
 [data-theme^="minimal"] .wk-back svg { width: 28px; height: 28px; stroke-width: 2; }
 [data-theme^="minimal"] .wk-back:active { background: none; opacity: 0.6; transition-duration: 0ms; }
@@ -401,11 +417,12 @@
 [data-theme^="minimal"] .wk-row-end svg { width: 22px; height: 22px; color: var(--text-quiet); stroke-width: 2; }
 [data-theme^="minimal"] svg.wk-row-end { width: 26px; height: 26px; color: var(--accent-text); stroke-width: 2; }
 /* A row still waiting for its choice is something to press. */
-[data-theme^="minimal"] .wk-section > .wk-row:not(.is-selected):not(.is-quiet) .wk-row-title { color: var(--accent-text); }
+[data-theme^="minimal"] :is(.wk-section, .wk-line) > .wk-row:not(.is-selected):not(.is-quiet) .wk-row-title { color: var(--accent-text); }
 [data-theme^="minimal"] .wk-row.is-quiet { background: var(--bg-surface); color: var(--accent-text); }
 [data-theme^="minimal"] .wk-row.is-quiet:active { background: var(--bg-muted); }
 [data-theme^="minimal"] :is(.wk-group, .wk-line) .wk-row { position: relative; background: none; border-radius: 0; box-shadow: none; }
 [data-theme^="minimal"] :is(.wk-group, .wk-line) .wk-row:active { background: var(--bg-muted); }
+[data-theme^="minimal"] .wk-row:focus-visible { box-shadow: var(--focus-ring); }
 /* The group clips, so inside one the focus ring is drawn inward. */
 [data-theme^="minimal"] :is(.wk-group, .wk-line, .wk-who) :is(.wk-row, .wk-recent-item, .sa-settings-link):focus-visible, [data-theme^="minimal"] .sa-bigaction:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
 [data-theme^="minimal"] .wk-textlink, [data-theme^="minimal"] .wk-line-remove { font-size: 17px; line-height: 24px; font-weight: 500; color: var(--accent-text); text-decoration: none; }
@@ -434,6 +451,18 @@
 [data-theme^="minimal"] .wk-root .sa-qty svg { width: 24px; height: 24px; stroke-width: 2; }
 [data-theme^="minimal"] .wk-root .sa-qty input { width: 76px; border: 0; border-radius: var(--radius-md); font-size: 28px; line-height: 34px; font-weight: 600; }
 [data-theme^="minimal"] .wk-root .sa-qty input:focus { background: none; }
+/* A long figure widens its field, and the row wraps, instead of running under a key. */
+@supports (field-sizing: content) {
+  [data-theme^="minimal"] .wk-root .sa-qty input { field-sizing: content; width: auto; min-width: 76px; }
+}
+/* The stepper takes what its label leaves, and a line of its own when that is too little: never short at one end of a wrapped row. */
+[data-theme^="minimal"] .wk-qty-row > div { flex: 1 0 auto; }
+[data-theme^="minimal"] .wk-root .wk-qty-row .sa-qty { flex: 1; }
+[data-theme^="minimal"] .wk-root .wk-qty-row .sa-qty input { flex: 1 0 auto; }
+/* The width most phones have: narrower keys keep a figure beside its label. */
+@media (max-width: 380px) {
+  [data-theme^="minimal"] .wk-root .sa-qty button { width: 52px; }
+}
 
 /* ── One line of a receive or a delivery: a card of its own ─── */
 [data-theme^="minimal"] .wk-lines { gap: var(--space-4); }
@@ -497,33 +526,34 @@
 [data-theme^="minimal"] .wk-head { flex-wrap: wrap; gap: 0; min-height: 56px; }
 [data-theme^="minimal"] .wk-head .wk-back { min-height: 56px; }
 [data-theme^="minimal"] .wk-head-title { flex-basis: 100%; }
-/* The list scrolls to the edge of the screen, so the shadow of its card is never cut. */
+/* The list scrolls to the edge of the screen, so the shadow of its card is never cut and no row stops on a line above bare desk. */
+[data-theme^="minimal"] .wk-sheet-inner:has(> .wk-sheet-list) { padding-bottom: 0; }
 [data-theme^="minimal"] .wk-sheet-list { margin-inline: calc(var(--space-4) * -1); padding: var(--space-1) var(--space-4) max(var(--space-6), env(safe-area-inset-bottom)); }
 [data-theme^="minimal"] .wk-sheet-list .wk-row, [data-theme^="minimal"] .wk-sheet-list .wk-row.is-quiet { padding-inline: var(--space-4); border: 0; }
 /* A long name takes its whole line; the stock waits under it, beside the code, its figure at full strength. */
 [data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; row-gap: 2px; }
-[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) > .wk-row-body { display: contents; }
-[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) .wk-row-title { grid-column: 1 / -1; }
-[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) .wk-row-sub { margin-top: 0; }
-[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end):has(> .sa-thumb) { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--space-3); }
-[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end) > .sa-thumb { grid-row: 1 / span 2; align-self: center; }
-[data-theme^="minimal"] .wk-sheet-list .wk-row:has(> span.wk-row-end):has(> .sa-thumb) .wk-row-title { grid-column: 2 / -1; }
-[data-theme^="minimal"] .wk-sheet-list .wk-row > .wk-row-end .sa-num { font-weight: 600; color: var(--text-primary); }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end) > .wk-row-body { display: contents; }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end) .wk-row-title { grid-column: 1 / -1; }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end) .wk-row-sub { margin-top: 0; }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end):has(> .sa-thumb) { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--space-3); }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end) > .sa-thumb { grid-row: 1 / span 2; align-self: center; }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row:has(> span.wk-row-end):has(> .sa-thumb) .wk-row-title { grid-column: 2 / -1; }
+[data-theme^="minimal"] .wk-sheet-list .wk-group > .wk-row > .wk-row-end .sa-num { font-weight: 600; color: var(--text-primary); }
 [data-theme^="minimal"] .wk-pick-context strong { font-weight: 600; }
 [data-theme^="minimal"] .wk-sheet-form { gap: var(--space-5); }
-[data-theme^="minimal"] .wk-sheet-actions .wk-why { color: var(--text-primary); }
+[data-theme^="minimal"] .wk-sheet-form .sa-label { padding-inline: var(--space-4); }
 
 /* ── Summary: grouped, the figure at the end of its row ─────── */
-[data-theme^="minimal"] .wk-sum { display: flex; flex-direction: column; gap: var(--space-2); border-bottom: 0; }
+[data-theme^="minimal"] .wk-root .wk-sum { display: flex; flex-direction: column; gap: var(--space-2); border-bottom: 0; }
 [data-theme^="minimal"] .wk-sum-heading { padding-bottom: 0; }
 [data-theme^="minimal"] .wk-sum-row { position: relative; min-height: 60px; padding: 15px var(--space-4); border-top: 0; }
 [data-theme^="minimal"] .wk-sum-k { width: 72px; font-size: 17px; line-height: 26px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-sum-v { font-size: 19px; line-height: 26px; font-weight: 600; }
 [data-theme^="minimal"] .wk-sum-sub { margin-top: 2px; font-size: 17px; line-height: 24px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-sum-qty { font-size: 24px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
-[data-theme^="minimal"] .wk-sum-unit { font-size: 17px; font-weight: 500; letter-spacing: 0; color: var(--text-tertiary); }
+[data-theme^="minimal"] .wk-root .wk-sum-unit { font-size: 17px; font-weight: 500; letter-spacing: 0; color: var(--text-tertiary); }
 /* Goods in are green and goods out red, on the figure and nowhere else. */
-[data-theme^="minimal"] .wk-sum-n { direction: ltr; unicode-bidi: isolate; }
+[data-theme^="minimal"] .wk-root .wk-sum-n { direction: ltr; unicode-bidi: isolate; }
 [data-theme^="minimal"] .wk-sum-qty.is-in .wk-sum-n { color: var(--qty-in); }
 [data-theme^="minimal"] .wk-sum-qty.is-out .wk-sum-n { color: var(--danger-text); }
 [data-theme^="minimal"] .wk-sum-qty.is-in .wk-sum-n::before { content: "+"; }
@@ -531,6 +561,8 @@
 [data-theme^="minimal"] .wk-sum-photo { width: 104px; height: 78px; border: 0; box-shadow: var(--shadow-sm); }
 
 /* ── Bottom bar: the one next step, above the home indicator ── */
+/* Where the keyboard shrinks the page the bar rides on it, so a field must stop clear of both bars. */
+[data-theme^="minimal"]:has(.wk-foot) { scroll-padding-block: calc(72px + env(safe-area-inset-top)) calc(140px + env(safe-area-inset-bottom)); }
 [data-theme^="minimal"] .wk-foot { background: color-mix(in srgb, var(--bg-surface) 88%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
 [data-theme^="minimal"] .wk-why { justify-content: center; margin-bottom: 10px; font-size: 18px; line-height: 24px; font-weight: 600; text-align: center; color: var(--warning-text); }
 [data-theme^="minimal"] .wk-why-mark { display: none; }
@@ -549,8 +581,9 @@
 /* ── Document reading: the look only, the pass itself stays as it is ── */
 [data-theme^="minimal"] .wk-scan-head, [data-theme^="minimal"] .wk-scan-stage, [data-theme^="minimal"] .wk-scan-panel { padding-inline: var(--space-4); }
 [data-theme^="minimal"] .wk-doc { box-shadow: var(--shadow-md); border-radius: var(--radius-md); }
-[data-theme^="minimal"] .wk-scan-stage-row { font-size: 19px; line-height: 26px; }
+[data-theme^="minimal"] .wk-scan-stage-row { font-size: 19px; line-height: 26px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-scan-tick { color: var(--success-text); }
+[data-theme^="minimal"] .wk-scan-tick svg { width: 20px; height: 20px; stroke-width: 2; }
 [data-theme^="minimal"] .wk-scan-spin { border-color: var(--bg-muted); border-top-color: var(--text-primary); }
 [data-theme^="minimal"] .wk-scan-status { font-size: 17px; line-height: 24px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-scan-cancel { font-size: 19px; color: var(--accent-text); }
@@ -572,7 +605,7 @@
 [data-theme^="minimal"] .wk-scan-actions { padding-inline: var(--space-4); }
 /* On the sheet's white the quiet camera button is a fill, like every secondary button. */
 [data-theme^="minimal"] .wk-scan-actions .wk-photo { min-height: 60px; box-shadow: none; }
-[data-theme^="minimal"] .wk-scan-actions .wk-photo.is-quiet { background: var(--bg-fill); color: var(--text-primary); }
+[data-theme^="minimal"] .wk-scan-actions .wk-photo.is-quiet { justify-content: center; background: var(--bg-fill); color: var(--text-primary); }
 [data-theme^="minimal"] .wk-scan-actions .wk-photo.is-quiet:active { background: var(--bg-fill-hover); }
 
 @supports (corner-shape: squircle) {
@@ -581,3 +614,5 @@
 
 /* A pull at the top must not reload the page and lose a half-done flow. */
 html:has(.wk-root) { overscroll-behavior-y: contain; }
+/* The fixed bar covers the strip on a flow, so there it could only add a dead scroll. */
+body:has(:is(.wk-foot, .wk-done)) .sys-switch { display: none; }

@@ -8,14 +8,14 @@ import type { MachineModel, MapObject, MapObjectKind, MapPoint, ShelfSide } from
 
 export { RACK_LEVELS };
 
-/** The line of the walls: an L of 2,000 m². */
+/** The line of the walls: an L of about 4,800 m². */
 export const FOOTPRINT: readonly MapPoint[] = [
   [0, 0],
-  [60, 0],
-  [60, 20],
-  [40, 20],
-  [40, 40],
-  [0, 40],
+  [100, 0],
+  [100, 26],
+  [64, 26],
+  [64, 60],
+  [0, 60],
 ];
 
 /** Where goods come in and where orders go out, as a real movement's line draws them. */
@@ -31,22 +31,31 @@ const RACK_HEAD = 0.6;
 
 const RACK_SIZE = { w: 6.4, d: 3.4, h: 5.4 };
 
+/** Six aisles of five racks. F belongs to the floor areas, so the aisles skip it. */
+const AISLES = ["A", "B", "C", "D", "E", "G"];
+const RACK_ROWS = [10, 23, 33, 43, 53];
+
 export const DEFAULT_OBJECTS: readonly MapObject[] = [
-  ...["A", "B", "C"].flatMap((aisle, i) =>
-    [10, 23, 33].map((z, j): MapObject => {
+  ...AISLES.flatMap((aisle, i) =>
+    RACK_ROWS.map((z, j): MapObject => {
       const id = `${aisle}-${j + 1}`;
       return { id, kind: "rack", name: `מתקן ${id}`, x: 8 + i * 9, z, ...RACK_SIZE, levels: RACK_LEVELS };
     }),
   ),
-  { id: "M-01", kind: "machine", model: "saw", name: "מסור דו־ראשי לפרופילים", note: "חיתוך פרופילים לפי מידה", x: 47, z: 7, w: 6, d: 4, h: 2.3 },
-  { id: "M-02", kind: "machine", model: "cnc", name: "מרכז עיבוד CNC", note: "קידוח וכרסום פרופילים ולוחות", x: 55, z: 14, w: 6, d: 4, h: 2.6 },
-  { id: "M-03", kind: "machine", model: "press", name: "מכבש כיפוף לוחות", note: "כיפוף לוחות", x: 45, z: 15, w: 5, d: 2, h: 2.4 },
+  { id: "M-01", kind: "machine", model: "saw", name: "מסור דו־ראשי לפרופילים", note: "חיתוך פרופילים לפי מידה", x: 72, z: 7, w: 6, d: 4, h: 2.3 },
+  { id: "M-02", kind: "machine", model: "cnc", name: "מרכז עיבוד CNC", note: "קידוח וכרסום פרופילים ולוחות", x: 83, z: 7, w: 6, d: 4, h: 2.6 },
+  { id: "M-03", kind: "machine", model: "press", name: "מכבש כיפוף לוחות", note: "כיפוף לוחות", x: 93, z: 7, w: 5, d: 2, h: 2.4 },
+  { id: "M-04", kind: "machine", model: "saw", name: "מסור חיתוך ללוחות", note: "חיתוך לוחות ופלטות לפי מידה", x: 72, z: 19, w: 6, d: 4, h: 2.3 },
+  { id: "M-05", kind: "machine", model: "cnc", name: "לייזר סיבים 6 קילוואט", note: "חיתוך לוחות עד 20 מ״מ", x: 83, z: 19, w: 6, d: 4, h: 2.6 },
+  { id: "M-06", kind: "machine", model: "press", name: "גיליוטינה 3 מטר", note: "גזירת לוחות עד 6 מ״מ", x: 93, z: 19, w: 5, d: 2, h: 2.4 },
   { id: "F-01", kind: "floor", name: "אחסון רצפה F-01", x: 8, z: 16.5, w: 6, d: 3, h: 1.1 },
   { id: "F-02", kind: "floor", name: "אחסון רצפה F-02", x: 21, z: 16.5, w: 7, d: 2.7, h: 1.1 },
   { id: "F-03", kind: "floor", name: "אחסון רצפה F-03", x: 51, z: 3, w: 7, d: 2.6, h: 0.9 },
+  { id: "F-04", kind: "floor", name: "גלילי אלומיניום F-04", x: 35, z: 16.5, w: 8, d: 3.4, h: 1.4 },
+  { id: "F-05", kind: "floor", name: "גלילים צבועים F-05", x: 48, z: 16.5, w: 6, d: 3.4, h: 1.4 },
   { id: RECEIVING_ZONE, kind: "zone", name: "קליטת סחורה", x: 8, z: 3, w: 11, d: 4, h: 0.2 },
   { id: DISPATCH_ZONE, kind: "zone", name: "הזמנות פתוחות", x: 23, z: 3, w: 11, d: 4, h: 0.2 },
-  { id: "Z-03", kind: "zone", name: "אריזה ומשלוח", x: 35, z: 31, w: 6, d: 8, h: 0.2 },
+  { id: "Z-03", kind: "zone", name: "אריזה ומשלוח", x: 38, z: 3, w: 11, d: 4, h: 0.2 },
 ];
 
 /** Height of a rack's deck. Level is zero based, 0 is the bottom. */

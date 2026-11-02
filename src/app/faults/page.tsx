@@ -13,6 +13,7 @@ import { ProductThumb } from "@/components/app/Viz";
 import { Button, Card, Count, EmptyState, PageHead, Select, Showing, Tabs, Toolbar, type SelectOption } from "@/components/ui";
 import { fmtAge, fmtDay, fmtName, fmtQty } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
+import { DEFAULT_OBJECTS } from "@/lib/map3d/layout";
 
 type Tab = "open" | "resolved";
 
@@ -205,7 +206,7 @@ function FaultsInner() {
                 ) : f.product_id ? (
                   <span className="sa-fault-meta">מוצר שנמחק</span>
                 ) : (
-                  <span className="sa-fault-meta">ללא מוצר</span>
+                  <span className="sa-fault-meta">{DEFAULT_OBJECTS.find((o) => o.id === f.asset)?.name ?? f.asset ?? "ללא מוצר"}</span>
                 )}
                 <span className="sa-fault-meta">
                   {meta.map((m, i) => (

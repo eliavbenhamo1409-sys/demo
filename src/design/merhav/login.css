@@ -1,0 +1,159 @@
+/* The login, which stands outside the shell: the door, closed. One tall plate on the bare surface, with the same straight
+   edge and the same shadow as inside, so the first thing you touch is the thing that later slides away from the warehouse. */
+
+/* fonts.ts runs with the shell, which the login never mounts, so its class is missing here. Its @font-face rules are loaded either way. */
+html[data-theme^="merhav"]:not([class*="__variable"]) { --mh-plex: "IBM Plex Sans Hebrew"; }
+
+[data-theme^="merhav"] {
+  body:has(.app-login) { --door: min(clamp(500px, 30vw, 620px), 100%); --door-pad: clamp(28px, 5vw, 80px); }
+
+  .app-login {
+    --control-md: 46px;
+    display: flex;
+    min-height: 100dvh;
+    padding: 0;
+    overflow: clip;
+    background: var(--bg-canvas);
+  }
+
+  /* It slides out of the housing and stops: the one movement, and nothing waits for it. */
+  .app-login-column {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    width: var(--door);
+    max-width: none;
+    min-height: 100dvh;
+    margin: 0;
+    padding: clamp(36px, 15vh, 160px) var(--door-pad) 72px;
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-door);
+    animation: mh-door-in var(--dur-plate) var(--spring-plate) both;
+  }
+
+  .app-login-brand {
+    margin: 0 0 clamp(36px, 8vh, 80px);
+    font-size: clamp(38px, 3.4vw, 64px);
+    line-height: 1.12;
+    font-weight: 200;
+    letter-spacing: -0.02em;
+  }
+
+  /* LoginScreen plays this itself, since height auto cannot animate. Plate, not move: a spring that overshoots would clip. */
+  .app-login-sheet { transition: height var(--dur-plate) var(--spring-plate); }
+  .app-login-step { animation: mh-fade var(--dur-3) var(--ease) both; }
+  .app-login-sheet .sa-page-title { font-size: var(--t-17); line-height: var(--l-24); font-weight: 500; letter-spacing: 0; }
+  .app-login-sheet .sa-page-sub { margin-top: 2px; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+
+  .app-login-form { gap: 20px; margin-top: 22px; }
+  .app-login .sa-field { gap: 7px; }
+  .app-login .sa-label { font-size: var(--t-13); line-height: var(--l-18); }
+  .app-login :is(.sa-input, .sa-select-trigger) { font-size: var(--t-16); padding-inline: 12px; }
+
+  /* The same well as a form, with the same line that lights. */
+  .app-login :is(.sa-control, .sa-select-trigger) { position: relative; }
+  .app-login .sa-input:focus { box-shadow: inset 0 -1px 0 var(--border-control); }
+  .app-login .sa-input.is-error, .app-login .sa-input.is-error:focus { box-shadow: inset 0 0 0 1px var(--danger), inset 0 -2px 0 var(--danger); }
+  .app-login .sa-control::after, .app-login-phone::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform var(--dur-move) var(--spring-move);
+    pointer-events: none;
+  }
+  .app-login .sa-control:focus-within::after { transform: scaleX(1); }
+  .app-login .sa-control:has(.is-error)::after { background: var(--danger); }
+
+  /* Country and number are one phone number, so they share one well. It is drawn apart, so a message under it stays outside it. */
+  .app-login-phone { gap: 0; }
+  .app-login-phone::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--control-md);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: var(--bg-sunken);
+    box-shadow: inset 0 -1px 0 var(--border-control);
+    pointer-events: none;
+    transition: box-shadow var(--dur-2) var(--ease);
+  }
+  .app-login-phone:hover::before { box-shadow: inset 0 -1px 0 var(--text-primary); }
+  .app-login-phone::after { bottom: auto; top: calc(var(--control-md) - 2px); }
+  .app-login-phone .sa-select-trigger,
+  .app-login-phone .sa-select-trigger.is-open,
+  .app-login-phone .sa-select-trigger:hover:not(:disabled),
+  .app-login-phone .sa-input,
+  .app-login-phone .sa-input:hover:not(:disabled),
+  .app-login-phone .sa-input:focus,
+  .app-login-phone .sa-input.is-error,
+  .app-login-phone .sa-input.is-error:focus { background: none; box-shadow: none; }
+  .app-login-phone .sa-select-chevron { color: var(--text-quiet); }
+  .app-login-number .sa-control::before { content: ""; position: absolute; inset-block: 12px; inset-inline-start: 0; width: 1px; background: var(--border-strong); }
+  .app-login-phone:has(.sa-input:focus)::after, .app-login-phone:has(.sa-select-trigger.is-open)::after { transform: scaleX(1); }
+  .app-login-phone:has(.sa-input.is-error)::before { box-shadow: inset 0 0 0 1px var(--danger), inset 0 -2px 0 var(--danger); }
+  .app-login-phone:has(.sa-input.is-error)::after { background: var(--danger); }
+  .app-login-phone .sa-control::after { display: none; }
+  .app-login-phone .sa-menu { top: calc(var(--control-md) + 6px); }
+
+  .app-login-secret .sa-input { padding-inline-end: 72px; }
+  .app-login-secret .sa-control-end { inset-inline-end: 12px; }
+  .app-login .sa-input:-webkit-autofill,
+  .app-login .sa-input:-webkit-autofill:focus { box-shadow: 0 0 0 100px var(--bg-sunken) inset; -webkit-text-fill-color: var(--text-primary); }
+
+  /* ── The code: six places on one line, the real input invisible over them ── */
+  :is(.app-login, .sa-modal) .app-login-code .sa-input:not(.sa-textarea) { height: 88px; padding: 0; color: transparent; -webkit-text-fill-color: transparent; caret-color: transparent; }
+  .app-login-code .sa-input::selection { background: none; }
+  .app-login-code .sa-input:-webkit-autofill { -webkit-text-fill-color: transparent; }
+  .app-login-code .sa-control-end { inset: 0; justify-content: center; pointer-events: none; }
+  .app-login-slots { display: flex; direction: ltr; width: 100%; justify-content: center; gap: 8px; padding-inline: 12px; }
+  .app-login-slot { flex: 0 1 44px; height: 60px; font-size: 48px; line-height: 60px; font-weight: 200; letter-spacing: -0.02em; }
+  .app-login-slot:empty::after { inset-inline: 6px; bottom: 10px; height: 1px; border-radius: 0; background: var(--border-control); transition: background-color var(--dur-2) var(--ease); }
+  .app-login-code .sa-input:focus ~ .sa-control-end .is-next::after { height: 2px; background: var(--accent); }
+  .app-login-digit { animation: mh-fade var(--dur-2) var(--ease) both; }
+
+  /* An error is a sentence in its colour. */
+  .app-login .sa-notice { padding: 0; box-shadow: none; }
+  .app-login .sa-error { font-size: var(--t-14); line-height: var(--l-20); }
+
+  .app-login-submit { height: 48px; margin-top: 4px; font-size: var(--t-15); }
+  .app-login-links { min-height: 24px; }
+
+  /* The way to the other two systems stays, at the foot of the door. */
+  body:has(.app-login) .sys-switch {
+    display: flex;
+    justify-content: flex-start;
+    gap: 18px;
+    width: var(--door);
+    padding: 0 var(--door-pad) 18px;
+    background: none;
+    border: 0;
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+    animation: mh-door-in var(--dur-plate) var(--spring-plate) both;
+  }
+  body:has(.app-login) .sys-switch a { min-width: 0; min-height: 32px; color: var(--text-tertiary); }
+  body:has(.app-login) .sys-switch a:hover { color: var(--text-primary); }
+  body:has(.app-login) .sys-switch a[aria-current="page"] { color: var(--text-primary); font-weight: 500; }
+  /* A short window, or a phone's keyboard, has no foot to stand it on. */
+  @media (max-height: 640px) {
+    body:has(.app-login) .sys-switch { position: static; }
+  }
+  .app-login .sa-btn-link { color: var(--accent-text); font-size: var(--t-14); line-height: var(--l-20); }
+  .app-login .sa-btn-link:hover:not(:disabled) { color: var(--accent-text); }
+  /* The countdown is read, so it keeps its contrast while disabled. */
+  .app-login .sa-btn-link:disabled { color: var(--text-tertiary); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme^="merhav"] .app-login-column,
+  [data-theme^="merhav"] body:has(.app-login) .sys-switch,
+  [data-theme^="merhav"] .app-login-step,
+  [data-theme^="merhav"] .app-login-digit { animation: none; }
+  [data-theme^="merhav"] .app-login .sa-control::after,
+  [data-theme^="merhav"] .app-login-phone::after { transition: none; }
+}

@@ -1,0 +1,134 @@
+/* Mill's shell: the green rail at the start of the window, the plate beside it, and one surface for search, actions and the way around. */
+
+:root[data-mill] {
+  .ml-shell { display: block; min-height: 100dvh; background: var(--bg-canvas); }
+
+  /* The rail is one piece of anodised plate, edge to edge. Words, no icons: the type is the navigation. */
+  .ml-rail {
+    position: fixed; inset-block: 0; inset-inline-start: 0; z-index: 80; width: var(--sidebar);
+    display: flex; flex-direction: column; padding: var(--space-5) 0 var(--space-3);
+    background: var(--rail-bg); color: var(--rail-ink);
+    box-shadow: inset 1px 0 0 var(--rail-edge), inset -1px 0 0 rgba(255, 255, 255, 0.05);
+    view-transition-name: ml-rail;
+  }
+  .ml-brand { padding-inline: var(--space-6); font-size: 19px; line-height: 26px; font-weight: 600; }
+  .ml-find {
+    display: flex; align-items: center; gap: 10px; width: calc(100% - 2 * var(--space-4)); margin: var(--space-5) var(--space-4) 0; height: 38px; padding-inline: 10px;
+    border: 0; border-radius: var(--radius-md); background: var(--rail-hover); color: var(--rail-quiet); font: inherit; font-size: var(--t-14); text-align: start; cursor: pointer;
+    transition: background-color var(--dur-1) linear, color var(--dur-1) linear;
+  }
+  .ml-find svg { flex-shrink: 0; }
+  .ml-find:hover { background: rgba(242, 244, 238, 0.13); color: var(--rail-ink); }
+  .ml-find:focus-visible { outline-color: var(--rail-ink); }
+
+  .ml-nav { position: relative; display: flex; flex-direction: column; margin-top: var(--space-6); }
+  .ml-nav-group { display: flex; flex-direction: column; }
+  .ml-nav-group + .ml-nav-group { margin-top: var(--space-3); padding-top: var(--space-3); box-shadow: inset 0 1px 0 var(--rail-rule); margin-inline: var(--space-6); }
+  .ml-nav-group + .ml-nav-group .ml-link { padding-inline: 0; }
+  .ml-link {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); height: 42px; padding-inline: var(--space-6);
+    color: var(--rail-quiet); font-size: var(--t-15); font-weight: 500; text-decoration: none; background: none; border: 0; cursor: pointer; font-family: inherit; text-align: start; width: 100%;
+    transition: color var(--dur-1) linear;
+  }
+  .ml-link.is-lead { height: 46px; font-size: 18px; }
+  .ml-link:hover, .ml-link[aria-current="page"] { color: var(--rail-ink); }
+  .ml-link:focus-visible { outline-color: var(--rail-ink); outline-offset: -3px; }
+  .ml-link:active { opacity: 0.7; }
+  .ml-count { font-size: var(--t-13); font-weight: 400; font-variant-numeric: tabular-nums; color: var(--rail-quiet); }
+  /* Where you are: one bright rule on the plate's edge. It slides, it never blinks. */
+  .ml-mark { position: absolute; inset-inline-start: 0; top: 0; width: 3px; height: 26px; background: var(--rail-mark); transform: translateY(var(--y, 0)); transition: transform var(--dur-3) var(--m-snap), opacity var(--dur-1) linear; pointer-events: none; }
+
+  .ml-foot { margin-top: auto; padding-inline: var(--space-6); display: flex; flex-direction: column; }
+  .ml-foot :is(.sa-nav-item, .ml-link) { height: 36px; padding: 0; color: var(--rail-quiet); font-size: var(--t-14); font-weight: 500; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .ml-foot .sa-nav-item > svg { display: none; }
+  .ml-foot :is(.sa-nav-item, .ml-link):hover { color: var(--rail-ink); background: none; }
+  .ml-foot .sa-nav-item.is-active { color: var(--rail-ink); background: none; box-shadow: none; }
+  .ml-live { padding-block: var(--space-2); font-size: var(--t-13); color: var(--rail-mark); }
+
+  .ml-main { min-height: 100dvh; margin-inline-start: var(--sidebar); view-transition-name: ml-main; transition: transform var(--dur-3) var(--ease); }
+  .ml-main > .app-content { max-width: var(--content); margin: 0 auto; padding: var(--space-8) clamp(var(--space-6), 3.2vw, 64px) var(--space-12); }
+
+  /* A drawer opens out of the plate: the page moves aside for it, nothing goes dark. */
+  &:has(.app-panelHost:not([data-closing])) .ml-main { transform: translateX(72px); }
+  .sys-switch { margin-inline-start: var(--sidebar); background: none; border-top: 1px solid var(--border-subtle); }
+  .sys-switch a[aria-current="page"] { font-weight: 500; }
+
+  /* ── The drawer ───────────────────────────────────────────── */
+  .app-scrim { background: rgba(20, 24, 23, 0.06); }
+  .app-panelHost { width: min(var(--panel), 100%); animation-duration: var(--dur-3); animation-timing-function: var(--ease); }
+  @media (min-width: 900px) {
+    .app-panelHost { top: 0; bottom: 0; inset-inline-end: 0; max-width: none; }
+    .app-panelHost > .sa-panel { border-radius: 0; }
+  }
+  .app-panelHost > .sa-panel { background: var(--bg-surface); box-shadow: 1px 0 0 var(--border-strong), calc(var(--sun-x) * 6px) 0 40px -16px rgba(22, 26, 27, 0.22); }
+  .app-panelHost .sa-panel-title { font-size: 26px; line-height: 32px; font-weight: 500; }
+
+  .app-toasts { z-index: 120; }
+
+  /* ── One surface: find anything, do anything, go anywhere ──── */
+  .ml-cmd-scrim { position: fixed; inset: 0; z-index: 110; background: rgba(20, 24, 23, 0.12); animation: sa-fade var(--dur-2) linear; }
+  .ml-cmd {
+    position: fixed; z-index: 111; top: clamp(56px, 13vh, 132px); inset-inline-start: calc(var(--sidebar) + (100vw - var(--sidebar) - min(760px, 100vw - var(--sidebar) - 32px)) / 2); width: min(760px, 100vw - var(--sidebar) - 32px);
+    display: grid; grid-template-columns: minmax(0, 1fr) 0; max-height: min(66vh, 620px); overflow: hidden;
+    background: var(--bg-surface); border-radius: var(--radius-xl); box-shadow: var(--shadow-modal); animation: ml-rise var(--dur-3) var(--m-snap);
+  }
+  .ml-cmd.has-preview { grid-template-columns: minmax(0, 1fr) 248px; }
+  .ml-cmd-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .ml-cmd-field { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-5); border-bottom: 1px solid var(--border-subtle); color: var(--text-tertiary); flex-shrink: 0; }
+  .ml-cmd-field input { flex: 1; min-width: 0; height: 62px; border: 0; outline: 0; background: none; color: var(--text-primary); font: inherit; font-size: 22px; font-weight: 400; }
+  .ml-cmd-field input::placeholder { color: var(--text-quiet); }
+  .ml-cmd-list { overflow-y: auto; overscroll-behavior: contain; padding: var(--space-2); scrollbar-width: thin; }
+  .ml-cmd-group { padding: var(--space-2) var(--space-3) var(--space-1); font-size: var(--t-12); line-height: var(--l-16); color: var(--text-tertiary); }
+  .ml-cmd-item {
+    display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 46px; padding: 5px var(--space-3); border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); font: inherit; text-align: start; cursor: default;
+  }
+  .ml-cmd-item > svg { flex-shrink: 0; color: var(--text-tertiary); }
+  .ml-cmd-item.is-active { background: var(--bg-fill); }
+  .ml-cmd-item .sa-thumb { width: 36px; height: 36px; }
+  .ml-cmd-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .ml-cmd-title { font-size: var(--t-15); line-height: var(--l-20); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ml-cmd-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ml-cmd-fig { font-size: var(--t-16); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .ml-cmd-none { padding: var(--space-8) var(--space-4); text-align: center; color: var(--text-tertiary); }
+  .ml-cmd-preview { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border-inline-start: 1px solid var(--border-subtle); background: var(--bg-canvas); min-width: 0; overflow: hidden; }
+  .ml-cmd-preview img { width: 100%; aspect-ratio: 1; object-fit: contain; mix-blend-mode: multiply; }
+  .ml-cmd-preview dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px var(--space-3); font-size: var(--t-13); }
+  .ml-cmd-preview dt { color: var(--text-tertiary); }
+  .ml-cmd-preview dd { margin: 0; text-align: end; font-weight: 500; }
+  .ml-cmd-preview-figure { font-size: var(--m-figure-l); line-height: 1.05; font-weight: 500; letter-spacing: -0.02em; }
+
+  /* ── Phones: the rail becomes a dock under the thumb ───────── */
+  @media (max-width: 899px) {
+    .ml-rail { inset: auto 0 0 0; width: auto; height: calc(60px + env(safe-area-inset-bottom)); flex-direction: row; align-items: stretch; padding: 0 0 env(safe-area-inset-bottom); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+    .ml-brand, .ml-foot, .ml-find { display: none; }
+    .ml-nav { flex: 1; flex-direction: row; margin: 0; }
+    .ml-nav-group { display: contents; }
+    .ml-nav-group + .ml-nav-group { margin: 0; padding: 0; box-shadow: none; }
+    .ml-link, .ml-link.is-lead, .ml-nav-group + .ml-nav-group .ml-link { flex: 1; justify-content: center; height: auto; padding-inline: 2px; font-size: var(--t-13); white-space: nowrap; }
+    .ml-link.is-spare { display: none; }
+    .ml-link.is-dock { display: flex; }
+    .ml-count { display: none; }
+    .ml-mark { display: none; }
+    .ml-link[aria-current="page"] { box-shadow: inset 0 2px 0 var(--rail-mark); }
+    .ml-main { margin-inline-start: 0; padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+    .ml-main > .app-content { padding: var(--space-5) var(--space-4) var(--space-8); }
+    &:has(.app-panelHost:not([data-closing])) .ml-main { transform: none; }
+    .sys-switch { margin-inline-start: 0; margin-bottom: calc(60px + env(safe-area-inset-bottom)); }
+    .ml-cmd { top: var(--space-3); inset-inline: var(--space-3); width: auto; max-height: calc(100dvh - 92px); }
+    .ml-cmd.has-preview { grid-template-columns: minmax(0, 1fr); }
+    .ml-cmd-preview { display: none; }
+    .ml-cmd-field input { height: 54px; font-size: 18px; }
+    .app-toasts { bottom: calc(68px + env(safe-area-inset-bottom)); }
+  }
+}
+
+/* The way between pages: the rail stays, the plate turns over. */
+html[data-mill]::view-transition-old(root),
+html[data-mill]::view-transition-new(root) { animation: none; }
+html[data-mill]::view-transition-group(ml-rail) { animation: none; z-index: 2; }
+html[data-mill]::view-transition-old(ml-rail) { display: none; }
+html[data-mill]::view-transition-new(ml-rail) { animation: none; }
+html[data-mill]::view-transition-old(ml-main) { animation: ml-page-out 120ms linear both; }
+html[data-mill]::view-transition-new(ml-main) { animation: ml-page-in var(--dur-3) var(--ease) both; }
+@keyframes ml-page-out { to { opacity: 0; } }
+@keyframes ml-page-in { from { opacity: 0; transform: translateY(8px); } }

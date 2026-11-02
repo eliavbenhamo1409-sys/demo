@@ -119,7 +119,8 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
         </div>
         <div className="sa-modal-body">
           <div className="sa-settings-group">
-            <Choice label="סגנון" options={THEME_STYLES} value={style} onChange={(s) => setTheme(joinTheme(s, mode))} />
+            {/* Merhav is the admin's alone, and only the admin passes pages. */}
+            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => s.id !== "merhav")} value={style} onChange={(s) => setTheme(joinTheme(s, mode))} />
             <Choice label="מראה" options={THEME_MODES} value={mode} onChange={(m) => setTheme(joinTheme(style, m))} />
           </div>
           {pages?.length ? (

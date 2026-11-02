@@ -1,0 +1,202 @@
+/* סקירה: the warehouse on the bare surface, the figures beside it, and a sheet that rises over it all. */
+
+html[data-theme^="merhav"] {
+  /* The figures hug the two empty corners of the L, so the model is fitted to nearly the whole stage. */
+  --mh-hero: clamp(400px, 33vw, 700px);
+  --mh-hero-right: clamp(120px, 12vw, 300px);
+  --mh-hero-bottom: 56px;
+  --mh-hero-bleed: 40px;
+}
+
+.mh-ov { position: relative; }
+
+.mh-ov-stage {
+  position: relative;
+  height: 100dvh;
+  min-height: 680px;
+  pointer-events: none;
+  opacity: clamp(0, calc(1 - var(--lift, 0) * 2.6), 1);
+}
+
+/* ── The figures. They stand on the world itself: no card, no panel ── */
+.mh-ov-figures {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--mh-hero);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 40px 0 0;
+  min-width: 0;
+  pointer-events: auto;
+}
+.mh-ov-date { margin: 0 0 clamp(14px, 3vh, 30px); font-size: var(--t-14); color: var(--text-tertiary); }
+
+.mh-ov-worth { display: flex; flex-direction: column; gap: 2px; }
+.mh-ov-worth-n {
+  --room: calc(var(--mh-hero) - 56px);
+  font-size: min(calc(var(--room) / (var(--len, 9) * 0.5 + 0.7)), 124px);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  margin-block: 0 2px;
+}
+.mh-ov-note { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+
+.mh-ov-held { margin-top: clamp(12px, 2vh, 20px); }
+.mh-ov-bar { display: flex; height: 3px; gap: 2px; }
+.mh-ov-bar i { background: var(--text-primary); min-width: 2px; transform-origin: left; animation: mh-sweep var(--dur-plate) var(--spring-plate) both; }
+.mh-ov-bar b { background: var(--accent); }
+.mh-ov-held dl { display: flex; gap: 28px; margin: 8px 0 0; }
+.mh-ov-held dl > div { display: flex; gap: 8px; align-items: baseline; }
+.mh-ov-held dt { font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-ov-held dd { margin: 0; font-size: var(--t-15); font-weight: 500; color: var(--text-primary); }
+
+.mh-ov-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: clamp(16px, 3vh, 32px);
+  color: inherit;
+  text-decoration: none;
+}
+.mh-ov-cover-n { font-size: clamp(40px, 3.6vw, 68px); font-weight: 200; letter-spacing: -0.035em; }
+
+/* The bottom corner: the worries answered in a word, the week, and the day along the floor. */
+.mh-ov-answers { display: flex; flex-direction: column; margin: 0; width: min(340px, 100%); }
+.mh-ov-answers a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 7px;
+  border-bottom: 1px solid var(--border-base);
+  color: inherit;
+  text-decoration: none;
+  transition: padding-inline var(--dur-move) var(--spring-move);
+}
+.mh-ov-answers a:first-child { border-top: 1px solid var(--border-base); }
+.mh-ov-answers a:hover { padding-inline-start: 6px; }
+.mh-ov-answers dt { font-size: var(--t-14); color: var(--text-secondary); }
+.mh-ov-answers dd { margin: 0; font-size: var(--t-14); font-weight: 500; }
+
+/* ── The floor line: the worries, the week in three figures, the day in ticks ── */
+.mh-ov-floor {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0 40px 12px 28px;
+  pointer-events: none;
+}
+.mh-ov-floor > * { pointer-events: auto; }
+.mh-ov-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 10px; pointer-events: none; }
+.mh-ov-bottom > * { pointer-events: auto; }
+.mh-ov-week { display: flex; gap: clamp(24px, 3.2vw, 64px); margin: 0; }
+.mh-ov-week > div { min-width: 0; }
+.mh-ov-week dt { font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-ov-week dd { margin: 0; font-size: clamp(22px, 1.9vw, 34px); line-height: 1.2; font-weight: 300; letter-spacing: -0.02em; }
+.mh-ov-week .mh-figure-sign { font-size: 0.56em; margin-top: 0.3em; }
+.mh-ov-week .mh-ov-before { font-size: var(--t-13); line-height: var(--l-18); letter-spacing: 0; font-weight: 400; color: var(--text-quiet); }
+
+.mh-day { position: relative; height: 40px; }
+.mh-day-line { position: absolute; inset: 14px 0 auto; height: 1px; background: var(--border-strong); }
+.mh-day-hour {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-quiet);
+}
+.mh-day-hour:first-of-type { transform: none; }
+.mh-day-hour:last-of-type { transform: translateX(-100%); }
+.mh-day-now { position: absolute; top: -10px; width: 1px; height: 21px; background: var(--text-primary); }
+.mh-tick {
+  position: absolute;
+  top: -9px;
+  width: 11px;
+  height: 19px;
+  margin-left: -5.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.mh-tick::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  width: 1.5px;
+  background: var(--text-tertiary);
+  transition: height var(--dur-press) var(--spring-press), top var(--dur-press) var(--spring-press);
+  top: 3px;
+  height: 7px;
+}
+.mh-tick.is-in::before { background: var(--qty-in); top: 2px; height: 8px; }
+.mh-tick.is-out::before { background: var(--danger-text); top: 9px; height: 8px; }
+.mh-tick:hover::before { height: 12px; }
+.mh-tick.is-in:hover::before { top: -2px; }
+
+.mh-day-tip {
+  position: absolute;
+  bottom: 14px;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  white-space: nowrap;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lift);
+  border-radius: var(--radius-sm);
+  animation: mh-fade var(--dur-1) var(--ease) both;
+  z-index: 2;
+}
+
+/* ── The sheet: rises over the model as the page scrolls ── */
+.mh-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  padding: 40px var(--mh-gutter) 72px;
+  background: var(--bg-surface);
+  box-shadow: 0 -1px 0 var(--border-base), 0 -22px 54px -10px rgba(19, 22, 20, 0.16);
+  pointer-events: auto;
+}
+.mh-sheet-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 44px clamp(32px, 4vw, 88px); }
+
+.mh-col { min-width: 0; }
+.mh-col-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-strong); }
+.mh-col-head h2 { margin: 0; font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; }
+.mh-col-note { font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-col-link { margin-inline-start: auto; font-size: var(--t-14); color: var(--accent-text); text-decoration: none; }
+.mh-col-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.mh-rows { list-style: none; margin: 0; padding: 0; }
+.mh-rows > li { position: relative; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-subtle); }
+.mh-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: var(--row);
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: padding-inline var(--dur-move) var(--spring-move);
+}
+.mh-row:hover { padding-inline-start: 6px; }
+.mh-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mh-row-title { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-row-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-row-word { font-size: var(--t-14); font-weight: 500; white-space: nowrap; }
+.mh-row-fig { font-size: var(--t-16); font-weight: 500; white-space: nowrap; }
+.mh-row-end { display: flex; flex-direction: column; align-items: flex-end; }
+.mh-row-state { font-size: var(--t-13); line-height: var(--l-18); }
+.mh-empty { padding: 18px 0; color: var(--text-tertiary); }
+
+[data-theme^="merhav"] .sa-thumb { width: 40px; height: 40px; border-radius: var(--radius-md); object-fit: cover; background: var(--bg-muted); flex: none; }

@@ -1,0 +1,183 @@
+/* מלאי: the skyline is the stock and its filter, the ledger is the tool, the model is what it all points at. */
+
+.mh-inv { padding: 34px var(--mh-gutter) 72px; min-width: 0; container: mh-inv / inline-size; }
+
+.mh-inv-head { position: relative; }
+.mh-inv-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+
+/* Every product a bar. A hundred or a thousand, the shape reads the same: the low end is what needs a hand. */
+.mh-skyline {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 72px;
+  box-shadow: inset 0 -1px 0 var(--border-strong);
+}
+.mh-sky {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+}
+.mh-sky::after {
+  content: "";
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  height: calc(var(--h) * 100%);
+  background: var(--text-primary);
+  opacity: 0.86;
+  transform-origin: bottom;
+  animation: mh-grow var(--dur-plate) var(--spring-plate) both;
+  transition: opacity var(--dur-1) var(--ease), transform var(--dur-press) var(--spring-press);
+}
+.mh-sky.is-low::after { background: var(--warning); opacity: 1; }
+.mh-sky.is-out::after { background: var(--danger); opacity: 1; min-height: 4px; }
+.mh-sky.is-short::after { background: var(--short); opacity: 1; min-height: 6px; }
+.mh-skyline:hover .mh-sky::after { opacity: 0.32; }
+.mh-skyline .mh-sky:hover::after { opacity: 1; transform: scaleY(1.04); }
+.mh-skyline-min { position: absolute; inset-inline: 0; height: 1px; background: var(--bg-surface); pointer-events: none; }
+@keyframes mh-grow { from { transform: scaleY(0); } to { transform: none; } }
+
+/* The figures under the skyline are the tabs: a number and its name. */
+.mh-lens { position: relative; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px clamp(18px, 2.4vw, 40px); margin-top: 12px; }
+.mh-lens-item {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: var(--t-14);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mh-lens-n { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; color: var(--text-primary); }
+.mh-lens-item:hover { color: var(--text-primary); }
+.mh-lens-item.is-on { color: var(--text-primary); font-weight: 500; }
+.mh-lens-item::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform var(--dur-move) var(--spring-move);
+}
+.mh-lens-item.is-on::after { transform: scaleX(1); }
+.mh-lens-peek {
+  margin-inline-start: auto;
+  display: inline-flex;
+  gap: 10px;
+  align-items: baseline;
+  max-width: 46%;
+  font-size: var(--t-14);
+  color: var(--text-primary);
+  animation: mh-fade var(--dur-1) var(--ease) both;
+}
+
+.mh-inv-tools { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.mh-inv-tools .sa-search { flex: 1 1 auto; min-width: 0; }
+.mh-inv-tools .sa-select { flex: 0 0 auto; width: 156px; min-width: 0; }
+.mh-inv-tools .sa-select .sa-select-trigger { background: transparent; box-shadow: inset 0 -1px 0 var(--border-strong); border-radius: 0; font-size: var(--t-14); }
+
+/* The ledger. One grid for the head and every row, so a column is a real column. */
+.mh-led { --cols: minmax(0, 1fr) 84px minmax(110px, 150px) 124px; margin-top: 16px; }
+.mh-led-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 16px;
+  align-items: center;
+  height: 36px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 0 var(--border-strong);
+  font-size: var(--t-13);
+  color: var(--text-tertiary);
+}
+.mh-led-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.mh-led-head button:hover { color: var(--text-primary); }
+.mh-led-head .is-qty { justify-self: end; }
+
+.mh-led-list { list-style: none; margin: 0; padding: 0; }
+.mh-led-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  min-height: var(--row);
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--row);
+}
+/* The same carriage as the rail, in the gutter of the row you are on. */
+.mh-led-row::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--mh-gutter) * -1);
+  top: 50%;
+  width: 3px;
+  height: 24px;
+  margin-top: -12px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform var(--dur-press) var(--spring-press);
+}
+.mh-led-row:hover::before, .mh-led-row.is-selected::before { transform: scaleY(1); }
+.mh-led-row.is-selected { background: linear-gradient(to left, var(--accent-soft), transparent 80%); }
+.mh-led-row .is-name { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.mh-led-row .is-place { display: flex; flex-direction: column; font-size: var(--t-14); font-weight: 500; }
+.mh-led-row .is-gauge { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.mh-led-row .is-qty { display: flex; flex-direction: column; align-items: flex-end; text-align: end; min-width: 0; }
+.mh-led-fig { display: inline-flex; align-items: baseline; gap: 5px; font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -0.01em; }
+.mh-led-fig small { font-size: var(--t-13); font-weight: 400; color: var(--text-tertiary); letter-spacing: 0; }
+.mh-led-row .mh-row-state { color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* A scale, not a battery: what is free, what is held, and the minimum as one cut mark. */
+.mh-gauge-bar { position: relative; display: flex; gap: 1px; height: 5px; background: var(--bg-muted); }
+.mh-gauge-bar i { display: block; background: var(--text-primary); }
+.mh-gauge-bar b { display: block; background: var(--accent); opacity: 0.55; }
+.mh-gauge-bar u { position: absolute; top: -3px; width: 1px; height: 11px; background: var(--text-primary); }
+.mh-gauge-bar.is-low i { background: var(--warning); }
+.mh-gauge-bar.is-out i { background: var(--danger); }
+.mh-gauge-bar.is-short i, .mh-gauge-bar.is-short b { background: var(--short); opacity: 1; }
+
+.mh-led .sa-empty { padding-block: 56px; }
+
+/* The door's edge can be pulled in, so the ledger answers to its own width: the name is what stays. */
+@container mh-inv (max-width: 760px) {
+  .mh-led { --cols: minmax(0, 1fr) 76px 112px; }
+  .mh-led-head .is-gauge, .mh-led-row .is-gauge { display: none; }
+}

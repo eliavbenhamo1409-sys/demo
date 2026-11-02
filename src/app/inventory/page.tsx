@@ -61,8 +61,8 @@ function afterOrders(p: Product): string {
 /** The one real red, on the figures of a short product. Important because `sa-*` classes outrank utilities. */
 const SHORT_FIGURE = "text-short! font-semibold!";
 
-/** From 1100px a table clips instead of scrolling (minimal.css), so where seven columns don't fit עודכן goes rather than being cut off. */
-const HIDE_UPDATED = "min-[1100px]:max-[1379px]:[&_:is(td,th):nth-child(7)]:hidden";
+/** From 1100px a table clips instead of scrolling (minimal.css), so where seven columns don't fit עודכן goes rather than being cut off. A tablet gives up ספק too, so nothing hides behind a sideways scroll. */
+const HIDE_UPDATED = "min-[601px]:max-[1379px]:[&_:is(td,th):nth-child(7)]:hidden min-[601px]:max-[1099px]:[&_:is(td,th):nth-child(3)]:hidden";
 
 /** Phones keep name and quantity only; the product panel has the rest. Counts columns. */
 const PHONE_PRODUCTS = "max-[600px]:[&_:is(td,th):not(:nth-child(1),:nth-child(4))]:hidden";
@@ -227,8 +227,8 @@ function InventoryInner() {
                 <span className={`sa-stock ltr min-w-[4ch] text-right ${short ? SHORT_FIGURE : urgent ? "text-danger-text" : isLow(p) ? "text-warning-text" : ""}`}>{fmtQty(p.qty)}</span>
                 <span className="sa-hint">{p.unit}</span>
               </span>
-              {/* Narrower screens hide the reserved column or scroll it out of view. */}
-              {isReserved(p) ? <span className={`sa-cell-sub min-[1100px]:hidden! ${short ? SHORT_FIGURE : ""}`}>{short ? afterOrders(p) : `משוריין ${fmtQty(p.reserved)}`}</span> : null}
+              {/* Phones hide the reserved column. */}
+              {isReserved(p) ? <span className={`sa-cell-sub min-[601px]:hidden! ${short ? SHORT_FIGURE : ""}`}>{short ? afterOrders(p) : `משוריין ${fmtQty(p.reserved)}`}</span> : null}
             </>
           );
         },

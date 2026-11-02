@@ -7,6 +7,7 @@
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { normalizeName, orderTotal, useData, type Order } from "@/lib/store";
+import { changeWords, keptChanges } from "@/lib/worker/order-check";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Count, EmptyState, PageHead, Select, Showing, Table, Tabs, Toolbar, type SelectOption, type TableColumn } from "@/components/ui";
@@ -23,17 +24,18 @@ const TABS: { value: Status; label: string; empty: string }[] = [
 /** Phones keep the customer and the total; each carries the rest on its second line, and the order panel has everything. A tablet gives up the state column for the names, and keeps the state under the total. */
 const PHONE_ORDERS = "max-[600px]:[&_:is(td,th):is(:nth-child(2),:nth-child(4),:nth-child(5))]:hidden min-[601px]:max-[1099px]:[&_:is(td,th):nth-child(4)]:hidden";
 
-/** These two cells share what the figures leave, so a long name truncates and no column is ever cut. On phones the customer takes it all. */
-const WHO_CELL = "w-[36%] max-w-0 max-[600px]:w-full";
-const WHAT_CELL = "w-[36%] max-w-0";
+/** These two cells share what the figures leave, so a long name truncates and no column is ever cut. A product's name runs longer than a customer's, so it takes the larger share. On phones the customer takes it all. */
+const WHO_CELL = "w-[28%] max-w-0 max-[600px]:w-full";
+const WHAT_CELL = "w-[44%] max-w-0";
 
 function toStatus(value: string | null): Status {
   return value === "delivered" || value === "cancelled" ? value : "open";
 }
 
 /** Where an order stands, in its colour. An open order that asks for more than the shelf has says so, in the one loud colour. */
-function OrderState({ status, short }: { status: Status; short: boolean }) {
-  return <span className={`sa-order-state is-${short ? "short" : status}`}>{short ? "חסר במלאי" : ORDER_STATUS_LABEL[status]}</span>;
+function OrderState({ order, short }: { order: Order; short: boolean }) {
+  const changes = keptChanges(order).length;
+  return <span className={`sa-order-state is-${short ? "short" : order.status}`}>{short ? "חסר במלאי" : ORDER_STATUS_LABEL[order.status]}{changes ? ` · ${changeWords(changes)}` : ""}</span>;
 }
 
 /** The delivery date the agent promised. On an open order past it, the word turns to how late it is. */
@@ -133,7 +135,7 @@ function OrdersInner() {
               <span className="sa-cell-sub sa-truncate">
                 הזמנה {o.number}
                 <span className="max-[600px]:hidden">{name ? ` · ${name}` : null}</span>
-                <span className="min-[601px]:hidden"> · {o.promised_on ? <>מסירה <Promised order={o} /></> : age(o)}</span>
+                <span className="min-[600px]:hidden"> · {o.promised_on ? <>מסירה <Promised order={o} /></> : age(o)}</span>
               </span>
             </>
           );
@@ -167,7 +169,7 @@ function OrdersInner() {
             <>
               <span className={total === null ? "text-ink-3" : "sa-row-figure"}>{fmtPrice(total)}</span>
               <span className="block min-[1100px]:hidden">
-                <OrderState status={o.status} short={short(o)} />
+                <OrderState order={o} short={short(o)} />
               </span>
             </>
           );
@@ -178,7 +180,7 @@ function OrdersInner() {
         title: "מצב",
         render: (o) => (
           <span className="block whitespace-nowrap">
-            <OrderState status={o.status} short={short(o)} />
+            <OrderState order={o} short={short(o)} />
             <span className="sa-cell-sub">{age(o)}</span>
           </span>
         ),

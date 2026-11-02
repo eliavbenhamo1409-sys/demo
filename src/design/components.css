@@ -6,8 +6,7 @@
    - No tiles: no coloured squares behind icons, no initials in discs, no letter marks, no pills.
    - Icons are thin and bare, beside the word, where they help the eye find it. Words stay.
    - Weight stops at 600 for titles. Size and spacing do the rest.
-   The "מינימל" style changes only what a token cannot, in minimal.css.
-   Copied byte for byte to worker/src/design/components.css. */
+   The "מינימל" style changes only what a token cannot, in minimal.css. */
 
 /* ── Ground ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -285,6 +284,7 @@ a.sa-stat:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); }
 .sa-timeline-body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .sa-timeline-title { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; margin: 0; }
 .sa-timeline-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); margin: 0; }
+.sa-timeline-icon { display: none; }
 .sa-timeline-qty { font-size: var(--t-14); font-weight: 500; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
 .sa-timeline-item.is-in .sa-timeline-qty { color: var(--qty-in); }
 .sa-timeline-item.is-out .sa-timeline-qty { color: var(--danger-text); }
