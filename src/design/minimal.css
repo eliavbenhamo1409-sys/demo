@@ -138,10 +138,10 @@
 [data-theme^="minimal"] .wk-photo:not(.is-quiet):not(.is-locked):active { background: var(--accent-hover); border-color: var(--accent-hover); }
 
 /* ── Fields: a white well that lights up blue ───────────────── */
-[data-theme^="minimal"] .sa-input, [data-theme^="minimal"] .sa-select-trigger, [data-theme^="minimal"] .app-range { border-color: var(--border-strong); }
+[data-theme^="minimal"] .sa-input, [data-theme^="minimal"] .sa-select-trigger { border-color: var(--border-strong); }
 [data-theme^="minimal"] .sa-input { transition: border-color var(--dur-1) linear, box-shadow var(--dur-2) var(--ease); }
 [data-theme^="minimal"] .sa-input::placeholder, [data-theme^="minimal"] .sa-menu-search input::placeholder, [data-theme^="minimal"] .sa-select-value.is-placeholder { color: var(--text-quiet); }
-[data-theme^="minimal"] .sa-input:focus:not(.is-error), [data-theme^="minimal"] .sa-select-trigger.is-open, [data-theme^="minimal"] .app-range:focus-within { border-color: var(--focus); box-shadow: var(--focus-ring); }
+[data-theme^="minimal"] .sa-input:focus:not(.is-error), [data-theme^="minimal"] .sa-select-trigger.is-open { border-color: var(--focus); box-shadow: var(--focus-ring); }
 [data-theme^="minimal"] .sa-input.is-error:focus { box-shadow: var(--focus-ring-danger); }
 /* A saved login: login.css draws the classic ink ring, later in the cascade. */
 [data-theme^="minimal"] .app-login .sa-input:-webkit-autofill:focus:not(.is-error) { box-shadow: 0 0 0 100px var(--bg-surface) inset, var(--focus-ring); }
@@ -151,10 +151,9 @@
 /* Inset, because the stepper clips its corners; the canvas is no change on a white control. */
 [data-theme^="minimal"] .sa-qty input:focus { background: var(--bg-surface); box-shadow: inset 0 0 0 2px var(--focus); }
 [data-theme^="minimal"] :is(.sa-toolbar-tools, .app-filters) .sa-select-trigger:not(.is-open):has(.sa-select-value:not(.is-placeholder)) { border-color: var(--accent); color: var(--accent-text); }
-[data-theme^="minimal"] .app-range input::-webkit-calendar-picker-indicator { opacity: 1; }
 [data-theme^="minimal"] .sa-search .sa-input { background: var(--bg-surface); border-color: transparent; box-shadow: var(--shadow-sm); }
 [data-theme^="minimal"] .sa-search .sa-input:focus { border-color: var(--focus); box-shadow: var(--focus-ring); }
-[data-theme^="minimal"] :is(.sa-select-trigger, .app-range) { box-shadow: none; }
+[data-theme^="minimal"] .sa-select-trigger { box-shadow: none; }
 @media (hover: hover) {
   [data-theme^="minimal"] .sa-search .sa-input:hover:not(:disabled):not(:focus) { border-color: var(--border-strong); }
 }
@@ -301,7 +300,7 @@
 [data-theme^="minimal"] .wk-root { --radius-md: 12px; --radius-lg: 16px; }
 @supports (corner-shape: squircle) {
   [data-theme^="minimal"] .wk-root { --radius-md: 16px; --radius-lg: 22px; }
-  [data-theme^="minimal"] :is(.sa-card, .sa-table-wrap, .sa-stat, .sa-sidebar, .sa-panel, .sa-modal, .sa-menu, .app-results, .sa-notice, .sa-btn, .sa-input, .sa-select-trigger, .sa-qty, .sa-nav-item, .sa-tabs, .sa-tab, .sa-tabs::before, .app-range, .wk-actions, .wk-row, .wk-hint, .wk-photo, .wk-suggest) { corner-shape: squircle; }
+  [data-theme^="minimal"] :is(.sa-card, .sa-table-wrap, .sa-stat, .sa-sidebar, .sa-panel, .sa-modal, .sa-menu, .app-results, .sa-notice, .sa-btn, .sa-input, .sa-select-trigger, .sa-qty, .sa-nav-item, .sa-tabs, .sa-tab, .sa-tabs::before, .wk-actions, .wk-row, .wk-hint, .wk-photo, .wk-suggest) { corner-shape: squircle; }
 }
 
 /* ── Grouped list on the phone: the separator starts at the text, as on an iPhone ── */

@@ -4,16 +4,19 @@
  * תנועות — every stock movement, narrowed by date, hours, who did it and the rest.
  * The store keeps only the latest rows, so a period that reaches past them is read from the database.
  */
-import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useData, type Movement as MovementRow, type MovementType } from "@/lib/store";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
+import { DateRangeFilter, dayValue, HoursFilter } from "@/components/app/WhenFilters";
 import {
   Button,
   Count,
+  cx,
   EmptyState,
+  Icon,
   Movement,
   MovementQty,
   Notice,
@@ -43,6 +46,22 @@ const MOVEMENT_TYPES: MovementType[] = ["in", "out", "fault", "adjust"];
 const NO_WORKER = "none";
 const PAGE_SIZE = 100;
 
+const NO_FILTERS = { fromTime: "", toTime: "", workerId: "", moveType: "", supplierId: "", category: "" };
+type Filters = typeof NO_FILTERS & { fromDay: string; toDay: string };
+
+/** The refresh stays on screen this long, however fast the read; it has to be seen. */
+const REFRESH_MS = 640;
+/** The list stops waiting for a slow network here: its filters need no server. */
+const REFRESH_CAP_MS = 3000;
+/** How long the button says it is done. */
+const UPDATED_MS = 2600;
+
+const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+function differs(a: Filters, b: Filters): boolean {
+  return (Object.keys(a) as (keyof Filters)[]).some((key) => a[key] !== b[key]);
+}
+
 /** Phones keep product and quantity only; the rest moves under the product. The empty state sits in the first cell, so it stays. */
 const PHONE_MOVEMENTS = "max-[600px]:[&_:is(td,th):not(:nth-child(1),:nth-child(2),.sa-table-empty)]:hidden";
 
@@ -52,12 +71,6 @@ const MAIN_CELL = "w-full max-w-0";
 function periodFromParams(params: URLSearchParams): Period {
   const value = params.get("period");
   return PERIODS.find((p) => p.value === value)?.value ?? DEFAULT_PERIOD;
-}
-
-/** The yyyy-mm-dd a date input holds. */
-function dayValue(t: number): string {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function periodRange(period: Period, fromDay: string, toDay: string): { from: number | null; to: number | null } {
@@ -72,14 +85,8 @@ function periodRange(period: Period, fromDay: string, toDay: string): { from: nu
       return { from: midnight(-29), to: null };
     case "all":
       return { from: null, to: null };
-    case "custom": {
-      // Dates entered the wrong way round still mean the days between them.
-      const [first, last] = fromDay && toDay && fromDay > toDay ? [toDay, fromDay] : [fromDay, toDay];
-      return {
-        from: first ? midnight(0, new Date(`${first}T00:00`)) : null,
-        to: last ? midnight(1, new Date(`${last}T00:00`)) : null,
-      };
-    }
+    case "custom":
+      return { from: midnight(0, new Date(`${fromDay}T00:00`)), to: midnight(1, new Date(`${toDay}T00:00`)) };
   }
 }
 
@@ -100,7 +107,7 @@ export default function MovementsPage() {
 }
 
 function MovementsInner() {
-  const { state, product, supplier, worker } = useData();
+  const { state, product, supplier, worker, reload } = useData();
   const ui = useUi();
   const router = useRouter();
   const pathname = usePathname();
@@ -119,18 +126,61 @@ function MovementsInner() {
     [params, pathname, router],
   );
 
-  const [fromDay, setFromDay] = useState(() => dayValue(midnight(-6)));
-  const [toDay, setToDay] = useState(() => dayValue(midnight()));
-  const [fromTime, setFromTime] = useState("");
-  const [toTime, setToTime] = useState("");
-  const [workerId, setWorkerId] = useState("");
-  const [moveType, setMoveType] = useState("");
-  const [supplierId, setSupplierId] = useState("");
-  const [category, setCategory] = useState("");
+  // The row shows what is chosen, the list what was applied: only החל moves one to the other.
+  const [chosen, setChosen] = useState<Filters>(() => ({ ...NO_FILTERS, fromDay: dayValue(midnight(-6)), toDay: dayValue(midnight()) }));
+  const [applied, setApplied] = useState(chosen);
   const [query, setQuery] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const { from, to } = periodRange(period, fromDay, toDay);
+  const { from, to } = periodRange(period, applied.fromDay, applied.toDay);
   const { rows, isLoading, failed, retry } = useMovementsInRange(from, to);
+
+  const pending = differs(chosen, applied);
+  const choose = (patch: Partial<Filters>) => setChosen((current) => ({ ...current, ...patch }));
+
+  /* ───────── refreshing ───────── */
+  const [refreshing, setRefreshing] = useState(false);
+  const [updated, setUpdated] = useState(false);
+  const [settled, setSettled] = useState(0);
+  const lastRun = useRef(0);
+
+  // החל always reads the database again, so it does something even with nothing new chosen.
+  const refresh = async (next: Filters) => {
+    const run = ++lastRun.current;
+    setChosen(next);
+    setRefreshing(true);
+    setUpdated(false);
+    retry();
+    await Promise.race([Promise.all([reload().catch(() => {}), wait(REFRESH_MS)]), wait(REFRESH_CAP_MS)]);
+    if (run !== lastRun.current) return;
+    setApplied(next);
+    setRefreshing(false);
+    setUpdated(true);
+    setSettled((n) => n + 1);
+  };
+
+  useEffect(() => {
+    if (!updated) return;
+    const timer = setTimeout(() => setUpdated(false), UPDATED_MS);
+    return () => clearTimeout(timer);
+  }, [updated]);
+
+  /** Tabs and ניקוי סינון are a choice and its press in one: the list answers at once, overtaking a refresh on its way. */
+  const applyNow = (filters: Filters, nextPeriod: string) => {
+    lastRun.current += 1;
+    setChosen(filters);
+    setApplied(filters);
+    setPeriod(nextPeriod);
+    setRefreshing(false);
+    setSettled((n) => n + 1);
+  };
+
+  const choosePeriod = (next: string) => {
+    if (next !== "custom") return applyNow(chosen, next);
+    // The calendar opens on what the list already shows, so nothing changes under it until החל.
+    setCalendarOpen(true);
+    applyNow(from === null ? chosen : { ...chosen, fromDay: dayValue(from), toDay: dayValue(to === null ? Date.now() : to - 1) }, next);
+  };
 
   /* ───────── options ───────── */
   const workerOptions = useMemo<SelectOption[]>(
@@ -159,12 +209,12 @@ function MovementsInner() {
 
   const visible = useMemo(() => {
     return rows.filter((m) => {
-      if (moveType && m.type !== moveType) return false;
-      if (workerId === NO_WORKER ? m.worker_id : workerId && m.worker_id !== workerId) return false;
-      if (supplierId && m.supplier_id !== supplierId) return false;
-      if (!inHours(m.created_at, fromTime, toTime)) return false;
+      if (applied.moveType && m.type !== applied.moveType) return false;
+      if (applied.workerId === NO_WORKER ? m.worker_id : applied.workerId && m.worker_id !== applied.workerId) return false;
+      if (applied.supplierId && m.supplier_id !== applied.supplierId) return false;
+      if (!inHours(m.created_at, applied.fromTime, applied.toTime)) return false;
       const p = product(m.product_id);
-      if (category && p?.category !== category) return false;
+      if (applied.category && p?.category !== applied.category) return false;
       if (q) {
         const hay = [p?.name, p?.sku, p?.barcode, m.external_name, m.reference, m.note, worker(m.worker_id)?.name, supplier(m.supplier_id)?.name]
           .filter(Boolean)
@@ -174,19 +224,13 @@ function MovementsInner() {
       }
       return true;
     });
-  }, [rows, moveType, workerId, supplierId, fromTime, toTime, category, q, product, worker, supplier]);
+  }, [rows, applied, q, product, worker, supplier]);
 
-  const hasFilters = Boolean(period !== DEFAULT_PERIOD || fromTime || toTime || workerId || moveType || supplierId || category || q);
+  const hasFilters = period !== DEFAULT_PERIOD || q !== "" || differs(chosen, { ...chosen, ...NO_FILTERS });
 
   const clearFilters = () => {
-    setPeriod(DEFAULT_PERIOD);
-    setFromTime("");
-    setToTime("");
-    setWorkerId("");
-    setMoveType("");
-    setSupplierId("");
-    setCategory("");
     setQuery("");
+    applyNow({ ...chosen, ...NO_FILTERS }, DEFAULT_PERIOD);
   };
 
   const empty =
@@ -205,7 +249,7 @@ function MovementsInner() {
       <PageHead title="תנועות" sub={isLoading ? undefined : <Count n={visible.length} one="תנועה" many="תנועות" />} />
 
       <Toolbar
-        tabs={<Tabs tabs={PERIODS} value={period} onChange={setPeriod} />}
+        tabs={<Tabs tabs={PERIODS} value={period} onChange={choosePeriod} />}
         query={query}
         onQuery={setQuery}
         placeholder='חיפוש לפי מוצר, מק"ט או מספר תעודה'
@@ -217,42 +261,44 @@ function MovementsInner() {
         </Notice>
       ) : null}
 
-      <div className="sa-moves">
+      <div className={cx("sa-moves", refreshing && "is-refreshing")} data-settle={settled ? settled % 2 : undefined}>
         <div className="app-filters">
-          {period === "custom" ? <RangeField label="תאריך" type="date" from={fromDay} to={toDay} onFrom={setFromDay} onTo={setToDay} /> : null}
-          <Select options={workerOptions} value={workerId} onChange={setWorkerId} allLabel="כל העובדים" placeholder="עובד" />
-          <Select options={typeOptions} value={moveType} onChange={setMoveType} allLabel="כל הפעולות" placeholder="פעולה" searchable={false} />
-          <Select options={supplierOptions} value={supplierId} onChange={setSupplierId} allLabel="כל הספקים" placeholder="ספק" />
-          <Select options={categories} value={category} onChange={setCategory} allLabel="כל הקטגוריות" placeholder="קטגוריה" />
-          <RangeField label="שעה" type="time" from={fromTime} to={toTime} onFrom={setFromTime} onTo={setToTime} />
-          {hasFilters ? <Button variant="ghost" size="sm" className="app-filters-clear" onClick={clearFilters}>ניקוי סינון</Button> : null}
+          {period === "custom" ? (
+            <DateRangeFilter
+              from={chosen.fromDay}
+              to={chosen.toDay}
+              open={calendarOpen}
+              onOpenChange={setCalendarOpen}
+              onApply={(fromDay, toDay) => void refresh({ ...chosen, fromDay, toDay })}
+            />
+          ) : null}
+          <HoursFilter from={chosen.fromTime} to={chosen.toTime} onApply={(fromTime, toTime) => void refresh({ ...chosen, fromTime, toTime })} />
+          <Select options={workerOptions} value={chosen.workerId} onChange={(workerId) => choose({ workerId })} allLabel="כל העובדים" placeholder="עובד" />
+          <Select options={typeOptions} value={chosen.moveType} onChange={(moveType) => choose({ moveType })} allLabel="כל הפעולות" placeholder="פעולה" searchable={false} />
+          <Select options={supplierOptions} value={chosen.supplierId} onChange={(supplierId) => choose({ supplierId })} allLabel="כל הספקים" placeholder="ספק" />
+          <Select options={categories} value={chosen.category} onChange={(category) => choose({ category })} allLabel="כל הקטגוריות" placeholder="קטגוריה" />
+          <div className="app-filters-end">
+            {hasFilters ? <Button variant="ghost" onClick={clearFilters}>ניקוי סינון</Button> : null}
+            <Button
+              variant={pending ? "primary" : "secondary"}
+              className={cx("app-apply", updated && !pending && "is-done")}
+              onClick={() => void refresh(chosen)}
+            >
+              <span className={cx(updated && !pending && "is-off")}>החל</span>
+              <span className={cx(!(updated && !pending) && "is-off")}><Icon name="check" size={14} strokeWidth={2.5} />עודכן</span>
+            </Button>
+          </div>
+          <span className="app-refresh-line" aria-hidden="true" />
+          <span className="sr-only" role="status">{updated ? "הרשימה עודכנה" : ""}</span>
         </div>
 
         <MovementsTable
-          key={`${from}|${to}|${fromTime}|${toTime}|${workerId}|${moveType}|${supplierId}|${category}|${q}`}
+          key={`${from}|${to}|${applied.fromTime}|${applied.toTime}|${applied.workerId}|${applied.moveType}|${applied.supplierId}|${applied.category}|${q}`}
           rows={visible}
           isLoading={isLoading}
           empty={empty}
         />
       </div>
-    </div>
-  );
-}
-
-function RangeField({ label, type, from, to, onFrom, onTo }: {
-  label: string;
-  type: "date" | "time";
-  from: string;
-  to: string;
-  onFrom: (value: string) => void;
-  onTo: (value: string) => void;
-}) {
-  return (
-    <div className={from || to ? "app-range is-set" : "app-range"} role="group" aria-label={label}>
-      <span>{label}</span>
-      <input type={type} dir="ltr" value={from} onChange={(e) => onFrom(e.target.value)} aria-label={`${label}, מ`} />
-      <span>עד</span>
-      <input type={type} dir="ltr" value={to} onChange={(e) => onTo(e.target.value)} aria-label={`${label}, עד`} />
     </div>
   );
 }

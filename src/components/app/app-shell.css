@@ -1694,13 +1694,6 @@ a.sa-fault-thumb:focus-visible {
   [data-theme^="minimal"] .app-filters {
     padding-inline: calc(var(--inset) - var(--space-2));
   }
-  [data-theme^="minimal"] .app-filters .app-range {
-    padding-inline: var(--space-2);
-  }
-  /* The hours stand beside their labels; a bare row has no box for them to spread across. */
-  [data-theme^="minimal"] .app-filters .app-range input[type="time"] {
-    flex: 0 1 5em;
-  }
 }
 
 .app-filters {
@@ -1722,7 +1715,7 @@ a.sa-fault-thumb:focus-visible {
   max-width: 220px;
 }
 
-[data-theme^="minimal"] .app-filters :is(.sa-select-trigger, .app-range) {
+[data-theme^="minimal"] .app-filters .sa-select-trigger {
   border: 0;
   background: none;
   color: var(--text-secondary);
@@ -1741,17 +1734,8 @@ a.sa-fault-thumb:focus-visible {
   color: inherit;
 }
 
-[data-theme^="minimal"] .app-filters .app-range input {
-  color: var(--text-tertiary);
-}
-
-[data-theme^="minimal"] .app-filters .app-range.is-set,
-[data-theme^="minimal"] .app-filters .app-range.is-set input {
-  color: var(--accent-text);
-}
-
 @media (hover: hover) {
-  [data-theme^="minimal"] .app-filters :is(.sa-select-trigger, .app-range):hover:not(:disabled) {
+  [data-theme^="minimal"] .app-filters .sa-select-trigger:hover:not(:disabled) {
     background: var(--bg-fill);
   }
 }
@@ -1761,91 +1745,8 @@ a.sa-fault-thumb:focus-visible {
   min-width: 112px;
 }
 
-.app-filters-clear {
-  margin-inline-start: auto;
-}
-
-/* A from and to pair in one control, the height and border of the selects beside it. */
-.app-range {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  height: var(--control-md);
-  padding: 0 var(--space-3);
-  border: var(--hair) solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: var(--text-tertiary);
-  font-size: var(--t-14);
-  line-height: var(--l-20);
-  white-space: nowrap;
-  transition: border-color 0.1s linear, box-shadow 0.1s linear;
-}
-
-.app-range:focus-within {
-  border-color: var(--border-inverse);
-  box-shadow: 0 0 0 1px var(--border-inverse);
-}
-
-[data-theme^="minimal"] .app-range:focus-within {
-  border-color: var(--focus);
-  box-shadow: 0 0 0 1px var(--focus);
-}
-
-@supports (corner-shape: squircle) {
-  [data-theme^="minimal"] .app-range {
-    corner-shape: squircle;
-  }
-}
-
-.app-range input {
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: none;
-  color: var(--text-primary);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-}
-
-.app-range input::-webkit-calendar-picker-indicator {
-  margin: 0;
-  padding: 0;
-  opacity: 0.45;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .app-range:hover {
-    border-color: var(--border-control);
-  }
-}
-
-@media (hover: none) {
-  .app-range input {
-    font-size: 16px;
-  }
-}
-
 @media (max-width: 600px) {
-  .app-range {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-  /* Width 0 lets both fields share the row; a date's own width would push the page sideways. */
-  .app-range input {
-    flex: 1 1 0;
-    width: 0;
-  }
   .app-filters .sa-select {
     flex: 1 1 calc(50% - var(--space-2));
-  }
-}
-
-/* A touch opens the picker from anywhere in the field, so the icon only takes room. */
-@media (max-width: 600px) and (hover: none) {
-  .app-range input::-webkit-calendar-picker-indicator {
-    display: none;
   }
 }

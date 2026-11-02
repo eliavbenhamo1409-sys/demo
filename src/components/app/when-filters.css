@@ -1,0 +1,426 @@
+/* The "when" filters: a word in the row that opens one floating sheet. Colours are tokens, so every style carries them. */
+.app-filters {
+  position: relative;
+}
+
+[data-theme^="minimal"] .app-filters .app-when {
+  max-width: none;
+}
+
+.app-filters .app-when {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.app-when .sa-select-trigger {
+  gap: 6px;
+}
+
+.app-when-sheet {
+  --cell: 42px;
+  --cell-height: 40px;
+  --band: color-mix(in srgb, var(--accent) 13%, transparent);
+  inset-inline-end: auto;
+  width: max-content;
+  max-width: calc(100vw - var(--space-8));
+  overflow: hidden;
+}
+
+/* ── Calendar ──────────────────────────────────────────────── */
+.app-when-calendar {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "presets months"
+    "foot foot";
+}
+
+.app-when-presets {
+  grid-area: presets;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 136px;
+  padding: var(--space-3);
+  border-inline-end: var(--hair) solid var(--border-subtle);
+}
+
+.app-when-preset {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--t-15);
+  font-weight: 500;
+  text-align: start;
+  white-space: nowrap;
+}
+
+[data-theme^="minimal"] .app-when-preset {
+  border-radius: calc(var(--radius-md) - 4px);
+}
+
+.app-when-preset.is-on {
+  background: var(--band);
+  color: var(--accent-text);
+}
+
+.app-when-months {
+  grid-area: months;
+  position: relative;
+  display: flex;
+  gap: var(--space-6);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+.app-when-prev,
+.app-when-next {
+  position: absolute;
+  top: var(--space-3);
+}
+
+.app-when-prev {
+  inset-inline-start: var(--space-4);
+}
+
+.app-when-next {
+  inset-inline-end: var(--space-4);
+}
+
+.app-when-month {
+  width: calc(7 * var(--cell));
+}
+
+.app-when-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-sm);
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--t-16);
+  font-weight: 600;
+}
+
+.app-when-week,
+.app-when-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.app-when-week {
+  height: 28px;
+  align-items: center;
+  color: var(--text-tertiary);
+  font-size: var(--t-13);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Six rows always, so the sheet keeps its height from month to month. */
+.app-when-days {
+  grid-template-rows: repeat(6, var(--cell-height));
+}
+
+/* ── One cell, day or hour: the band runs behind it, the button sits on top ── */
+.app-when-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-when-cell::before {
+  content: "";
+  position: absolute;
+  inset: 2px 0;
+}
+
+.app-when-cell:is(.is-between, .is-first:not(.is-last), .is-last:not(.is-first))::before {
+  background: var(--band);
+}
+
+.app-when-cell.is-first::before {
+  inset-inline-start: 50%;
+}
+
+.app-when-cell.is-last::before {
+  inset-inline-end: 50%;
+}
+
+.app-when-days .app-when-cell:is(:nth-child(7n + 1), .is-month-first)::before,
+.app-when-hours .app-when-cell:nth-child(6n + 1)::before {
+  border-start-start-radius: 10px;
+  border-end-start-radius: 10px;
+}
+
+.app-when-days .app-when-cell:is(:nth-child(7n), .is-month-last)::before,
+.app-when-hours .app-when-cell:nth-child(6n)::before {
+  border-start-end-radius: 10px;
+  border-end-end-radius: 10px;
+}
+
+.app-when-pick {
+  position: relative;
+  width: 100%;
+  max-width: 40px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--t-15);
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-1) linear;
+}
+
+[data-theme^="minimal"] .app-when-pick {
+  border-radius: calc(var(--radius-md) - 2px);
+}
+
+.app-when-pick:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.app-when-pick:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.app-when-pick.is-today {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.app-when-pick.is-end {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .app-when-preset:hover:not(.is-on) {
+    background: var(--bg-fill);
+  }
+  .app-when-pick:hover:not(:disabled, .is-end) {
+    background: var(--bg-fill-hover, var(--bg-muted));
+  }
+}
+
+/* ── Foot: what is chosen, then the way out ─────────────────── */
+.app-when-foot {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--hair) solid var(--border-subtle);
+}
+
+.app-when-sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  min-width: 0;
+  margin-inline-end: auto;
+  color: var(--text-primary);
+  font-size: var(--t-15);
+  font-weight: 600;
+}
+
+.app-when-sum small {
+  color: var(--text-tertiary);
+  font-size: var(--t-14);
+  font-weight: 400;
+}
+
+/* ── Hours ─────────────────────────────────────────────────── */
+.app-when-hoursSheet {
+  width: 372px;
+  max-width: 100%;
+}
+
+.app-when-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.app-when-times label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--t-13);
+  font-weight: 500;
+}
+
+.app-when-times input {
+  width: 100%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-when-times input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+/* An empty field stays empty; its dashes show up only to be typed over. */
+.app-when-times input:not(.is-set, :focus)::-webkit-datetime-edit {
+  opacity: 0;
+}
+
+.app-when-hours {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: var(--cell-height);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.app-when-hours .app-when-pick {
+  max-width: 54px;
+  font-size: var(--t-14);
+}
+
+/* ── Narrower windows ──────────────────────────────────────── */
+/* The sheet belongs to the row here, so it spans the row wherever the word landed. */
+@media (max-width: 600px) {
+  .app-filters .app-when {
+    position: static;
+    flex: 1 1 calc(50% - var(--space-2));
+  }
+  .app-filters .app-when-dates {
+    flex-basis: 100%;
+  }
+  .app-when-sheet {
+    --cell: auto;
+    --cell-height: 44px;
+    inset-inline: var(--space-2);
+    width: auto;
+    max-width: none;
+  }
+  .app-when-calendar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "presets"
+      "months"
+      "foot";
+  }
+  .app-when-presets {
+    flex-direction: row;
+    padding: var(--space-2);
+    border-inline-end: 0;
+    border-bottom: var(--hair) solid var(--border-subtle);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .app-when-months {
+    padding-inline: var(--space-2);
+  }
+  .app-when-prev {
+    inset-inline-start: var(--space-2);
+  }
+  .app-when-next {
+    inset-inline-end: var(--space-2);
+  }
+  .app-when-month {
+    width: 100%;
+  }
+  .app-when-hoursSheet {
+    width: auto;
+  }
+  .app-when-sum {
+    font-size: var(--t-14);
+  }
+  .app-when-pick {
+    max-width: 44px;
+    height: 40px;
+  }
+}
+
+/* ── The list refreshing: one thin line across its top, the rows stepping back and returning ── */
+.app-refresh-line {
+  position: absolute;
+  inset-inline: var(--inset, var(--space-3));
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: right;
+  transition: opacity var(--dur-3) linear;
+}
+
+.sa-moves.is-refreshing .app-refresh-line {
+  opacity: 1;
+  transition: none;
+  animation: app-sweep 620ms var(--ease) both;
+}
+
+.sa-moves.is-refreshing .sa-table tbody {
+  opacity: 0.38;
+  transition: opacity var(--dur-2) linear;
+}
+
+/* Two names for one motion: swapping them restarts it on rows that stayed mounted. */
+.sa-moves[data-settle="0"] .sa-table tbody {
+  animation: app-settle-a var(--dur-3) var(--ease);
+}
+
+.sa-moves[data-settle="1"] .sa-table tbody {
+  animation: app-settle-b var(--dur-3) var(--ease);
+}
+
+@keyframes app-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes app-settle-a {
+  from { opacity: 0.38; }
+}
+
+@keyframes app-settle-b {
+  from { opacity: 0.38; }
+}
+
+/* The row's end: the button keeps its width while its word changes, so nothing beside it moves. */
+.app-filters-end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+.app-apply {
+  display: inline-grid;
+  justify-items: center;
+}
+
+.app-apply > span {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.app-apply > span.is-off {
+  visibility: hidden;
+}
+
+.sa-btn.app-apply.is-done {
+  color: var(--success-text);
+}
+
+@media (max-width: 600px) {
+  .app-filters-end {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    padding-top: var(--space-1);
+  }
+}
