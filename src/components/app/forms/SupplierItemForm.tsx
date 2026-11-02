@@ -68,7 +68,7 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
       subtitle="איך הספק קורא למוצר שלך"
       onClose={close}
       onSubmit={submit}
-      submitLabel="שמור"
+      submitLabel="שמירה"
       busy={form.busy}
       submitDisabled={blocked}
       error={form.error}
@@ -76,21 +76,21 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
     >
       {noProducts ? (
         <div className="sa-field">
-          <span className="sa-label">מוצר במפעל</span>
+          <span className="sa-label">מוצר במחסן</span>
           <span className="sa-dict-form-missing">
-            <span>אין עדיין מוצרים במפעל.</span>
-            <Button variant="link" data-autofocus onClick={() => openAction("new-product")}>צור מוצר קודם</Button>
+            <span>אין מוצרים במחסן</span>
+            <Button variant="link" data-autofocus onClick={() => openAction("new-product")}>מוצר חדש</Button>
           </span>
         </div>
       ) : (
         <div className="sa-field">
           <Select
-            label="מוצר במפעל"
+            label="מוצר במחסן"
             options={prodOpts}
             value={productId}
             onChange={(v) => { setProductId(v); form.clearField("product"); form.clearField("name"); }}
-            placeholder="בחר מוצר"
-            searchPlaceholder="חיפוש מוצר…"
+            placeholder="בחירת מוצר"
+            searchPlaceholder='חיפוש לפי שם או מק"ט'
             block
           />
           {form.errors.product ? <span className="sa-error" role="alert">{form.errors.product}</span> : null}
@@ -100,8 +100,8 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
         <div className="sa-field">
           <span className="sa-label">ספק</span>
           <span className="sa-dict-form-missing">
-            <span>אין עדיין ספקים.</span>
-            <Button variant="link" data-autofocus={!noProducts || undefined} onClick={() => openAction("new-supplier")}>הוסף ספק קודם</Button>
+            <span>אין ספקים</span>
+            <Button variant="link" data-autofocus={!noProducts || undefined} onClick={() => openAction("new-supplier")}>ספק חדש</Button>
           </span>
         </div>
       ) : (
@@ -111,20 +111,21 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
             options={supOpts}
             value={supplierId}
             onChange={(v) => { setSupplierId(v); form.clearField("supplier"); form.clearField("name"); }}
-            placeholder="בחר ספק"
-            searchPlaceholder="חיפוש ספק…"
+            placeholder="בחירת ספק"
+            searchPlaceholder="חיפוש לפי שם ספק"
             block
           />
           {form.errors.supplier ? <span className="sa-error" role="alert">{form.errors.supplier}</span> : null}
         </div>
       )}
+      <hr className="sa-form-break" />
       <Input
         label="שם אצל הספק"
         required
         value={externalName}
         onChange={(e) => { setExternalName(e.target.value); form.clearField("name"); }}
         error={form.errors.name}
-        hint="המערכת תזהה את השם הזה אוטומטית בקליטות הבאות"
+        hint="יזוהה אוטומטית בקליטות הבאות"
         autoComplete="off"
         disabled={blocked}
       />

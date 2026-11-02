@@ -22,29 +22,25 @@ export function SuppliersPanel() {
     return m;
   }, [state.supplierItems]);
 
-  const newSupplier = (
-    <Button variant="primary" icon="plus" onClick={() => openAction("new-supplier")}>
-      ספק חדש
-    </Button>
-  );
-
   return (
     <SidePanel
       title="ספקים"
-      subtitle={`${fmtQty(suppliers.length)} ספקים`}
+      subtitle={suppliers.length > 0 ? `${fmtQty(suppliers.length)} ספקים` : undefined}
       onClose={close}
       className="sa-dict-suppliers"
       footer={
         <>
           <div />
-          <div>{newSupplier}</div>
+          <div>
+            <Button variant="primary" onClick={() => openAction("new-supplier")}>
+              ספק חדש
+            </Button>
+          </div>
         </>
       }
     >
       {suppliers.length === 0 ? (
-        <EmptyState icon="truck" title="אין עדיין ספקים" hint="הוסף ספק כדי לרשום איך הוא קורא למוצרים שלך">
-          {newSupplier}
-        </EmptyState>
+        <EmptyState title="אין ספקים" hint="אפשר להוסיף ספק ולרשום איך הוא קורא למוצרים שלך" />
       ) : (
         <ul className="sa-dict-suppliers-list" aria-label="רשימת הספקים">
           {suppliers.map((s) => {
@@ -66,7 +62,7 @@ export function SuppliersPanel() {
                     ) : null}
                   </span>
                   <span className="sa-dict-supplier-count">
-                    <span className="sa-num">{fmtQty(countBySupplier.get(s.id) ?? 0)}</span> שמות
+                    <span className="sa-mono">{fmtQty(countBySupplier.get(s.id) ?? 0)}</span> שמות
                   </span>
                 </button>
               </li>

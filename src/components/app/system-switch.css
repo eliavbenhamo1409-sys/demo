@@ -1,0 +1,5 @@
+/* The very bottom of every page: the way between the three systems. Plain words on a hairline. */
+.sys-switch { display: flex; justify-content: center; gap: clamp(24px, 6vw, 56px); padding: 6px 16px calc(6px + env(safe-area-inset-bottom)); background: var(--bg-surface); border-top: var(--hair) solid var(--border-base); font-size: var(--t-14); line-height: var(--l-20); }
+.sys-switch a { display: inline-flex; align-items: center; min-height: 44px; color: var(--text-tertiary); text-decoration: none; }
+.sys-switch a:hover { color: var(--text-primary); }
+.sys-switch a[aria-current="page"] { color: var(--text-primary); font-weight: 600; }

@@ -33,7 +33,7 @@ export function FaultForm({ ctx }: { ctx: ActionContext }) {
   const submit = () => {
     const errors: Partial<Record<Field, string>> = {};
     if (!description.trim()) errors.description = REQUIRED;
-    if (!Number.isFinite(qty) || qty < 0) errors.qty = "הזן כמות תקינה";
+    if (!Number.isFinite(qty) || qty < 0) errors.qty = "כמות לא תקינה";
     form.setErrors(errors);
     if (Object.keys(errors).length > 0) return;
     void form.run(async () => {
@@ -42,8 +42,9 @@ export function FaultForm({ ctx }: { ctx: ActionContext }) {
         description: description.trim(),
         workerId: workerId || null,
         qty: productId && qty > 0 ? qty : null,
+        asset: ctx.asset,
       });
-      notify({ tone: "success", title: selected ? `התקלה דווחה — ${selected.name}` : "התקלה דווחה" });
+      notify({ tone: "success", title: selected ? `התקלה דווחה: ${selected.name}` : ctx.asset ? `התקלה דווחה: ${ctx.asset}` : "התקלה דווחה" });
       close();
     });
   };
@@ -51,15 +52,15 @@ export function FaultForm({ ctx }: { ctx: ActionContext }) {
   return (
     <FormPanel
       title="דיווח תקלה"
+      subtitle={ctx.asset}
       onClose={close}
       onSubmit={submit}
-      submitLabel="דווח"
-      submitVariant="danger"
+      submitLabel="דיווח"
       busy={form.busy}
       error={form.error}
       onDismissError={() => form.setError(null)}
     >
-      <Select label="מוצר" options={prodOpts} value={productId} onChange={setProductId} allLabel="ללא מוצר" block />
+      {ctx.asset ? null : <Select label="מוצר" options={prodOpts} value={productId} onChange={setProductId} allLabel="ללא מוצר" block />}
       <Input
         label="תיאור"
         required
@@ -69,16 +70,19 @@ export function FaultForm({ ctx }: { ctx: ActionContext }) {
         onChange={(e) => { setDescription(e.target.value); form.clearField("description"); }}
         error={form.errors.description}
       />
-      <QtyField
-        label="כמות פגומה"
-        optional
-        value={qty}
-        onChange={(n) => { setQty(n); form.clearField("qty"); }}
-        unit={selected?.unit}
-        min={0}
-        error={form.errors.qty}
-        hint={selected ? "0 = ללא תנועת מלאי" : "נרשם רק כשנבחר מוצר"}
-      />
+      <hr className="sa-form-break" />
+      {ctx.asset ? null : (
+        <QtyField
+          label="כמות פגומה"
+          optional
+          value={qty}
+          onChange={(n) => { setQty(n); form.clearField("qty"); }}
+          unit={selected?.unit}
+          min={0}
+          error={form.errors.qty}
+          hint={selected ? "0 = ללא תנועת מלאי" : "נרשם רק כשנבחר מוצר"}
+        />
+      )}
       <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
     </FormPanel>
   );

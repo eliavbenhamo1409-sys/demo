@@ -3,10 +3,18 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
+import { DataProvider } from "@/lib/store";
 
-/** The worker app (/worker) renders bare; everything else gets the admin shell. */
+const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
+
+/** The catalogue brings its own data, the worker app renders bare, and everything else gets the admin shell. */
 export function ShellGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  if (pathname === "/worker" || pathname.startsWith("/worker/")) return <>{children}</>;
-  return <AppShell>{children}</AppShell>;
+  if (under(pathname, "/catalog")) return <>{children}</>;
+  if (under(pathname, "/worker")) return <DataProvider>{children}</DataProvider>;
+  return (
+    <DataProvider>
+      <AppShell>{children}</AppShell>
+    </DataProvider>
+  );
 }

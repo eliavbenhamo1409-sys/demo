@@ -57,11 +57,8 @@ export const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputPro
     <div className={cx("sa-field", className)}>
       {label ? (
         <label className="sa-label" htmlFor={id}>
-          <span>
-            {label}
-            {required ? <span className="sa-label-req" aria-hidden="true"> *</span> : null}
-          </span>
-          {optional ? <span className="sa-faint" style={{ fontWeight: 400 }}>אופציונלי</span> : null}
+          <span>{label}</span>
+          {optional ? <span className="sa-label-opt">לא חובה</span> : null}
         </label>
       ) : null}
       <div className={cx("sa-control", icon && "has-icon")}>
@@ -71,7 +68,6 @@ export const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputPro
       </div>
       {error ? (
         <span className="sa-error" id={errId} role="alert">
-          <Icon name="alert-circle" size={12} />
           {error}
         </span>
       ) : hint ? (

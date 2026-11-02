@@ -2,15 +2,14 @@
 
 import type * as React from "react";
 import Link from "next/link";
-import type { IconName } from "./Icon";
-import { Icon } from "./Icon";
 import { Badge } from "./Badge";
+import { Icon, type IconName } from "./Icon";
 
 export interface NavItemProps {
   href?: string;
-  icon?: IconName;
   active?: boolean;
   count?: number;
+  icon?: IconName;
   onClick?: (e: React.MouseEvent) => void;
   className?: string;
   children?: React.ReactNode;
@@ -21,14 +20,14 @@ function cx(...parts: (string | false | null | undefined)[]): string {
 }
 
 /** One row of the navigation. Renders a link when `href` is given, a button otherwise. */
-export function NavItem({ href, icon, active, count, onClick, className, children }: NavItemProps) {
+export function NavItem({ href, active, count, icon, onClick, className, children }: NavItemProps) {
   const cls = cx("sa-nav-item", active && "is-active", className);
   const body = (
     <>
-      {icon ? <Icon name={icon} /> : null}
+      {icon ? <Icon name={icon} size={16} /> : null}
       <span className="sa-truncate">{children}</span>
       {count != null ? (
-        <Badge tone={active ? "accent" : "neutral"} count>
+        <Badge count>
           {String(count)}
         </Badge>
       ) : null}

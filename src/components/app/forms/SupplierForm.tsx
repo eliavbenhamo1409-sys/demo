@@ -10,7 +10,7 @@ import { REQUIRED, errorMessage, submitOnEnter, useForm } from "./useForm";
 type Field = "name" | "email" | "phone";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[+\d][\d\s()-]{5,}$/;
+export const PHONE_RE = /^[+\d][\d\s()-]{5,}$/;
 
 export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "edit" }) {
   const { state, supplier, createSupplier, updateSupplier, deleteSupplier } = useData();
@@ -84,15 +84,15 @@ export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | 
         subtitle={editing?.name}
         onClose={close}
         onSubmit={submit}
-        submitLabel="שמור"
+        submitLabel="שמירה"
         submitDisabled={missing}
         busy={form.busy}
         error={form.error}
         onDismissError={() => form.setError(null)}
         footerStart={
           editing ? (
-            <Button variant="danger" icon="trash" onClick={() => setConfirmDelete(true)} disabled={form.busy}>
-              מחק ספק
+            <Button variant="danger" onClick={() => setConfirmDelete(true)} disabled={form.busy}>
+              מחיקת ספק
             </Button>
           ) : null
         }
@@ -110,6 +110,7 @@ export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | 
               autoComplete="off"
             />
             <Input label="איש קשר" optional value={contact} onChange={(e) => setContact(e.target.value)} />
+            <hr className="sa-form-break" />
             <Input
               label="טלפון"
               optional
@@ -130,6 +131,7 @@ export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | 
               onChange={(e) => { setEmail(e.target.value); form.clearField("email"); }}
               error={form.errors.email}
             />
+            <hr className="sa-form-break" />
             <Input label="הערות" optional multiline value={notes} onChange={(e) => setNotes(e.target.value)} onKeyDown={submitOnEnter} />
           </>
         )}
@@ -139,7 +141,7 @@ export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | 
         <Modal
           title={`למחוק את הספק ${editing.name}?`}
           tone="danger"
-          confirmLabel="מחק ספק"
+          confirmLabel="מחיקת ספק"
           busy={deleting}
           onConfirm={() => void onDelete()}
           onClose={() => { if (!deleting) { setConfirmDelete(false); setDeleteError(null); } }}
@@ -148,9 +150,9 @@ export function SupplierForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | 
             <p className="m-0">
               הפעולה אינה הפיכה.
               {itemCount > 0 ? (
-                <> יימחקו גם <span className="sa-num">{itemCount}</span> שמות חיצוניים של הספק במילון.</>
+                <> יימחקו גם {itemCount} שמות של הספק במילון.</>
               ) : (
-                <> שמות חיצוניים של הספק במילון יימחקו גם הם.</>
+                <> שמות של הספק במילון יימחקו גם הם.</>
               )}
             </p>
             {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}

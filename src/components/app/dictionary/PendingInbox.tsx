@@ -10,7 +10,8 @@
 import { useState } from "react";
 import { Button, Card, Select, type SelectOption } from "@/components/ui";
 import { isTempId, type SupplierItem } from "@/lib/store";
-import { fmtQty, fmtRelative } from "@/lib/format";
+import { fmtRelative } from "@/lib/format";
+import { seenText } from "./ProductRow";
 
 export interface PendingInboxProps {
   items: SupplierItem[];
@@ -34,17 +35,16 @@ function InboxRow({ item, busy, productOptions, supplierName, onApprove, onNewPr
   const hint = saving ? SAVING : undefined;
   return (
     <div className="sa-dict-inbox-row">
+      <span className="sa-dict-inbox-mark" aria-hidden="true" />
       <div className="sa-dict-inbox-info">
-        <span className="sa-muted">{supplierName(item.supplier_id)}</span>
-        <bdi className="sa-dict-inbox-name">{item.external_name}</bdi>
-        {item.external_sku ? <span className="sa-dict-inbox-meta sa-mono ltr">{item.external_sku}</span> : null}
-        {item.times_seen > 0 ? (
-          <span className="sa-dict-inbox-meta">
-            נראה <span className="sa-num">{fmtQty(item.times_seen)}</span> פעמים
-            {item.last_seen_at ? ` · ${fmtRelative(item.last_seen_at)}` : ""}
-          </span>
-        ) : null}
-        {saving ? <span className="sa-dict-inbox-meta">{SAVING}</span> : null}
+        <span className="sa-dict-inbox-name"><bdi>{item.external_name}</bdi></span>
+        <span className="sa-dict-inbox-meta">
+          {supplierName(item.supplier_id)}
+          {item.external_sku ? <> · <span className="sa-mono ltr">{item.external_sku}</span></> : null}
+          {item.times_seen > 0 ? ` · ${seenText(item.times_seen)}` : null}
+          {item.times_seen > 0 && item.last_seen_at ? ` · ${fmtRelative(item.last_seen_at)}` : null}
+          {saving ? ` · ${SAVING}` : null}
+        </span>
       </div>
       <div className="sa-dict-inbox-actions">
         <Select
@@ -52,34 +52,34 @@ function InboxRow({ item, busy, productOptions, supplierName, onApprove, onNewPr
           value={chosen}
           onChange={setChosen}
           placeholder="איזה מוצר זה?"
-          searchPlaceholder="חיפוש מוצר…"
+          searchPlaceholder='חיפוש לפי שם או מק"ט'
           minWidth={240}
           disabled={locked}
         />
         <Button
-          variant="secondary"
-          size="sm"
+          variant={chosen ? "primary" : "secondary"}
+          icon="check"
           disabled={!chosen || saving}
           isLoading={busy}
           title={hint}
-          aria-label={`אשר את "${item.external_name}"`}
+          aria-label={`אישור "${item.external_name}"`}
           onClick={() => onApprove(item, chosen)}
         >
-          אשר
+          אישור
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onNewProduct(item)} disabled={locked} title={hint}>
+        <Button variant="ghost" icon="plus" onClick={() => onNewProduct(item)} disabled={locked} title={hint}>
           מוצר חדש
         </Button>
         <Button
           variant="ghost"
-          size="sm"
-          iconOnly
           icon="trash"
-          aria-label={`מחק את "${item.external_name}"`}
-          title={hint ?? "מחק"}
+          aria-label={`מחיקת "${item.external_name}"`}
+          title={hint}
           onClick={() => onDelete(item)}
           disabled={locked}
-        />
+        >
+          מחיקה
+        </Button>
       </div>
     </div>
   );
@@ -90,7 +90,7 @@ export function PendingInbox({ items, approvingId, ...rest }: PendingInboxProps)
     <Card
       title="ממתינים לאישור"
       count={items.length}
-      subtitle="שמות שהגיעו בתעודות משלוח. אשר למה הם שייכים והמערכת תזהה אותם לבד בפעם הבאה."
+      subtitle="שמות מתעודות משלוח שצריך לשייך למוצר"
       flush
     >
       <div className="sa-dict-inbox">

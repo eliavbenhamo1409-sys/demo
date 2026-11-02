@@ -1,0 +1,579 @@
+/* The 3D page in the aluminium style. map3d.css is the page's bones, this file its look, scoped as minimal.css is, so the
+   classic style never sees it. One silver desk runs under the sidebar, the rail and the scene: the building floats on
+   it, white sheets float beside it, and nothing draws a box. */
+
+/* ── Stage: the desk itself ─────────────────────────────────── */
+[data-theme^="minimal"] .m3d-stage {
+  border-radius: 0;
+}
+
+/* ── The figures at the head of the rail ────────────────────── */
+[data-theme^="minimal"] .m3d-summary {
+  grid-template-columns: auto auto minmax(0, 1fr);
+  column-gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme^="minimal"] .m3d-summary > div {
+  padding: 0;
+}
+
+[data-theme^="minimal"] .m3d-summary > div + div {
+  border-inline-start: 0;
+}
+
+[data-theme^="minimal"] .m3d-summary dd {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-theme^="minimal"] .m3d-summary dt {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inside an object's sheet it is part of that sheet. */
+[data-theme^="minimal"] .m3d-card .m3d-summary {
+  grid-template-columns: repeat(3, auto);
+  justify-content: space-between;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+[data-theme^="minimal"] .m3d-card .m3d-summary dd {
+  font-size: 32px;
+  line-height: 38px;
+}
+
+/* ── Tabs fill the rail, one segmented control ──────────────── */
+[data-theme^="minimal"] .m3d-side > .sa-tabs {
+  display: flex;
+  flex-shrink: 0;
+}
+
+[data-theme^="minimal"] .m3d-side > .sa-tabs > .sa-tab {
+  flex: 1;
+  justify-content: center;
+  padding-inline: var(--space-2);
+}
+
+/* ── Rail: white sheets. The padding pays for the shadow a scroller would clip ── */
+@media (min-width: 900px) {
+  [data-theme^="minimal"] .m3d-rail {
+    gap: var(--space-4);
+    margin: calc(var(--space-2) * -1) calc(var(--space-4) * -1) 0;
+    padding: var(--space-2) var(--space-4) var(--space-8);
+  }
+}
+
+[data-theme^="minimal"] :is(.m3d-ledger, .m3d-section, .m3d-all, .m3d-card, .m3d-form, .m3d-rail > .m3d-list, .m3d-rail > .m3d-empty) {
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: clip;
+}
+
+[data-theme^="minimal"] .m3d-section {
+  gap: 0;
+  padding-block-start: var(--space-4);
+}
+
+[data-theme^="minimal"] .m3d-section > .sa-section-title {
+  padding: 0 var(--space-4) var(--space-1);
+  font-size: var(--t-17);
+  line-height: var(--l-24);
+}
+
+[data-theme^="minimal"] .m3d-empty {
+  padding: var(--space-4);
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+}
+
+[data-theme^="minimal"] .m3d-count {
+  font-weight: 500;
+  color: var(--text-quiet);
+}
+
+/* ── The ledger: a list that breathes. Its rule starts at the text ── */
+[data-theme^="minimal"] .m3d-ledger {
+  --ledger-columns: minmax(0, 1fr) 44px 60px 84px;
+  padding-block-end: var(--space-1);
+}
+
+[data-theme^="minimal"] .m3d-ledger.is-count {
+  --ledger-columns: minmax(0, 1fr) 44px 84px 52px;
+}
+
+[data-theme^="minimal"] .m3d-ledger.is-value {
+  --ledger-columns: 44px minmax(0, 1fr) 84px 52px;
+}
+
+[data-theme^="minimal"] :is(.m3d-ledger-head, .m3d-line) {
+  column-gap: var(--space-3);
+  padding-inline: var(--space-4);
+}
+
+[data-theme^="minimal"] .m3d-ledger-head {
+  min-height: 44px;
+  background: var(--bg-surface);
+  border-bottom: var(--hair) solid var(--border-base);
+  color: var(--text-tertiary);
+}
+
+[data-theme^="minimal"] .m3d-group {
+  padding: var(--space-4) var(--space-4) var(--space-1);
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+}
+
+[data-theme^="minimal"] .m3d-line {
+  position: relative;
+  min-height: 68px;
+  border-bottom: 0;
+}
+
+[data-theme^="minimal"] .m3d-line:has(+ .m3d-line)::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-4) 0;
+  bottom: 0;
+  height: var(--hair);
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .m3d-line-name {
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .m3d-line-place {
+  font-size: var(--t-15);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+[data-theme^="minimal"] .m3d-line-qty {
+  font-size: var(--t-17);
+  line-height: var(--l-22);
+  letter-spacing: -0.01em;
+}
+
+[data-theme^="minimal"] :is(.m3d-line-percent, .m3d-move-qty) {
+  font-size: var(--t-17);
+  line-height: var(--l-22);
+  letter-spacing: -0.01em;
+}
+
+[data-theme^="minimal"] .m3d-line-share .sa-meter {
+  width: 100%;
+  max-width: 76px;
+}
+
+[data-theme^="minimal"] .m3d-line:active:not(:disabled) {
+  background: var(--bg-muted);
+  transition-duration: 0ms;
+}
+
+/* ── Rows outside the ledger ────────────────────────────────── */
+[data-theme^="minimal"] .m3d-row {
+  min-height: 68px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 0;
+  transition: background-color var(--dur-1) linear;
+}
+
+[data-theme^="minimal"] .m3d-row:has(> .sa-attention-open):active {
+  background: var(--bg-muted);
+  transition-duration: 0ms;
+}
+
+@media (hover: hover) {
+  [data-theme^="minimal"] .m3d-row:has(> .sa-attention-open):hover {
+    background: var(--bg-hover);
+  }
+}
+
+[data-theme^="minimal"] .m3d-row::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-4) 0;
+  bottom: 0;
+  height: var(--hair);
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .m3d-list > :last-child > .m3d-row::after,
+[data-theme^="minimal"] .m3d-list > .m3d-row:last-child::after {
+  display: none;
+}
+
+[data-theme^="minimal"] .m3d-row-main .sa-cell-sub {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+}
+
+[data-theme^="minimal"] .m3d-all > summary {
+  min-height: 56px;
+  padding-inline: var(--space-4);
+  font-size: var(--t-15);
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: background-color var(--dur-1) linear;
+}
+
+@media (hover: hover) {
+  [data-theme^="minimal"] .m3d-all > summary:hover {
+    background: var(--bg-hover);
+  }
+}
+
+/* An order opens in place, its lines one step in. */
+[data-theme^="minimal"] .m3d-order.is-open {
+  border-bottom: 0;
+  padding-block-end: var(--space-3);
+  background: var(--bg-hover);
+}
+
+[data-theme^="minimal"] .m3d-order.is-open > .sa-btn {
+  margin-inline: var(--space-4);
+}
+
+[data-theme^="minimal"] .m3d-order:not(.is-open) > .m3d-row {
+  border-bottom: 0;
+}
+
+/* ── One object: the rail turned to it ──────────────────────── */
+[data-theme^="minimal"] .m3d-card {
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+
+[data-theme^="minimal"] .m3d-card-back {
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+[data-theme^="minimal"] .m3d-card-title {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+[data-theme^="minimal"] .m3d-card-sub {
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  color: var(--text-tertiary);
+}
+
+[data-theme^="minimal"] .m3d-item + .m3d-item {
+  border-top-color: var(--border-subtle);
+}
+
+[data-theme^="minimal"] .m3d-name {
+  font-size: var(--t-16);
+  line-height: var(--l-24);
+}
+
+[data-theme^="minimal"] .m3d-qty {
+  align-items: baseline;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .m3d-qty .sa-num {
+  font-size: 38px;
+  line-height: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-theme^="minimal"] .m3d-actions .sa-btn {
+  height: var(--control-md);
+}
+
+[data-theme^="minimal"] .m3d-card .sa-fields dt {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+}
+
+[data-theme^="minimal"] .m3d-card .sa-fields dd {
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .m3d-form {
+  padding: var(--space-5);
+}
+
+/* ── Over the scene: search, the view switch, what is on the racks ── */
+[data-theme^="minimal"] .m3d-bar .sa-input {
+  height: var(--control-md);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme^="minimal"] .m3d-bar .sa-input:focus {
+  box-shadow: var(--focus-ring);
+}
+
+[data-theme^="minimal"] .m3d-results {
+  border: 0;
+  border-radius: calc(var(--radius-md) + 4px);
+}
+
+[data-theme^="minimal"] .m3d-views .sa-btn-secondary {
+  height: var(--control-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+@media (hover: hover) {
+  [data-theme^="minimal"] .m3d-views .sa-btn-secondary:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+}
+
+/* Opaque, unlike the tabs: the model can pass under this one. */
+[data-theme^="minimal"] .m3d-views .sa-appearance-opts {
+  position: relative;
+  background: var(--bg-muted);
+  anchor-scope: --m3d-view;
+}
+
+[data-theme^="minimal"] .m3d-views .sa-appearance-opt {
+  position: relative;
+  z-index: 1;
+  min-width: 72px;
+  font-size: var(--t-14);
+  font-weight: 500;
+}
+
+@supports (anchor-name: --m3d-view) {
+  [data-theme^="minimal"] .m3d-views .sa-appearance-opt.is-active {
+    background: none;
+    box-shadow: none;
+    anchor-name: --m3d-view;
+  }
+  [data-theme^="minimal"] .m3d-views .sa-appearance-opts::before {
+    content: "";
+    position: absolute;
+    position-anchor: --m3d-view;
+    inset: anchor(top) anchor(right) anchor(bottom) anchor(left);
+    border-radius: calc(var(--radius-md) - 3px);
+    background: var(--bg-thumb);
+    box-shadow: var(--shadow-sm);
+    transition: inset var(--dur-3) var(--ease);
+  }
+}
+
+[data-theme^="minimal"] .m3d-tag {
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  /* A half pixel blurs every glyph on a plain monitor. */
+  transform: translateX(round(-50%, 1px));
+  box-shadow: var(--shadow-card);
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  font-weight: 700;
+}
+
+[data-theme^="minimal"] .m3d-tag-code {
+  font-size: var(--t-12);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .m3d-label.is-quiet .m3d-tag {
+  padding: 2px 8px;
+  box-shadow: none;
+  font-size: var(--t-12);
+  line-height: var(--l-18);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .m3d-label.is-selected .m3d-tag {
+  box-shadow: 0 0 0 2px var(--focus), var(--shadow-card);
+}
+
+@media (max-width: 899px) {
+  [data-theme^="minimal"] .m3d-tag {
+    gap: 5px;
+    padding: 2px 7px;
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+  }
+}
+
+/* ── The time ruler: a sheet under the map. A tick is a movement, in the weekly chart's two colours ── */
+[data-theme^="minimal"] .m3d-rulerslot {
+  min-height: 0;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+[data-theme^="minimal"] .m3d-rulerslot:empty {
+  display: none;
+}
+
+[data-theme^="minimal"] .m3d-ruler {
+  height: 60px;
+  padding-inline: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .m3d-track {
+  height: 36px;
+}
+
+[data-theme^="minimal"] .m3d-track::before {
+  top: calc(50% - 2px);
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--chart-track);
+}
+
+[data-theme^="minimal"] .m3d-ticks {
+  top: calc(50% - 10px);
+  height: 20px;
+  stroke-width: 2px;
+}
+
+[data-theme^="minimal"] .m3d-ticks path {
+  stroke: var(--chart-other);
+}
+
+[data-theme^="minimal"] .m3d-ticks .is-in {
+  stroke: var(--chart-in);
+}
+
+[data-theme^="minimal"] .m3d-ticks .is-out {
+  stroke: var(--chart-out);
+}
+
+[data-theme^="minimal"] .m3d-handle {
+  width: 6px;
+  height: 30px;
+  margin-inline-start: -3px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-surface);
+  cursor: ew-resize;
+}
+
+[data-theme^="minimal"] .m3d-handle:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-surface), var(--focus-ring);
+}
+
+[data-theme^="minimal"] .m3d-when {
+  bottom: calc(100% + 18px);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .m3d-edge {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 899px) {
+  [data-theme^="minimal"] .m3d-rulerslot {
+    padding-inline: var(--m3d-gutter);
+  }
+  [data-theme^="minimal"] .m3d-ruler {
+    padding-inline: var(--space-3) var(--space-4);
+  }
+}
+
+/* ── Where the rail runs out of room. The stage keeps what it can, and the ledger closes up before a name is cut ── */
+@media (max-width: 1239px) {
+  [data-theme^="minimal"] .m3d-ledger {
+    --ledger-columns: minmax(0, 1fr) 40px 52px 68px;
+  }
+  [data-theme^="minimal"] .m3d-ledger.is-count {
+    --ledger-columns: minmax(0, 1fr) 40px 72px 48px;
+  }
+  [data-theme^="minimal"] .m3d-ledger.is-value {
+    --ledger-columns: 40px minmax(0, 1fr) 76px 44px;
+  }
+  [data-theme^="minimal"] :is(.m3d-ledger-head, .m3d-line) {
+    column-gap: var(--space-2);
+    padding-inline: var(--space-3);
+  }
+  [data-theme^="minimal"] .m3d-line:has(+ .m3d-line)::after {
+    inset-inline-start: var(--space-3);
+  }
+  [data-theme^="minimal"] .m3d-line-share .sa-meter {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1239px) {
+  [data-theme^="minimal"] .sa-page.m3d-page {
+    --m3d-gutter: var(--space-6);
+    --m3d-rail: 396px;
+  }
+  [data-theme^="minimal"] .m3d-side {
+    padding-inline-end: var(--space-3);
+  }
+}
+
+/* Too narrow for four columns beside a map: each line turns into two, the name on its own. The heads stay for a reader. */
+@media (min-width: 900px) and (max-width: 1099px) {
+  [data-theme^="minimal"] .m3d-ledger-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  [data-theme^="minimal"] :is(.m3d-ledger, .m3d-ledger.is-count, .m3d-ledger.is-value) .m3d-line {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    row-gap: var(--space-1);
+    padding-block: var(--space-3);
+  }
+  [data-theme^="minimal"] .m3d-line > :is(.m3d-line-name, .m3d-line-text) {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+  [data-theme^="minimal"] .m3d-line-share {
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  [data-theme^="minimal"] .m3d-line-share .sa-meter {
+    width: 56px;
+  }
+  [data-theme^="minimal"] .m3d-line .m3d-num {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-1);
+    text-align: start;
+  }
+}

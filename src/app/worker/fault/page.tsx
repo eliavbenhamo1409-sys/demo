@@ -2,19 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
-import { Notice } from "@/components/ui/Notice";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
-import { Stepper } from "@/components/ui/Stepper";
 import { useData } from "@/lib/store";
-import { useCurrentWorker } from "@/lib/worker-store";
+import { useCurrentWorker, uploadFaultPhoto } from "@/lib/worker-store";
 import { fmtQty } from "@/lib/format";
-import { Done, Foot, Picker, Row, StepHead, Summary, type PickItem, type SummaryLine } from "@/components/worker";
+import { Boot, CameraButton, Done, Flow, Hint, Picker, Row, Section, Summary, pointAt, productPick, useSteps, type PickItem, type SummaryLine } from "@/components/worker";
 
 type Step = "what" | "summary" | "done";
 
+const ORDER: readonly Step[] = ["what", "summary", "done"];
 const STEPS = [
   { key: "what", label: "מה קרה" },
   { key: "summary", label: "אישור" },
@@ -24,13 +22,15 @@ export default function FaultPage() {
   const router = useRouter();
   const { state, reportFault, product } = useData();
   const { worker, ready } = useCurrentWorker();
+  const { step, dir, go } = useSteps(ORDER, "what");
 
-  const [step, setStep] = useState<Step>("what");
   const [productId, setProductId] = useState<string | null>(null);
   const [pick, setPick] = useState(false);
   const [description, setDescription] = useState("");
   const [withQty, setWithQty] = useState(false);
   const [qty, setQty] = useState(1);
+  const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -38,22 +38,40 @@ export default function FaultPage() {
   useEffect(() => {
     if (ready && !worker) router.replace("/worker");
   }, [ready, worker, router]);
+  useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url); }, [photo]);
+  useEffect(() => {
+    if (!productId) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById("write-off")?.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+  }, [productId]);
 
-  const items = useMemo<PickItem[]>(
-    () => state.products.map((p) => ({ id: p.id, title: p.name, sub: `${p.sku}${p.barcode ? ` · ${p.barcode}` : ""}`, keywords: `${p.sku} ${p.barcode ?? ""}`, end: <span className="sa-num">{fmtQty(p.qty)}</span> })),
-    [state.products],
-  );
+  const onPhoto = (file: File | undefined) => {
+    if (!file) return;
+    setPhotoError(null);
+    setPhoto((prev) => { if (prev) URL.revokeObjectURL(prev.url); return { file, url: URL.createObjectURL(file) }; });
+  };
+
+  const items = useMemo<PickItem[]>(() => state.products.map((p) => productPick(p, true)), [state.products]);
   const p = product(productId);
-  const canContinue = description.trim().length > 0;
+  const described = description.trim().length > 0;
 
   const submit = async () => {
     if (!worker) return;
     setBusy(true);
     setError(null);
     try {
-      await reportFault({ productId: p?.id ?? null, description: description.trim(), workerId: worker.id, qty: p && withQty ? qty : null });
+      let photoPath: string | null = null;
+      if (photo) {
+        try {
+          photoPath = await uploadFaultPhoto(photo.file, worker.id);
+        } catch (e) {
+          // The report still goes through; the manager just won't get the picture.
+          setPhotoError(e instanceof Error ? e.message : String(e));
+        }
+      }
+      await reportFault({ productId: p?.id ?? null, description: description.trim(), workerId: worker.id, qty: p && withQty ? qty : null, photoPath });
       setDone(true);
-      setStep("done");
+      go("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -61,59 +79,95 @@ export default function FaultPage() {
     }
   };
 
-  if (!ready || !worker) return null;
+  if (!ready || !worker) return <Boot />;
 
-  const lines: SummaryLine[] = p && withQty ? [{ key: "q", title: p.name, sub: "ייגרע מהמלאי כפגום", qty, unit: p.unit }] : [];
-  if (step === "done" && done) return <Done title="דווח" sub="המנהל יראה את התקלה בסקירה" tone="danger" icon="alert-triangle" lines={lines} />;
+  const lines: SummaryLine[] = p && withQty ? [{ key: "q", title: p.name, qty, unit: p.unit }] : [];
+  if (step === "done" && done) {
+    return <Done title="הדיווח הועבר למנהל" sub={photoError ? "התמונה לא הועלתה, התקלה דווחה" : undefined} lines={lines.map((l) => ({ ...l, sub: "ייגרע מהמלאי כפגום" }))} />;
+  }
 
-  const back = () => (step === "what" ? router.push("/worker") : setStep("what"));
+  const back = () => (step === "what" ? router.replace("/worker") : go("what"));
 
   if (step === "what") {
     return (
-      <main className="wk-page">
-        <StepHead title="דיווח על תקלה" step={1} total={2} onBack={back} />
-        <Stepper steps={STEPS} current="what" />
-        <Input size="touch" multiline label="מה קרה?" required placeholder="לדוגמה: לוחות הגיעו רטובים / נשבר בזמן העמסה" value={description} onChange={(e) => setDescription(e.target.value)} style={{ minHeight: 112, paddingTop: 12, paddingBottom: 12 }} />
-        <section className="wk-stack">
-          <span className="sa-label">מוצר קשור <span className="sa-faint" style={{ fontWeight: 400 }}>אופציונלי</span></span>
-          <Row title={p ? p.name : "בחר מוצר"} sub={p ? <span className="sa-num">{p.sku}</span> : "אם התקלה קשורה לפריט במלאי"} selected={!!p} end={<Icon name="chevron-left" size={18} />} onClick={() => setPick(true)} />
-          {p ? <Row quiet title="הסר מוצר" onClick={() => { setProductId(null); setWithQty(false); }} /> : null}
-        </section>
-        {p ? (
-          <section className="wk-stack">
-            <Row title="יש כמות פגומה לגרוע מהמלאי?" sub={`במלאי: ${fmtQty(p.qty)} ${p.unit}`} selected={withQty} icon="package" onClick={() => setWithQty((v) => !v)} />
-            {withQty ? (
-              <div className="wk-qty-row" style={{ paddingInline: 4 }}>
-                <span className="wk-qty-label">כמות פגומה ({p.unit})</span>
-                <QuantityStepper value={qty} min={1} onChange={setQty} />
+      <Flow
+        flow="דיווח תקלה"
+        steps={STEPS}
+        current="what"
+        dir={dir}
+        onBack={back}
+        title="מה קרה?"
+        foot={{
+          label: "המשך לאישור",
+          onClick: () => go("summary"),
+          blocked: described ? null : { reason: "חסר תיאור התקלה", onTap: () => pointAt("what") },
+        }}
+        overlay={pick ? <Picker title="מוצר קשור" items={items} placeholder='חיפוש לפי שם, מק"ט או ברקוד' onPick={(id) => { setProductId(id); setPick(false); }} onClose={() => setPick(false)} emptyTitle="לא נמצאו מוצרים" /> : null}
+      >
+        <Section id="what" title="תיאור התקלה" need="required" done={described}>
+          <Input size="touch" multiline aria-label="תיאור התקלה" placeholder="לדוגמה: לוחות הגיעו שרוטים" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Section>
+        <Section title="תמונה" need="optional" done={!!photo}>
+          {photo ? (
+            <>
+              <div className="wk-shot">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.url} alt="תצלום התקלה" />
+                <p className="wk-shot-text">התמונה צורפה</p>
+                <button type="button" className="wk-textlink" onClick={() => setPhoto(null)}>הסרה</button>
               </div>
-            ) : null}
-          </section>
-        ) : null}
-        <Foot>
-          <Button variant="primary" size="touch" iconEnd="arrow-left" disabled={!canContinue} onClick={() => setStep("summary")}>לסיכום</Button>
-        </Foot>
-        {pick ? <Picker title="מוצר קשור" items={items} placeholder="שם, מק״ט או ברקוד…" onPick={(id) => { setProductId(id); setPick(false); }} onClose={() => setPick(false)} emptyTitle="לא נמצא מוצר" /> : null}
-      </main>
+              <CameraButton quiet label="צילום מחדש" onFile={onPhoto} />
+            </>
+          ) : <CameraButton quiet label="צילום התקלה" onFile={onPhoto} />}
+        </Section>
+        <Section title="מוצר קשור" need="optional" done={!!p}>
+          <Row title={p ? p.name : "בחירת מוצר"} sub={p ? <span className="sa-num">{p.sku}</span> : undefined} selected={!!p} end={<Icon name="chevron-left" size={20} />} onClick={() => setPick(true)} />
+          {p ? (
+            <>
+              <button type="button" className="wk-textlink is-start" onClick={() => { setProductId(null); setWithQty(false); }}>הסרת המוצר</button>
+              <div id="write-off" className="wk-choices">
+                <p className="wk-ask">להוריד כמות פגומה מהמלאי?</p>
+                <div className="wk-group">
+                  <Row title="כן, להוריד" sub={`במלאי ${fmtQty(p.qty)} ${p.unit}`} selected={withQty} onClick={() => setWithQty(true)} />
+                  <Row title="לא" selected={!withQty} onClick={() => setWithQty(false)} />
+                </div>
+              </div>
+              {withQty ? (
+                <div className="wk-qty-row">
+                  <span className="wk-qty-label">כמות פגומה ({p.unit})</span>
+                  <QuantityStepper value={qty} min={1} onChange={setQty} />
+                </div>
+              ) : null}
+            </>
+          ) : null}
+        </Section>
+      </Flow>
     );
   }
 
   return (
-    <main className="wk-page">
-      <StepHead title="אישור דיווח" step={2} total={2} onBack={back} />
-      <Stepper steps={STEPS} current="summary" busy={busy} />
-      {error ? <Notice tone="danger" title="השמירה נכשלה">{error}</Notice> : null}
+    <Flow
+      flow="דיווח תקלה"
+      steps={STEPS}
+      current="summary"
+      dir={dir}
+      onBack={back}
+      title="בדיקה ואישור"
+      lead="עדיין לא נשלח כלום"
+      foot={{ label: "העברה למנהל", onClick: submit, busy: busy ? "שולח את הדיווח" : null }}
+    >
+      {error ? <Hint tone="attention" title="לא נשלח. לבדוק אינטרנט וללחוץ שוב." /> : null}
       <Summary
+        heading="פרטי הדיווח"
         meta={[
-          { k: "תקלה", v: <span style={{ whiteSpace: "normal" }}>{description.trim()}</span> },
+          { k: "תקלה", v: description.trim() },
           { k: "מוצר", v: p ? p.name : "ללא" },
-          { k: "עובד", v: worker.name },
+          // eslint-disable-next-line @next/next/no-img-element
+          ...(photo ? [{ k: "תמונה", v: <img src={photo.url} alt="תצלום התקלה" className="wk-sum-photo" /> }] : []),
         ]}
-        lines={lines}
+        lines={[]}
       />
-      <Foot>
-        <Button variant="danger" size="touch" icon="alert-triangle" disabled={busy} onClick={submit}>שלח דיווח</Button>
-      </Foot>
-    </main>
+      <Summary heading="יורד מהמלאי" lines={lines} direction="out" />
+    </Flow>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The inline "שם של ספק" form that replaces the add chip inside a product row.
+ * The inline "שם של ספק" form that opens under a product row's names.
  * Enter submits, Escape cancels; focus lands on the first control on open.
  */
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
@@ -96,8 +96,8 @@ export function InlineAliasForm({ product, onClose }: { product: Product; onClos
       ) : null}
       {noSuppliers ? (
         <span className="sa-dict-form-missing">
-          <span>אין עדיין ספקים.</span>
-          <Button variant="link" data-autofocus onClick={() => openAction("new-supplier")}>הוסף ספק קודם</Button>
+          <span>אין ספקים</span>
+          <Button variant="link" data-autofocus onClick={() => openAction("new-supplier")}>ספק חדש</Button>
         </span>
       ) : (
         <div className="sa-field is-supplier">
@@ -106,7 +106,7 @@ export function InlineAliasForm({ product, onClose }: { product: Product; onClos
             value={supplierId}
             onChange={onSupplierChange}
             placeholder="ספק"
-            searchPlaceholder="חיפוש ספק…"
+            searchPlaceholder="חיפוש לפי שם ספק"
             block
           />
           {form.errors.supplier ? <span className="sa-error" role="alert">{form.errors.supplier}</span> : null}
@@ -133,8 +133,8 @@ export function InlineAliasForm({ product, onClose }: { product: Product; onClos
         disabled={noSuppliers}
       />
       <div className="sa-dict-form-actions">
-        <Button type="submit" variant="primary" size="sm" isLoading={form.busy} disabled={noSuppliers}>שמור</Button>
-        <Button variant="ghost" size="sm" onClick={onClose} disabled={form.busy}>ביטול</Button>
+        <Button type="submit" variant="primary" isLoading={form.busy} disabled={noSuppliers}>שמירה</Button>
+        <Button variant="ghost" onClick={onClose} disabled={form.busy}>ביטול</Button>
       </div>
     </form>
   );

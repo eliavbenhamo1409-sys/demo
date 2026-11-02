@@ -4,13 +4,12 @@ import "@/components/worker/worker.css";
 
 export const metadata: Metadata = {
   title: "מחסן · אפליקציית עובד",
-  description: "קליטת סחורה, מסירה ללקוח ודיווח תקלות",
+  description: "קליטת סחורה, הוצאת סחורה ודיווח תקלות",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
 };
 

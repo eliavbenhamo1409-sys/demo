@@ -1,0 +1,351 @@
+/* ניהול מלאי — the "מינימל" style, in light and dark: aluminium.
+   White sheets float on a silver desk, or on black in the dark. Depth replaces drawn lines: a card is a soft shadow, never a box.
+   Blue is what you can press. Green, orange and red say what the stock is doing, on the word, the figure or a bar of data,
+   never as a tint or a chip behind a word. The face is the platform's own. Big type, plain words, big targets:
+   this is read at arm's length, on a factory floor, for hours.
+   The colours, sizes and radii are tokens (tokens.css); this file changes only what a token cannot.
+   Every rule is scoped to [data-theme^="minimal"], so the classic style never sees it.
+   Copied byte for byte to worker/src/design/minimal.css. */
+
+/* ── Type: the page speaks in sizes, not in weights of grey ── */
+[data-theme^="minimal"] .sa-page-title { font-size: 34px; line-height: 44px; font-weight: 700; }
+[data-theme^="minimal"] .sa-pagehead { grid-template-rows: 44px var(--l-22); }
+[data-theme^="minimal"] .sa-pagehead .sa-page-title { line-height: 44px; }
+[data-theme^="minimal"] .sa-pagehead .sa-page-sub { font-size: var(--t-15); line-height: var(--l-22); color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-section-title { font-size: var(--t-16); line-height: var(--l-24); }
+[data-theme^="minimal"] .sa-panel-title, [data-theme^="minimal"] .sa-modal-title { font-size: 22px; line-height: 28px; font-weight: 700; }
+[data-theme^="minimal"] .sa-cell-primary, [data-theme^="minimal"] .sa-table .text-ink:has(+ .sa-cell-sub) { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); }
+[data-theme^="minimal"] .sa-cell-sub { color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-label { color: var(--text-secondary); font-weight: 500; }
+[data-theme^="minimal"] .sa-table td.is-muted { color: var(--text-tertiary); }
+[data-theme^="minimal"] :is(input, textarea) { caret-color: var(--accent); }
+[data-theme^="minimal"] ::selection { background: var(--selection); }
+
+/* A figure never jumps: every digit in the product is tabular. */
+[data-theme^="minimal"] body { font-variant-numeric: tabular-nums; }
+
+/* ── Surfaces: a soft shadow, never a line around a box ────── */
+[data-theme^="minimal"] .sa-card, [data-theme^="minimal"] .sa-table-wrap { border: 0; border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-card); }
+[data-theme^="minimal"] .sa-card-head { min-height: 0; padding: 20px var(--inset) var(--space-3); border-bottom: 0; }
+[data-theme^="minimal"] .sa-card-title { font-size: var(--t-17); line-height: var(--l-24); gap: 10px; }
+[data-theme^="minimal"] .sa-card-title .sa-badge-count { font-size: var(--t-15); font-weight: 500; color: var(--text-quiet); }
+[data-theme^="minimal"] .sa-card-body { padding: var(--space-1) var(--inset) var(--inset); }
+[data-theme^="minimal"] .sa-card-body.is-flush { padding: 0; }
+[data-theme^="minimal"] .sa-card-body.is-flush > .sa-table-wrap { background: none; box-shadow: none; }
+[data-theme^="minimal"] .sa-card-foot { padding: var(--space-3) var(--inset); border-top: var(--hair) solid var(--border-subtle); }
+
+/* ── Tables: a list that breathes. The rule starts at the text, as on an iPhone ── */
+[data-theme^="minimal"] .sa-table th, [data-theme^="minimal"] .sa-dict-head { height: 40px; background: var(--bg-surface); color: var(--text-tertiary); font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; border-bottom: var(--hair) solid var(--border-base); }
+[data-theme^="minimal"] .sa-table th:first-child, [data-theme^="minimal"] .sa-table td:first-child { padding-inline-start: var(--inset); }
+[data-theme^="minimal"] .sa-table th:last-child, [data-theme^="minimal"] .sa-table td:last-child { padding-inline-end: var(--inset); }
+[data-theme^="minimal"] .sa-table td { position: relative; padding-block: var(--space-2); font-size: var(--t-14); border-bottom: 0; transition: background-color var(--dur-1) linear; }
+[data-theme^="minimal"] .sa-table tbody tr:not(:last-child) td::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: var(--hair); background: var(--border-subtle); pointer-events: none; }
+[data-theme^="minimal"] .sa-table tbody tr:not(:last-child) td:first-child::after { inset-inline-start: var(--inset); }
+[data-theme^="minimal"] .sa-table tbody tr:not(:last-child) td:last-child::after { inset-inline-end: var(--inset); }
+[data-theme^="minimal"] .sa-table tbody tr.is-selected td { background: var(--bg-selected); }
+[data-theme^="minimal"] .sa-table tbody tr.is-clickable:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+[data-theme^="minimal"] .sa-table-caption { padding: var(--space-3) var(--inset); border-top: var(--hair) solid var(--border-subtle); }
+[data-theme^="minimal"] .sa-table-empty { padding-block: var(--space-12); }
+
+/* The product's own photo leads the row: the eye finds a profile faster than its name. */
+.sa-thumbed { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.sa-thumbed > :last-child { min-width: 0; flex: 1; }
+.sa-thumb { flex-shrink: 0; display: block; width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius-md); background: var(--bg-muted); box-shadow: inset 0 0 0 var(--hair) rgba(0, 0, 0, 0.06); }
+.sa-thumb.is-sm { width: 36px; height: 36px; }
+@supports (corner-shape: squircle) { .sa-thumb { corner-shape: squircle; } }
+
+/* Stock against its minimum: a battery, its middle mark the minimum. Colour here is data, not decoration. */
+.sa-level { display: inline-flex; align-items: center; gap: var(--space-3); }
+.sa-meter { position: relative; flex-shrink: 0; display: block; width: 84px; height: 8px; border-radius: var(--radius-full); background: var(--chart-track, var(--bg-muted)); overflow: hidden; }
+.sa-meter > i { display: block; height: 100%; min-width: 0; border-radius: var(--radius-full); transition: width var(--dur-3) var(--ease); }
+.sa-meter::after { content: ""; position: absolute; inset-block: 0; inset-inline-start: 50%; width: 2px; margin-inline-start: -1px; background: var(--bg-surface); }
+.sa-meter.is-ok > i { background: var(--chart-in, var(--success)); }
+.sa-meter.is-low > i { background: var(--warning); }
+.sa-meter.is-out > i { background: var(--danger); }
+
+/* The quantity: the largest figure in a row, its state a word under it. The reserved column also uses .sa-stock, as a direct child of its cell; it keeps its size. */
+[data-theme^="minimal"] .sa-table :is(td > span > .sa-stock, .sa-signed) { font-size: var(--t-17); line-height: var(--l-24); font-weight: 600; }
+[data-theme^="minimal"] .sa-table .sa-stock { font-weight: 600; }
+[data-theme^="minimal"] .sa-table td > span:has(> .sa-stock) { flex-wrap: wrap; row-gap: 0; }
+[data-theme^="minimal"] .sa-table td .sa-dot:has(+ .sa-sr) { display: none; }
+[data-theme^="minimal"] .sa-table td .sa-sr { position: static; order: 1; flex-basis: 100%; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; font-size: var(--t-13); line-height: var(--l-18); font-weight: 600; }
+[data-theme^="minimal"] .sa-table td .sa-dot-danger + .sa-sr { color: var(--danger-text); }
+[data-theme^="minimal"] .sa-table td .sa-dot-warning + .sa-sr { color: var(--warning-text); }
+[data-theme^="minimal"] .sa-table td .sa-dot[class*="bg-short"] + .sa-sr { color: var(--short); }
+/* From 1100px a table clips, so where stock is tight the name gives way, as on a phone: it takes what the other columns leave. */
+@media (min-width: 1100px) and (max-width: 1499px) {
+  [data-theme^="minimal"] .sa-inventory-table td:first-child { width: 100%; max-width: 0; }
+  [data-theme^="minimal"] .sa-inventory-table td:first-child .sa-thumbed > span { max-width: none; }
+}
+/* Movements: the same, in closer cells, while a name still reads. The row keeps its inset at both ends. Below that it scrolls, so no column is cut. */
+@media (min-width: 1240px) and (max-width: 1499px) {
+  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) :is(th, td):not(:first-child) { padding-inline-start: var(--space-3); }
+  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) :is(th, td):not(:last-child) { padding-inline-end: var(--space-3); }
+  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) td:has(.sa-cell-primary) { width: 100%; max-width: 0; }
+  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) td span:has(> .sa-cell-primary) { max-width: none; }
+}
+@media (min-width: 1100px) and (max-width: 1239px) {
+  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) { overflow: auto; }
+  [data-theme^="minimal"] .sa-table-wrap:has(> .sa-table .sa-signed) th { top: 0; }
+}
+/* Long lists keep their column names, where the table needs no sideways scroll. */
+@media (min-width: 1100px) {
+  [data-theme^="minimal"] :is(.sa-table-wrap, .sa-card:has(> .sa-card-body > .sa-table-wrap), .sa-card-body:has(> .sa-table-wrap)) { overflow: clip; }
+  [data-theme^="minimal"] .sa-table th { top: var(--topbar); }
+}
+
+/* ── State is a word in its colour, never a fill ───────────── */
+[data-theme^="minimal"] .sa-badge { height: 22px; font-size: var(--t-13); font-weight: 600; }
+[data-theme^="minimal"] .sa-badge-dot, [data-theme^="minimal"] .sa-dot { width: 8px; height: 8px; }
+[data-theme^="minimal"] .sa-badge-count { color: var(--text-tertiary); font-weight: 500; }
+[data-theme^="minimal"] .sa-badge-danger { color: var(--danger-text); }
+[data-theme^="minimal"] .sa-badge-warning { color: var(--warning-text); }
+[data-theme^="minimal"] .sa-badge-success { color: var(--success-text); }
+[data-theme^="minimal"] .sa-badge-accent { color: var(--accent-text); }
+[data-theme^="minimal"] .sa-delta.is-up { color: var(--qty-in); }
+[data-theme^="minimal"] .sa-delta.is-down { color: var(--danger-text); }
+[data-theme^="minimal"] .sa-delta { font-weight: 600; }
+[data-theme^="minimal"] .sa-move { color: var(--text-secondary); font-weight: 500; }
+[data-theme^="minimal"] .sa-move svg { width: 16px; height: 16px; }
+[data-theme^="minimal"] .sa-move.is-in, [data-theme^="minimal"] .sa-move.is-in svg { color: var(--qty-in); }
+[data-theme^="minimal"] .sa-move.is-out svg { color: var(--accent-text); }
+[data-theme^="minimal"] .sa-move.is-fault, [data-theme^="minimal"] .sa-move.is-fault svg { color: var(--danger-text); }
+[data-theme^="minimal"] .sa-timeline-qty { font-weight: 600; }
+[data-theme^="minimal"] .sa-panel-sub .text-ink { font-size: var(--t-17); font-weight: 600; }
+[data-theme^="minimal"] .sa-panel-sub:has(.sa-dot-danger) .text-ink { color: var(--danger-text); }
+[data-theme^="minimal"] .sa-panel-sub:has(.sa-dot-warning) .text-ink { color: var(--warning-text); }
+[data-theme^="minimal"] .sa-panel-sub:has(.sa-dot[class*="bg-short"]) .text-ink { color: var(--short); }
+[data-theme^="minimal"] :is(.app-live, .wk-live, .wk-status:has(> .sa-dot-warning)) { color: var(--warning-text); font-weight: 500; }
+
+/* ── Buttons: blue is what you can press; the rest is a quiet fill ── */
+[data-theme^="minimal"] .sa-btn { font-weight: 600; border: 0; }
+[data-theme^="minimal"] .sa-btn-primary, [data-theme^="minimal"] .sa-btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-theme^="minimal"] .sa-btn-secondary { background: var(--bg-fill); color: var(--text-primary); }
+[data-theme^="minimal"] .sa-btn-ghost { color: var(--text-secondary); }
+[data-theme^="minimal"] .sa-btn-danger { background: var(--bg-fill); color: var(--danger-text); }
+[data-theme^="minimal"] .sa-btn-link { color: var(--accent-text); font-weight: 500; }
+[data-theme^="minimal"] .sa-btn-link:disabled { text-decoration: none; }
+@media (hover: hover) {
+  [data-theme^="minimal"] .sa-btn-primary:hover:not(:disabled), [data-theme^="minimal"] .sa-btn-accent:hover:not(:disabled) { background: var(--accent-hover); }
+  [data-theme^="minimal"] :is(.sa-btn-secondary, .sa-btn-danger):hover:not(:disabled) { background: var(--bg-fill-hover); }
+  [data-theme^="minimal"] .sa-btn-ghost:hover:not(:disabled) { background: var(--bg-fill); color: var(--text-primary); }
+  [data-theme^="minimal"] :is(.sa-dict-product-name, .sa-fault-product):hover { color: var(--accent-text); }
+}
+[data-theme^="minimal"] .sa-btn-primary:disabled { opacity: 1; }
+[data-theme^="minimal"] .sa-btn-primary:disabled:not([aria-busy="true"]):not(.is-busy) { background: var(--bg-fill); color: var(--text-disabled); }
+[data-theme^="minimal"] .wk-root .sa-btn-primary:active:not(:disabled):not(.is-blocked) { background: var(--accent-hover); }
+[data-theme^="minimal"] .wk-photo:not(.is-quiet):not(.is-locked) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+[data-theme^="minimal"] .wk-photo:not(.is-quiet):not(.is-locked):active { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* ── Fields: a white well that lights up blue ───────────────── */
+[data-theme^="minimal"] .sa-input, [data-theme^="minimal"] .sa-select-trigger, [data-theme^="minimal"] .app-range { border-color: var(--border-strong); }
+[data-theme^="minimal"] .sa-input { transition: border-color var(--dur-1) linear, box-shadow var(--dur-2) var(--ease); }
+[data-theme^="minimal"] .sa-input::placeholder, [data-theme^="minimal"] .sa-menu-search input::placeholder, [data-theme^="minimal"] .sa-select-value.is-placeholder { color: var(--text-quiet); }
+[data-theme^="minimal"] .sa-input:focus:not(.is-error), [data-theme^="minimal"] .sa-select-trigger.is-open, [data-theme^="minimal"] .app-range:focus-within { border-color: var(--focus); box-shadow: var(--focus-ring); }
+[data-theme^="minimal"] .sa-input.is-error:focus { box-shadow: var(--focus-ring-danger); }
+/* A saved login: login.css draws the classic ink ring, later in the cascade. */
+[data-theme^="minimal"] .app-login .sa-input:-webkit-autofill:focus:not(.is-error) { box-shadow: 0 0 0 100px var(--bg-surface) inset, var(--focus-ring); }
+[data-theme^="minimal"] :is(.sa-input, .sa-select-trigger):disabled { background: var(--bg-hover); }
+[data-theme^="minimal"] .sa-qty { border-color: var(--border-strong); }
+[data-theme^="minimal"] .sa-qty input { border-inline-color: var(--border-subtle); font-weight: 600; }
+/* Inset, because the stepper clips its corners; the canvas is no change on a white control. */
+[data-theme^="minimal"] .sa-qty input:focus { background: var(--bg-surface); box-shadow: inset 0 0 0 2px var(--focus); }
+[data-theme^="minimal"] :is(.sa-toolbar-tools, .app-filters) .sa-select-trigger:not(.is-open):has(.sa-select-value:not(.is-placeholder)) { border-color: var(--accent); color: var(--accent-text); }
+[data-theme^="minimal"] .app-range input::-webkit-calendar-picker-indicator { opacity: 1; }
+[data-theme^="minimal"] .sa-search .sa-input { background: var(--bg-surface); border-color: transparent; box-shadow: var(--shadow-sm); }
+[data-theme^="minimal"] .sa-search .sa-input:focus { border-color: var(--focus); box-shadow: var(--focus-ring); }
+[data-theme^="minimal"] :is(.sa-select-trigger, .app-range) { box-shadow: none; }
+@media (hover: hover) {
+  [data-theme^="minimal"] .sa-search .sa-input:hover:not(:disabled):not(:focus) { border-color: var(--border-strong); }
+}
+
+/* ── Segmented control: where tabs and choices live. The thumb slides ── */
+[data-theme^="minimal"] .sa-tabs { position: relative; gap: 2px; padding: 3px; background: var(--bg-fill); border-radius: var(--radius-md); anchor-scope: --seg; }
+[data-theme^="minimal"] .sa-tab { position: relative; z-index: 1; height: calc(var(--control-md) - 6px); padding-inline: var(--space-3); border-bottom: 0; border-radius: calc(var(--radius-md) - 3px); color: var(--text-secondary); transition: color var(--dur-1) linear, background-color var(--dur-1) linear; }
+[data-theme^="minimal"] .sa-tab.is-active { background: var(--bg-thumb); color: var(--text-primary); font-weight: 500; box-shadow: var(--shadow-sm); }
+[data-theme^="minimal"] .sa-tab .sa-badge { font-weight: 500; color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-tab.is-active .sa-badge { color: var(--text-primary); }
+[data-theme^="minimal"] .sa-tab .text-short { font-weight: 600; }
+[data-theme^="minimal"] .sa-tab:focus-visible { box-shadow: var(--focus-ring); }
+@supports (anchor-name: --seg) {
+  [data-theme^="minimal"] .sa-tab.is-active { background: none; box-shadow: none; anchor-name: --seg; }
+  [data-theme^="minimal"] .sa-tabs::before { content: ""; position: absolute; position-anchor: --seg; inset: anchor(top) anchor(right) anchor(bottom) anchor(left); border-radius: calc(var(--radius-md) - 3px); background: var(--bg-thumb); box-shadow: var(--shadow-sm); transition: inset var(--dur-3) var(--ease); }
+  [data-theme^="minimal"] .sa-tabs:not(:has(.sa-tab.is-active))::before { display: none; }
+}
+[data-theme^="minimal"] .sa-tabs-line { display: flex; border-bottom: 0; }
+[data-theme^="minimal"] .sa-tabs-line .sa-tab { flex: 1; justify-content: center; height: calc(var(--control-md) - 6px); margin-bottom: 0; }
+[data-theme^="minimal"] .sa-panel-tabs { padding: 0 var(--inset) var(--space-3); }
+[data-theme^="minimal"] .sa-appearance-opts { gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--bg-fill); }
+[data-theme^="minimal"] .sa-appearance-opt { height: calc(var(--control-md) - 6px); min-width: 76px; padding-inline: var(--space-3); border-bottom: 0; border-radius: calc(var(--radius-md) - 3px); transition: background-color var(--dur-2) var(--ease), color var(--dur-1) linear; }
+[data-theme^="minimal"] .sa-appearance-opt.is-active { background: var(--bg-thumb); box-shadow: var(--shadow-sm); }
+[data-theme^="minimal"] .sa-appearance-opt:focus-visible { box-shadow: var(--focus-ring); }
+/* State is fill, never weight: a word that changes width moves its neighbours. */
+[data-theme^="minimal"] .sa-nav-item, [data-theme^="minimal"] .sa-nav-item.is-active, [data-theme^="minimal"] .sa-appearance-opt.is-active { font-weight: 500; }
+
+/* ── Menus and floating things ─────────────────────────────── */
+[data-theme^="minimal"] .sa-menu, [data-theme^="minimal"] .app-results { border: 0; border-radius: calc(var(--radius-md) + 4px); box-shadow: var(--shadow-md); }
+[data-theme^="minimal"] .sa-menu-list { padding: 6px; }
+[data-theme^="minimal"] .sa-menu-item { min-height: 40px; padding: var(--space-2) 10px; border-radius: calc(var(--radius-md) - 4px); transition: background-color var(--dur-1) linear; }
+[data-theme^="minimal"] .sa-menu-item:hover, [data-theme^="minimal"] .sa-menu-item.is-active { background: var(--bg-fill); }
+[data-theme^="minimal"] .sa-menu-item > svg { color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-menu-item .sa-menu-check { color: var(--accent-text); }
+[data-theme^="minimal"] .sa-menu-search { border-bottom-color: var(--border-subtle); }
+[data-theme^="minimal"] .sa-notice { border: 0; border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: 14px var(--space-4); }
+[data-theme^="minimal"] .sa-notice:has(> .sa-dot-danger) :is(.sa-notice-title, .sa-notice-text:first-child) { color: var(--danger-text); font-weight: 600; }
+[data-theme^="minimal"] .sa-notice:has(> .sa-dot-warning) :is(.sa-notice-title, .sa-notice-text:first-child) { color: var(--warning-text); font-weight: 600; }
+[data-theme^="minimal"] .app-toast { box-shadow: var(--shadow-md); }
+[data-theme^="minimal"] .sa-modal { border: 0; border-radius: var(--radius-xl); box-shadow: var(--shadow-modal); }
+[data-theme^="minimal"] .sa-modal-foot { border-top: 0; padding-top: var(--space-2); }
+[data-theme^="minimal"] .sa-scrim { background: var(--bg-scrim); }
+
+/* The drawer floats beside the page instead of nailing itself to the edge. */
+[data-theme^="minimal"] .sa-panel { border: 0; box-shadow: var(--shadow-modal); }
+[data-theme^="minimal"] .sa-panel.is-card { border-radius: var(--radius-xl); }
+[data-theme^="minimal"] .sa-panel-head { padding: var(--inset) var(--inset) var(--space-4); border-bottom: 0; }
+[data-theme^="minimal"] .sa-panel-eyebrow { color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-panel-body { padding: var(--space-2) var(--inset) var(--inset); gap: var(--inset); }
+[data-theme^="minimal"] .sa-panel-foot { padding: var(--space-4) var(--inset); border-top: var(--hair) solid var(--border-subtle); }
+@media (min-width: 900px) {
+  [data-theme^="minimal"] .app-panelHost { top: var(--shell-gap); bottom: var(--shell-gap); inset-inline-end: var(--shell-gap); max-width: calc(100% - 2 * var(--shell-gap)); }
+  [data-theme^="minimal"] .app-panelHost > .sa-panel { border-radius: var(--radius-xl); overflow: hidden; }
+}
+
+/* ── Shell: a floating sidebar and a toolbar made of glass ──── */
+[data-theme^="minimal"] .sa-sidebar { background: var(--bg-surface); border: 0; }
+[data-theme^="minimal"] .sa-brand { height: 68px; padding-inline: var(--space-5); font-size: 20px; line-height: 26px; font-weight: 700; }
+[data-theme^="minimal"] .sa-nav { padding: var(--space-1) var(--space-3); gap: 2px; }
+[data-theme^="minimal"] .sa-nav-foot { padding: var(--space-3); gap: 2px; }
+[data-theme^="minimal"] .sa-nav-item { height: 44px; padding-inline: var(--space-3); border-inline-start: 0; border-radius: var(--radius-md); color: var(--text-secondary); font-size: var(--t-15); transition: color var(--dur-1) linear, background-color var(--dur-1) linear; }
+[data-theme^="minimal"] .sa-nav-item > svg { width: 20px; height: 20px; color: var(--text-tertiary); transition: color var(--dur-1) linear; }
+[data-theme^="minimal"] .sa-nav-item .sa-badge { font-size: var(--t-14); font-weight: 500; color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-topbar { background: var(--bg-glass); border-bottom: var(--hair) solid var(--border-base); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
+@media (hover: hover) { [data-theme^="minimal"] .sa-nav-item:hover { background: var(--bg-fill); color: var(--text-primary); } }
+
+@media (min-width: 900px) {
+  [data-theme^="minimal"] .sa-sidebar { top: var(--shell-gap); height: calc(100dvh - 2 * var(--shell-gap)); margin: var(--shell-gap); margin-inline-end: 0; border-radius: var(--radius-xl); box-shadow: var(--shadow-card); }
+  [data-theme^="minimal"] .sa-nav-item.is-active, [data-theme^="minimal"] .sa-nav-item.is-active:hover { background: var(--accent); color: var(--on-accent); }
+  [data-theme^="minimal"] .sa-nav-item.is-active > svg, [data-theme^="minimal"] .sa-nav-item.is-active .sa-badge { color: inherit; }
+}
+/* Phones: the navigation is a row of tabs on a rule, as in the classic style. */
+@media (max-width: 899px) {
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav { padding: 0 var(--space-4); gap: var(--space-5); }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item,
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { height: 44px; padding: 0; border-radius: 0; border-bottom-width: 3px; background: none; }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { color: var(--accent-text); border-bottom-color: var(--accent); }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active > svg { color: inherit; }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot { padding: 0 var(--space-2); flex-direction: row; }
+  /* The name scrolls away, the tabs stay. */
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar { position: sticky; top: -48px; z-index: 75; }
+}
+
+/* ── The overview's strip: separate cards that lift under a mouse ── */
+[data-theme^="minimal"] .sa-stats { gap: var(--gap); background: none; border: 0; border-radius: 0; overflow: visible; }
+[data-theme^="minimal"] .sa-stat { position: relative; gap: 2px; min-height: 176px; padding: 18px 20px var(--space-4); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-card); }
+[data-theme^="minimal"] a.sa-stat { transition: transform var(--dur-3) var(--ease), box-shadow var(--dur-3) var(--ease); }
+[data-theme^="minimal"] a.sa-stat:focus-visible { box-shadow: var(--focus-ring); }
+[data-theme^="minimal"] .sa-stat-label { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-secondary); }
+[data-theme^="minimal"] .sa-stat-label svg { width: 18px; height: 18px; }
+[data-theme^="minimal"] .sa-stat-value { direction: inherit; justify-content: flex-start; margin-top: var(--space-1); font-size: 46px; line-height: 54px; font-weight: 700; letter-spacing: -0.02em; }
+[data-theme^="minimal"] .sa-stat-value > :first-child { direction: ltr; unicode-bidi: isolate; }
+[data-theme^="minimal"] .sa-stat-unit { font-size: var(--t-16); line-height: var(--l-24); font-weight: 500; color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-stat-foot { margin-top: auto; padding-top: var(--space-2); flex-wrap: wrap; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-delta { font-size: var(--t-14); }
+[data-theme^="minimal"] .sa-stat:has(.text-warning-text) .sa-stat-foot, [data-theme^="minimal"] div.sa-stat:has(.text-warning-text) .sa-stat-value { color: var(--warning-text); }
+[data-theme^="minimal"] .sa-stat:has(.text-danger-text) .sa-stat-foot, [data-theme^="minimal"] div.sa-stat:has(.text-danger-text) .sa-stat-value { color: var(--danger-text); }
+@media (hover: hover) { [data-theme^="minimal"] a.sa-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); background: var(--bg-surface); } }
+@media (max-width: 600px) {
+  [data-theme^="minimal"] .sa-stat { min-height: 0; padding: var(--space-3) var(--space-4); }
+  [data-theme^="minimal"] .sa-stat-value { margin-top: 0; font-size: 28px; line-height: 34px; }
+}
+
+/* ── Worklist ──────────────────────────────────────────────── */
+[data-theme^="minimal"] .sa-attention-item { min-height: 72px; padding: var(--space-3) var(--inset); gap: var(--space-4); border-bottom: 0; }
+[data-theme^="minimal"] .sa-attention-item:not(:last-child)::after, [data-theme^="minimal"] .ag-group::before { content: ""; position: absolute; inset-inline: var(--inset); bottom: 0; height: var(--hair); background: var(--border-subtle); pointer-events: none; }
+[data-theme^="minimal"] .sa-attention-title, [data-theme^="minimal"] .ag-title { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; }
+[data-theme^="minimal"] .sa-attention-meta, [data-theme^="minimal"] .ag-hint { color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-attention-item .sa-badge { min-width: 72px; }
+[data-theme^="minimal"] .ag-group { position: relative; }
+[data-theme^="minimal"] .ag-group::before { top: 0; bottom: auto; }
+[data-theme^="minimal"] .ag-group + .ag-group, [data-theme^="minimal"] .ag-urgent + .ag-group, [data-theme^="minimal"] .ag-panel { border-top: 0; }
+[data-theme^="minimal"] .ag-head { min-height: 72px; padding: var(--space-3) var(--inset); gap: var(--space-4); }
+[data-theme^="minimal"] .ag-head.is-open { background: var(--bg-hover); }
+[data-theme^="minimal"] .ag-count { min-width: 72px; font-size: var(--t-15); font-weight: 600; color: var(--warning-text); }
+[data-theme^="minimal"] .ag-count svg { display: none; }
+[data-theme^="minimal"] .ag-panel { display: grid; grid-template-rows: 1fr; animation: ag-open var(--dur-2) var(--ease); }
+[data-theme^="minimal"] .ag-panel > * { min-height: 0; overflow: hidden; }
+[data-theme^="minimal"] .ag-chev { transition: transform var(--dur-2) var(--ease); }
+@keyframes ag-open { from { grid-template-rows: 0fr; opacity: 0; } }
+
+/* ── Hover: a real fill, lighter than the canvas. A mouse only ── */
+@media (hover: hover) {
+  [data-theme^="minimal"] :is(.sa-table tbody tr.is-clickable:not(.is-selected):hover td, .sa-attention-item:hover, .ag-head:hover, .sa-dict-supplier:hover) { background: var(--bg-hover); }
+  [data-theme^="minimal"] :is(.sa-attention-thumb:hover, .sa-doc-card:hover .sa-doc-thumb) { border-color: var(--border-control); }
+  [data-theme^="minimal"] .sa-tab:not(.is-active):hover { color: var(--text-primary); }
+  [data-theme^="minimal"] .sa-appearance-opt:not(.is-active):hover { color: var(--text-primary); }
+  [data-theme^="minimal"] :is(.sa-table th button, .sa-settings-link, .sa-appearance-link):hover { color: var(--text-primary); }
+}
+/* These two base hovers paint the canvas and stick after a tap. */
+@media (hover: none) { [data-theme^="minimal"] :is(.ag-head:not(.is-open), .sa-dict-supplier):hover { background: transparent; } }
+
+/* ── Pressed: one step deeper, at once; the release fades ─── */
+[data-theme^="minimal"] :is(.sa-btn-secondary, .sa-btn-ghost, .sa-btn-danger, .sa-qty button, .sa-select-trigger, .sa-menu-item, .ag-head, .sa-dict-supplier):active:not(:disabled) { background: var(--bg-muted); transition-duration: 0ms; }
+[data-theme^="minimal"] .sa-table tbody tr.is-clickable:active td { background: var(--bg-muted); }
+[data-theme^="minimal"] :is(.sa-tab, .sa-nav-item, .sa-btn-link, .sa-dict-add, .sa-dict-product-name, .sa-fault-product):active { opacity: 0.6; }
+[data-theme^="minimal"] :is(.wk-textlink, .wk-line-remove):active { opacity: 0.6; }
+
+/* ── Progress: ink says where you are, green says it is done ── */
+[data-theme^="minimal"] .wk-progress-step.is-done .wk-progress-line::after { background: var(--success); }
+[data-theme^="minimal"] .sa-step.is-done .sa-step-bar { background: var(--success); }
+
+/* ── Corners: continuous, as Apple cuts them ───────────────── */
+[data-theme^="minimal"] .wk-root { --radius-md: 12px; --radius-lg: 16px; }
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] .wk-root { --radius-md: 16px; --radius-lg: 22px; }
+  [data-theme^="minimal"] :is(.sa-card, .sa-table-wrap, .sa-stat, .sa-sidebar, .sa-panel, .sa-modal, .sa-menu, .app-results, .sa-notice, .sa-btn, .sa-input, .sa-select-trigger, .sa-qty, .sa-nav-item, .sa-tabs, .sa-tab, .sa-tabs::before, .app-range, .wk-actions, .wk-row, .wk-hint, .wk-photo, .wk-suggest) { corner-shape: squircle; }
+}
+
+/* ── Grouped list on the phone: the separator starts at the text, as on an iPhone ── */
+[data-theme^="minimal"] .sa-bigaction { position: relative; }
+[data-theme^="minimal"] .sa-bigaction + .sa-bigaction { border-top: 0; }
+[data-theme^="minimal"] .sa-bigaction + .sa-bigaction::before { content: ""; position: absolute; top: 0; inset-inline: 60px 0; height: var(--hair); background: var(--border-base); }
+
+/* Choices sit in one group, the check says which. */
+[data-theme^="minimal"] .wk-choices { gap: 0; }
+[data-theme^="minimal"] .wk-choices > .wk-ask { margin-bottom: var(--space-2); }
+
+/* ── Motion: one curve. A press answers at once and lets go softly ── */
+[data-theme^="minimal"] :is(.sa-btn, .wk-photo) { transition: background-color var(--dur-1) linear, color var(--dur-1) linear, border-color var(--dur-1) linear, transform var(--dur-2) var(--ease); }
+[data-theme^="minimal"] :is(.sa-btn:not(:disabled):not(.is-blocked):not(.sa-btn-link), .wk-photo):active { transform: scale(0.97); transition-duration: 0ms; }
+@keyframes sa-rise { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+@keyframes sa-drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+@keyframes sa-enter { from { opacity: 0; transform: translateY(10px); } }
+[data-theme^="minimal"] .sa-modal { animation: sa-rise var(--dur-3) var(--ease); }
+[data-theme^="minimal"] .sa-scrim:not(.app-scrim) { animation: sa-fade var(--dur-2) linear; }
+[data-theme^="minimal"] .sa-menu { animation: sa-drop var(--dur-2) var(--ease); transform-origin: top; }
+[data-theme^="minimal"] .app-panelHost:not([data-closing]) { animation-duration: 340ms; animation-timing-function: var(--ease); }
+/* A page arrives once, its surfaces one after another. Backwards only: a filled transform would trap menus and sticky heads. */
+[data-theme^="minimal"] .app-content .sa-page > * { animation: sa-enter 420ms var(--ease) backwards; }
+[data-theme^="minimal"] .app-content .sa-page > :nth-child(2) { animation-delay: 40ms; }
+[data-theme^="minimal"] .app-content .sa-page > :nth-child(3) { animation-delay: 80ms; }
+[data-theme^="minimal"] .app-content .sa-page > :nth-child(n + 4) { animation-delay: 120ms; }
+
+/* The done mark draws itself once, short stroke first. Green here means it went through. */
+[data-theme^="minimal"] .wk-done-mark { color: var(--success-text); }
+[data-theme^="minimal"] .wk-done-mark polyline { stroke-dasharray: 23; stroke-dashoffset: -23; animation: wk-draw 420ms var(--ease) 120ms forwards; }
+@keyframes wk-draw { to { stroke-dashoffset: 0; } }
+
+/* The toolbar's rule and glass appear once there is something to separate. */
+@supports (animation-timeline: scroll()) {
+  @keyframes sa-edge { from { border-bottom-color: transparent; background-color: transparent; } }
+  [data-theme^="minimal"] .sa-topbar { animation: sa-edge linear both; animation-timeline: scroll(root block); animation-range: 0 24px; }
+}
+
+/* ── Quiet tier: what is empty, unset, locked or still to come ── */
+[data-theme^="minimal"] :is(.sa-dict-none, .sa-table .text-ink-3, .wk-photo.is-locked) { color: var(--text-quiet); }
+/* A separate rule: at (0,2,0) their active and done states still win. */
+[data-theme^="minimal"] :is(.sa-step-label, .wk-progress-label, .wk-scan-stage-row) { color: var(--text-quiet); }
+
+[data-theme^="minimal"] .app-skeletonTable { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+
+/* The dark's raised surfaces read as light, not as a shadow. */
+[data-theme="minimal-dark"] :is(.sa-dot-accent, .sa-badge-accent .sa-badge-dot) { background: var(--accent-text); }

@@ -2,47 +2,73 @@
 
 import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useData, type Movement as MovementRow, type MovementType, type Product } from "@/lib/store";
+import { available, useData, type Product } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
+import { ProductThumb, StockMeter } from "@/components/app/Viz";
 import {
   Button,
+  Count,
+  Dot,
   EmptyState,
   Icon,
-  Movement,
-  SearchBar,
+  PageHead,
   Select,
+  Showing,
   Table,
   Tabs,
+  Toolbar,
   type SelectOption,
   type TableColumn,
 } from "@/components/ui";
-import { fmtQty, fmtRelative, fmtSigned, fmtWhen, MOVEMENT_LABEL } from "@/lib/format";
+import { fmtName, fmtQty, fmtRelative } from "@/lib/format";
 
-type Tab = "products" | "low" | "out" | "movements";
+type Tab = "products" | "low" | "out" | "reserved" | "short";
 type SortKey = "name" | "qty" | "updated_at";
 type SortDir = "asc" | "desc";
 
-const TAB_VALUES: Tab[] = ["products", "low", "out", "movements"];
-const MOVEMENT_TYPES: MovementType[] = ["in", "out", "fault", "adjust"];
+const TAB_VALUES: Tab[] = ["products", "low", "out", "reserved", "short"];
 
 function tabFromParams(params: URLSearchParams): Tab {
-  if (params.get("tab") === "movements") return "movements";
   const filter = params.get("filter");
   if (filter === "low") return "low";
   if (filter === "out") return "out";
+  if (filter === "reserved") return "reserved";
+  if (filter === "short") return "short";
   return "products";
 }
 
+/** The store's rule: what is left after open orders is under the minimum, and it isn't already short. */
 function isLow(p: Product): boolean {
-  return p.qty > 0 && p.min_qty > 0 && p.qty < p.min_qty;
+  const free = available(p);
+  return p.qty > 0 && free >= 0 && p.min_qty > 0 && free < p.min_qty;
 }
 function isOut(p: Product): boolean {
   return p.qty <= 0;
 }
-
-function joinParts(parts: (string | false)[], sep = " · "): string {
-  return parts.filter((x): x is string => Boolean(x)).join(sep);
+function isShort(p: Product): boolean {
+  return available(p) < 0;
 }
+function isReserved(p: Product): boolean {
+  return p.reserved > 0;
+}
+
+/** What a hold leaves: what can still be promised, or what the orders are missing once it passes the shelf. */
+function afterOrders(p: Product): string {
+  const free = available(p);
+  return free < 0 ? `חסר ${fmtQty(-free)}` : `זמין ${fmtQty(free)}`;
+}
+
+/** The one real red, on the figures of a short product. Important because `sa-*` classes outrank utilities. */
+const SHORT_FIGURE = "text-short! font-semibold!";
+
+/** From 1100px a table clips instead of scrolling (minimal.css), so where seven columns don't fit עודכן goes rather than being cut off. */
+const HIDE_UPDATED = "min-[1100px]:max-[1379px]:[&_:is(td,th):nth-child(7)]:hidden";
+
+/** Phones keep name and quantity only; the product panel has the rest. Counts columns. */
+const PHONE_PRODUCTS = "max-[600px]:[&_:is(td,th):not(:nth-child(1),:nth-child(4))]:hidden";
+
+/** On phones this cell takes what the quantity leaves, so a long name truncates instead of scrolling the table sideways. */
+const PHONE_MAIN_CELL = "max-[600px]:w-full max-[600px]:max-w-0";
 
 export default function InventoryPage() {
   return (
@@ -53,21 +79,19 @@ export default function InventoryPage() {
 }
 
 function InventoryInner() {
-  const { state, product, supplier, worker, stats } = useData();
+  const { state, stats, supplier } = useData();
   const ui = useUi();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
-  // The active tab lives in the URL (?tab=movements, ?filter=low|out).
+  // The active tab lives in the URL (?filter=low|out|reserved|short).
   const tab = tabFromParams(params);
   const setTab = useCallback(
     (next: Tab) => {
       const sp = new URLSearchParams(params.toString());
-      sp.delete("tab");
       sp.delete("filter");
-      if (next === "movements") sp.set("tab", "movements");
-      else if (next === "low" || next === "out") sp.set("filter", next);
+      if (next !== "products") sp.set("filter", next);
       const qs = sp.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
@@ -76,7 +100,6 @@ function InventoryInner() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [supplierId, setSupplierId] = useState("");
-  const [moveType, setMoveType] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -92,11 +115,6 @@ function InventoryInner() {
     [state.suppliers],
   );
 
-  const typeOptions = useMemo<SelectOption[]>(
-    () => MOVEMENT_TYPES.map((t) => ({ value: t, label: MOVEMENT_LABEL[t] })),
-    [],
-  );
-
   /* ───────── products ───────── */
   const q = query.trim().toLowerCase();
 
@@ -110,11 +128,15 @@ function InventoryInner() {
 
   const lowCount = useMemo(() => baseProducts.filter(isLow).length, [baseProducts]);
   const outCount = useMemo(() => baseProducts.filter(isOut).length, [baseProducts]);
+  const reservedCount = useMemo(() => baseProducts.filter(isReserved).length, [baseProducts]);
+  const shortCount = useMemo(() => baseProducts.filter(isShort).length, [baseProducts]);
 
   const products = useMemo(() => {
     let list = baseProducts;
     if (tab === "low") list = list.filter(isLow);
     else if (tab === "out") list = list.filter(isOut);
+    else if (tab === "reserved") list = list.filter(isReserved);
+    else if (tab === "short") list = list.filter(isShort);
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.barcode ?? "").includes(q));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
@@ -141,9 +163,9 @@ function InventoryInner() {
       return (
         <button
           type="button"
-          className="inline-flex items-center gap-1 uppercase tracking-[0.06em]"
+          className="inline-flex items-center gap-[var(--space-1)] hover:text-ink"
           onClick={() => toggleSort(key)}
-          aria-label={`מיין לפי ${label}`}
+          aria-label={`מיון לפי ${label}`}
           aria-pressed={active}
         >
           {label}
@@ -161,125 +183,95 @@ function InventoryInner() {
       {
         key: "name",
         title: sortTitle("מוצר", "name"),
+        className: PHONE_MAIN_CELL,
         render: (p) => (
-          <span className="block min-w-0">
-            <span className="sa-cell-primary sa-truncate block">{p.name}</span>
-            {p.category ? <span className="sa-cell-sub sa-truncate">{p.category}</span> : null}
-          </span>
-        ),
-      },
-      { key: "sku", title: 'מק"ט', mono: true, align: "ltr", width: "120px", render: (p) => p.sku },
-      {
-        key: "barcode",
-        title: <span className="max-[1099px]:hidden">ברקוד</span>,
-        mono: true,
-        align: "ltr",
-        muted: true,
-        className: "max-[1099px]:hidden",
-        render: (p) => p.barcode ?? "—",
-      },
-      { key: "location", title: "מיקום", muted: true, render: (p) => p.location ?? "—" },
-      { key: "supplier", title: "ספק", render: (p) => supplier(p.primary_supplier_id)?.name ?? "—" },
-      {
-        key: "qty",
-        title: sortTitle("כמות", "qty"),
-        align: "num",
-        width: "120px",
-        render: (p) => (
-          <span className={isOut(p) ? "sa-out" : isLow(p) ? "sa-low" : undefined}>
-            {fmtQty(p.qty)}
-            <span className="sa-qty-unit" style={{ fontSize: 12 }}>{p.unit}</span>
-          </span>
-        ),
-      },
-      { key: "min_qty", title: "מינימום", align: "num", muted: true, width: "96px", render: (p) => fmtQty(p.min_qty) },
-      { key: "updated_at", title: sortTitle("עודכן", "updated_at"), muted: true, width: "140px", render: (p) => fmtRelative(p.updated_at) },
-      {
-        key: "actions",
-        title: <span className="sa-sr">פעולות</span>,
-        width: "112px",
-        render: (p) => (
-          <span className="sa-row-actions" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm" iconOnly icon="arrow-down-left" aria-label="קליטה" title="קליטה" onClick={() => ui.openAction("receive", { productId: p.id })} />
-            <Button variant="ghost" size="sm" iconOnly icon="arrow-up-right" aria-label="הוצאה" title="הוצאה" onClick={() => ui.openAction("issue", { productId: p.id })} />
-            <Button variant="ghost" size="sm" iconOnly icon="more-horizontal" aria-label="עוד" title="עוד" onClick={() => ui.openProduct(p.id)} />
-          </span>
-        ),
-      },
-    ],
-    [supplier, ui, sortTitle],
-  );
-
-  /* ───────── movements ───────── */
-  const movements = useMemo(() => {
-    return state.movements.filter((m) => {
-      if (moveType && m.type !== moveType) return false;
-      if (supplierId && m.supplier_id !== supplierId) return false;
-      const p = product(m.product_id);
-      if (category && p?.category !== category) return false;
-      if (q) {
-        const hay = [p?.name, p?.sku, p?.barcode, m.external_name, m.reference, m.note, worker(m.worker_id)?.name, supplier(m.supplier_id)?.name]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [state.movements, moveType, supplierId, category, q, product, worker, supplier]);
-
-  const movementColumns = useMemo<TableColumn<MovementRow>[]>(
-    () => [
-      { key: "created_at", title: "שעה", mono: true, align: "ltr", muted: true, width: "120px", render: (m) => fmtWhen(m.created_at) },
-      { key: "type", title: "פעולה", width: "132px", render: (m) => <Movement type={m.type} /> },
-      {
-        key: "product",
-        title: "מוצר",
-        render: (m) => {
-          const p = product(m.product_id);
-          return p ? (
-            <span className="block min-w-0">
-              <span className="sa-cell-primary sa-truncate block">{p.name}</span>
-              <span className="sa-cell-sub sa-mono ltr">{p.sku}</span>
-              {m.external_name ? (
-                <span className="sa-cell-sub sa-truncate">בתעודה: &quot;<bdi>{m.external_name}</bdi>&quot;</span>
-              ) : null}
+          <span className="sa-thumbed">
+            <ProductThumb product={p} />
+            <span className="block min-w-0 max-w-[340px] max-[600px]:max-w-none">
+              <span className="sa-cell-primary sa-truncate block" title={p.name}>{fmtName(p.name)}</span>
+              <span className="sa-cell-sub sa-truncate">
+                <span className="sa-mono ltr">{p.sku}</span>
+                {p.category ? ` · ${p.category}` : null}
+              </span>
             </span>
-          ) : (
-            <span className="sa-muted">מוצר שנמחק</span>
-          );
+          </span>
+        ),
+      },
+      {
+        key: "location",
+        title: "מיקום",
+        muted: true,
+        render: (p) => <span className="sa-truncate block max-w-[120px]" title={p.location ?? undefined}>{p.location ?? "—"}</span>,
+      },
+      {
+        key: "supplier",
+        title: "ספק",
+        render: (p) => {
+          const name = supplier(p.primary_supplier_id)?.name;
+          return <span className="sa-truncate block max-w-[140px]" title={name}>{name ?? "—"}</span>;
         },
       },
       {
         key: "qty",
-        title: "כמות",
-        align: "num",
-        width: "110px",
-        render: (m) => (
-          <span className={m.type === "in" ? "sa-qty-in" : m.type === "out" ? "sa-qty-out" : undefined}>
-            {fmtSigned(m.qty, m.type)}
+        title: sortTitle("כמות", "qty"),
+        mono: true,
+        render: (p) => {
+          const short = isShort(p);
+          const urgent = isOut(p) || short;
+          const state = isOut(p) ? "אזל" : short ? "חסר להזמנות" : isLow(p) ? "מתחת למינימום" : null;
+          return (
+            <>
+              <span className="relative inline-flex items-baseline gap-[var(--space-1)]">
+                {state ? <Dot tone={urgent ? "danger" : "warning"} className={`absolute start-[-14px] top-[7px] ${short ? "bg-short!" : ""}`} /> : null}
+                {state ? <span className="sa-sr">{state}</span> : null}
+                <span className={`sa-stock ltr min-w-[4ch] text-right ${short ? SHORT_FIGURE : urgent ? "text-danger-text" : isLow(p) ? "text-warning-text" : ""}`}>{fmtQty(p.qty)}</span>
+                <span className="sa-hint">{p.unit}</span>
+              </span>
+              {/* Narrower screens hide the reserved column or scroll it out of view. */}
+              {isReserved(p) ? <span className={`sa-cell-sub min-[1100px]:hidden! ${short ? SHORT_FIGURE : ""}`}>{short ? afterOrders(p) : `משוריין ${fmtQty(p.reserved)}`}</span> : null}
+            </>
+          );
+        },
+      },
+      {
+        key: "reserved",
+        title: "משוריין",
+        mono: true,
+        render: (p) => {
+          if (!isReserved(p)) return <span className="text-ink-3">—</span>;
+          const red = isShort(p) ? SHORT_FIGURE : "";
+          return (
+            <>
+              <span className={`sa-stock ltr ${red}`}>{fmtQty(p.reserved)}</span>
+              <span className={`sa-cell-sub ${red}`}>{afterOrders(p)}</span>
+            </>
+          );
+        },
+      },
+      {
+        key: "min_qty",
+        title: "מול המינימום",
+        muted: true,
+        render: (p) => (
+          <span className="sa-level">
+            <StockMeter value={available(p)} min={p.min_qty} tone={isOut(p) || isShort(p) ? "out" : isLow(p) ? "low" : "ok"} />
+            <span className="sa-mono ltr">{fmtQty(p.min_qty)}</span>
           </span>
         ),
       },
-      { key: "worker", title: "עובד", muted: true, render: (m) => worker(m.worker_id)?.name ?? "—" },
-      { key: "supplier", title: "ספק", muted: true, render: (m) => supplier(m.supplier_id)?.name ?? "—" },
-      { key: "reference", title: "אסמכתא", mono: true, align: "ltr", muted: true, width: "120px", render: (m) => m.reference ?? "—" },
+      { key: "updated_at", title: sortTitle("עודכן", "updated_at"), muted: true, className: "whitespace-nowrap", render: (p) => fmtRelative(p.updated_at) },
     ],
-    [product, worker, supplier],
+    [supplier, sortTitle],
   );
 
   /* ───────── header ───────── */
-  const subline = joinParts([
-    `${fmtQty(stats.products)} מוצרים`,
-    stats.low > 0 && `${fmtQty(stats.low)} מתחת למינימום`,
-    stats.out > 0 && `${fmtQty(stats.out)} אזלו`,
-  ]);
-
   const tabs = [
     { value: "products", label: "מוצרים", count: baseProducts.length },
     { value: "low", label: "מתחת למינימום", count: lowCount },
     { value: "out", label: "אזל", count: outCount },
-    { value: "movements", label: "תנועות" },
+    { value: "reserved", label: "משוריין", count: reservedCount },
+    // Only while orders hold more than the shelf has, or while it's the open tab.
+    ...(shortCount > 0 || tab === "short" ? [{ value: "short", label: <span className="text-short">חסר להזמנות</span>, count: shortCount }] : []),
   ];
 
   const onTab = (v: string) => {
@@ -290,73 +282,50 @@ function InventoryInner() {
 
   const productsEmpty =
     state.products.length === 0 ? (
-      <EmptyState icon="package" title="אין מוצרים עדיין" hint="הוסף את המוצר הראשון או קלוט סחורה">
-        <Button variant="primary" icon="plus" onClick={() => ui.openAction("new-product")}>מוצר חדש</Button>
-        <Button variant="secondary" icon="arrow-down-left" onClick={() => ui.openAction("receive")}>קליטת סחורה</Button>
+      <EmptyState title="אין מוצרים" hint="אפשר להוסיף מוצר או לקלוט סחורה">
+        <Button variant="secondary" onClick={() => ui.openAction("new-product")}>מוצר חדש</Button>
+        <Button variant="secondary" onClick={() => ui.openAction("receive")}>קליטת סחורה</Button>
       </EmptyState>
     ) : q ? (
-      <EmptyState icon="search" title="לא נמצאו מוצרים" hint={<>אין תוצאות עבור <span className="sa-mono ltr">„{query.trim()}”</span></>} />
+      <EmptyState title="לא נמצאו מוצרים" hint={<>עבור <span className="sa-mono ltr">„{query.trim()}”</span></>} />
     ) : (
       <EmptyState
-        icon="check-circle"
-        title={tab === "low" ? "אין מוצרים מתחת למינימום" : tab === "out" ? "אין מוצרים שאזלו" : "לא נמצאו מוצרים"}
-        hint={hasFilters ? "נסה להסיר את הסינון" : undefined}
+        title={tab === "low" ? "אין מוצרים מתחת למינימום" : tab === "out" ? "אין מוצרים שאזלו" : tab === "reserved" ? "אין מוצרים משוריינים" : tab === "short" ? "אין מוצרים שחסרים להזמנות" : "לא נמצאו מוצרים"}
+        hint={hasFilters ? "אפשר להסיר את הסינון" : undefined}
       />
     );
 
-  const movementsEmpty =
-    state.movements.length === 0 ? (
-      <EmptyState icon="activity" title="אין תנועות עדיין" hint="קליטה או הוצאה ראשונה תופיע כאן">
-        <Button variant="primary" icon="arrow-down-left" onClick={() => ui.openAction("receive")}>קליטת סחורה</Button>
-      </EmptyState>
-    ) : q ? (
-      <EmptyState icon="search" title="לא נמצאו תנועות" hint={<>אין תוצאות עבור <span className="sa-mono ltr">„{query.trim()}”</span></>} />
-    ) : (
-      <EmptyState icon="activity" title="לא נמצאו תנועות" hint="נסה להסיר את הסינון" />
-    );
-
   return (
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-[var(--space-6)] px-[var(--space-10)] py-[var(--space-8)]">
-      <header className="flex flex-wrap items-end justify-between gap-[var(--space-4)]">
-        <div className="min-w-0">
-          <h1 className="sa-page-title" style={{ fontSize: 30, lineHeight: "36px", fontWeight: 600 }}>מלאי</h1>
-          <p className="sa-page-sub">{subline}</p>
-        </div>
-      </header>
+    <div className="sa-page">
+      <PageHead
+        title="מלאי"
+        sub={<Count n={stats.movementsToday} one="תנועה היום" many="תנועות היום" />}
+        actions={<Button variant="primary" icon="plus" onClick={() => ui.openAction("new-product")}>מוצר חדש</Button>}
+      />
 
-      <div className="flex flex-wrap items-center gap-[var(--space-3)]">
-        <SearchBar kbd={false} value={query} onChange={setQuery} placeholder='חיפוש לפי שם, מק"ט או ברקוד' className="min-w-[240px] flex-1" />
-        <Select options={categories} value={category} onChange={setCategory} allLabel="כל הקטגוריות" placeholder="קטגוריה" minWidth={160} />
-        <Select options={supplierOptions} value={supplierId} onChange={setSupplierId} allLabel="כל הספקים" placeholder="ספק" minWidth={160} />
-        {tab === "movements" ? (
-          <Select options={typeOptions} value={moveType} onChange={setMoveType} allLabel="כל הפעולות" placeholder="פעולה" minWidth={150} searchable={false} />
-        ) : null}
-        <Tabs tabs={tabs} value={tab} onChange={onTab} />
-        <div className="ms-auto">
-          <Button variant="primary" icon="plus" onClick={() => ui.openAction("new-product")}>מוצר חדש</Button>
-        </div>
-      </div>
+      <Toolbar
+        tabs={<Tabs tabs={tabs} value={tab} onChange={onTab} />}
+        filters={
+          <>
+            <Select options={categories} value={category} onChange={setCategory} allLabel="כל הקטגוריות" placeholder="קטגוריה" />
+            <Select options={supplierOptions} value={supplierId} onChange={setSupplierId} allLabel="כל הספקים" placeholder="ספק" />
+          </>
+        }
+        query={query}
+        onQuery={setQuery}
+        placeholder='חיפוש לפי שם, מק"ט או ברקוד'
+      />
 
-      {tab === "movements" ? (
-        <Table<MovementRow>
-          caption="תנועות מלאי"
-          columns={movementColumns}
-          data={movements}
-          empty={movementsEmpty}
-          onRowClick={(m) => ui.openProduct(m.product_id, "history")}
-          footer={<span>מציג <span className="sa-num">{fmtQty(movements.length)}</span> מתוך <span className="sa-num">{fmtQty(state.movements.length)}</span></span>}
-        />
-      ) : (
-        <Table<Product>
-          caption="רשימת מוצרים"
-          columns={productColumns}
-          data={products}
-          selectedId={selectedId}
-          empty={productsEmpty}
-          onRowClick={(p) => ui.openProduct(p.id)}
-          footer={<span>מציג <span className="sa-num">{fmtQty(products.length)}</span> מתוך <span className="sa-num">{fmtQty(state.products.length)}</span></span>}
-        />
-      )}
+      <Table<Product>
+        caption="רשימת מוצרים"
+        className={`sa-inventory-table ${HIDE_UPDATED} ${PHONE_PRODUCTS}`}
+        columns={productColumns}
+        data={products}
+        selectedId={selectedId}
+        empty={productsEmpty}
+        onRowClick={(p) => ui.openProduct(p.id)}
+        footer={products.length < state.products.length ? <Showing shown={products.length} total={state.products.length} /> : undefined}
+      />
     </div>
   );
 }

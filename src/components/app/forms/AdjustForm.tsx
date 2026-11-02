@@ -28,7 +28,7 @@ export function AdjustForm({ ctx }: { ctx: ActionContext }) {
   const submit = () => {
     if (!selected) return;
     if (!Number.isFinite(qty) || qty < 0) {
-      form.setErrors({ qty: "הזן כמות תקינה (0 ומעלה)" });
+      form.setErrors({ qty: "כמות לא תקינה (0 ומעלה)" });
       return;
     }
     form.setErrors({});
@@ -45,19 +45,19 @@ export function AdjustForm({ ctx }: { ctx: ActionContext }) {
       subtitle={selected?.name}
       onClose={close}
       onSubmit={submit}
-      submitLabel="עדכן ספירה"
+      submitLabel="עדכון ספירה"
       submitDisabled={!selected}
       busy={form.busy}
       error={form.error}
       onDismissError={() => form.setError(null)}
     >
       {!selected ? (
-        <Notice tone="warning" title="לא נבחר מוצר">פתח תיקון ספירה מתוך שורת מוצר במלאי.</Notice>
+        <Notice tone="warning" title="לא נבחר מוצר">תיקון ספירה נפתח מתוך שורת מוצר במלאי.</Notice>
       ) : (
         <>
           <Fields
+            columns={3}
             items={[
-              { label: "מוצר", value: selected.name },
               { label: "מק\"ט", value: selected.sku, num: true },
               { label: "במלאי כעת", value: `${fmtQty(selected.qty)} ${selected.unit}`, num: true },
               { label: "מיקום", value: selected.location ?? undefined },
@@ -73,6 +73,7 @@ export function AdjustForm({ ctx }: { ctx: ActionContext }) {
             error={form.errors.qty}
             hint={delta === 0 ? "ללא שינוי" : `שינוי: ${delta > 0 ? "+" : "−"}${fmtQty(Math.abs(delta))}`}
           />
+          <hr className="sa-form-break" />
           <Select label="עובד" options={workOpts} value={workerId} onChange={setWorkerId} allLabel="ללא" block />
           <Input label="הערה" optional multiline placeholder="סיבת התיקון" value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
         </>

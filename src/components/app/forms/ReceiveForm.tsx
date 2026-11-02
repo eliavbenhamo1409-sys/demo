@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Button, Input, Select, Square } from "@/components/ui";
+import { Button, Dot, Input, Select } from "@/components/ui";
 import { useData, type SupplierItem } from "@/lib/store";
 import { fmtQty } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
@@ -126,7 +126,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
   const submit = () => {
     const errors: Partial<Record<Field, string>> = {};
     if (!productId) errors.product = REQUIRED;
-    if (!Number.isFinite(qty) || qty < 1) errors.qty = "הזן כמות של 1 לפחות";
+    if (!Number.isFinite(qty) || qty < 1) errors.qty = "כמות לא תקינה (1 ומעלה)";
     form.setErrors(errors);
     if (Object.keys(errors).length > 0 || !selected) return;
     void form.run(async () => {
@@ -145,36 +145,36 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
     });
   };
 
-  const qtyLabel = Number.isFinite(qty) && qty > 0 ? `קלוט ${fmtQty(qty)} ${unit}`.trim() : "קלוט";
+  const qtyLabel = Number.isFinite(qty) && qty > 0 ? `קליטת ${fmtQty(qty)} ${unit}`.trim() : "קליטה";
   const typedName = externalName.trim().length > 0;
 
   let resolutionLine: ReactNode = null;
   if (supplierId && typedName) {
     if (resolution.status === "approved") {
       resolutionLine = (
-        <span className="sa-hint flex items-center gap-[var(--space-2)]" style={{ color: "var(--success-text)" }} role="status">
-          <Square tone="success" />
-          <span>זוהה: {resolution.product.name} · <span className="sa-num">{resolution.product.sku}</span></span>
+        <span className="sa-hint flex items-center gap-[var(--space-2)]" role="status">
+          <Dot tone="success" />
+          <span>זוהה: {resolution.product.name} · <span className="sa-mono ltr">{resolution.product.sku}</span></span>
         </span>
       );
     } else if (resolution.status === "pending") {
       resolutionLine = (
-        <span className="sa-hint flex items-center gap-[var(--space-2)]" style={{ color: "var(--warning-text)" }} role="status">
-          <Square tone="warning" />
-          <span>מיפוי ממתין לאישור</span>
+        <span className="sa-hint flex items-center gap-[var(--space-2)]" role="status">
+          <Dot tone="warning" />
+          <span>התאמה ממתינה</span>
           <Button variant="link" size="sm" onClick={() => void approvePending()} disabled={!productId || approving || form.busy} isLoading={approving}>
-            אשר
+            אישור
           </Button>
         </span>
       );
     } else {
       resolutionLine = (
         <span className="sa-hint flex items-center gap-[var(--space-2)]" role="status">
-          <Square tone="neutral" />
-          <span>שם חדש — יישמר במילון לבדיקה</span>
+          <Dot />
+          <span>שם חדש, יישמר במילון לבדיקה</span>
           {!productId ? (
             <Button variant="link" size="sm" onClick={() => openAction("new-product", { supplierId })}>
-              + מוצר חדש
+              מוצר חדש
             </Button>
           ) : null}
         </span>
@@ -196,7 +196,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
 
       {supplierId ? (
         <div className="sa-field">
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-[var(--space-3)]">
+          <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-[var(--space-3)]">
             <div className="sa-field relative">
               <Input
                 label="שם בתעודת המשלוח"
@@ -231,12 +231,12 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
                           <span className="flex flex-col min-w-0 flex-1">
                             <span className="flex items-center gap-[var(--space-2)] min-w-0">
                               <span className="truncate">{s.external_name}</span>
-                              {s.external_sku ? <span className="sa-num sa-faint">{s.external_sku}</span> : null}
+                              {s.external_sku ? <span className="sa-mono ltr sa-faint">{s.external_sku}</span> : null}
                             </span>
                             <span className="sa-menu-item-sub">
-                              {mapped ? mapped.name : "לא ממופה"}
+                              {mapped ? mapped.name : "ללא התאמה"}
                               {" · "}
-                              נראה <span className="sa-num" style={{ fontSize: 12 }}>{s.times_seen}</span> פעמים
+                              נראה <span className="sa-mono">{s.times_seen}</span> פעמים
                             </span>
                           </span>
                         </button>
@@ -260,13 +260,15 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
         </div>
       ) : null}
 
+      <hr className="sa-form-break" />
       <div className="sa-field">
-        <Select label="מוצר" options={prodOpts} value={productId} onChange={onProduct} placeholder="בחר מוצר" block />
+        <Select label="מוצר" options={prodOpts} value={productId} onChange={onProduct} placeholder="בחירת מוצר" block />
         {form.errors.product ? <span className="sa-error" role="alert">{form.errors.product}</span> : null}
       </div>
       <QtyField label="כמות" value={qty} onChange={(n) => { setQty(n); form.clearField("qty"); }} unit={unit || undefined} min={1} error={form.errors.qty} required />
+      <hr className="sa-form-break" />
       <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
-      <Input label="אסמכתא" optional mono placeholder="תעודת משלוח / הזמנה" value={reference} onChange={(e) => setReference(e.target.value)} />
+      <Input label="מספר תעודה" optional mono placeholder="תעודת משלוח / הזמנה" value={reference} onChange={(e) => setReference(e.target.value)} />
       <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
     </FormPanel>
   );

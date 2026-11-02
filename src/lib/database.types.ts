@@ -12,8 +12,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          created_at: string
+          customer: string | null
+          id: string
+          kind: Database["public"]["Enums"]["document_kind"]
+          reference: string | null
+          storage_path: string
+          supplier_id: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["document_kind"]
+          reference?: string | null
+          storage_path: string
+          supplier_id?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["document_kind"]
+          reference?: string | null
+          storage_path?: string
+          supplier_id?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faults: {
         Row: {
+          asset: string | null
           created_at: string
           description: string
           id: string
@@ -25,6 +98,7 @@ export type Database = {
           status: Database["public"]["Enums"]["fault_status"]
         }
         Insert: {
+          asset?: string | null
           created_at?: string
           description: string
           id?: string
@@ -36,6 +110,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["fault_status"]
         }
         Update: {
+          asset?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -72,6 +147,7 @@ export type Database = {
       }
       movements: {
         Row: {
+          document_id: string | null
           external_name: string | null
           created_at: string
           id: string
@@ -84,6 +160,7 @@ export type Database = {
           worker_id: string | null
         }
         Insert: {
+          document_id?: string | null
           external_name?: string | null
           created_at?: string
           id?: string
@@ -96,6 +173,7 @@ export type Database = {
           worker_id?: string | null
         }
         Update: {
+          document_id?: string | null
           external_name?: string | null
           created_at?: string
           id?: string
@@ -131,18 +209,119 @@ export type Database = {
           },
         ]
       }
+      order_lines: {
+        Row: {
+          id: string
+          movement_id: string | null
+          order_id: string
+          product_id: string
+          qty: number
+          unit_price: number | null
+        }
+        Insert: {
+          id?: string
+          movement_id?: string | null
+          order_id: string
+          product_id: string
+          qty: number
+          unit_price?: number | null
+        }
+        Update: {
+          id?: string
+          movement_id?: string | null
+          order_id?: string
+          product_id?: string
+          qty?: number
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_lines_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          agent_id: string
+          closed_at: string | null
+          created_at: string
+          customer: string
+          customer_phone: string | null
+          id: string
+          note: string | null
+          number: number
+          request_id: string
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          agent_id: string
+          closed_at?: string | null
+          created_at?: string
+          customer: string
+          customer_phone?: string | null
+          id?: string
+          note?: string | null
+          number?: never
+          request_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          agent_id?: string
+          closed_at?: string | null
+          created_at?: string
+          customer?: string
+          customer_phone?: string | null
+          id?: string
+          note?: string | null
+          number?: never
+          request_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
           category: string | null
           created_at: string
+          description: string | null
           id: string
+          image_path: string | null
+          in_catalog: boolean
           location: string | null
           min_qty: number
           name: string
           notes: string | null
+          price: number | null
           primary_supplier_id: string | null
           qty: number
+          reserved: number
           sku: string
           unit: string
           updated_at: string
@@ -151,13 +330,18 @@ export type Database = {
           barcode?: string | null
           category?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          image_path?: string | null
+          in_catalog?: boolean
           location?: string | null
           min_qty?: number
           name: string
           notes?: string | null
+          price?: number | null
           primary_supplier_id?: string | null
           qty?: number
+          reserved?: number
           sku: string
           unit?: string
           updated_at?: string
@@ -166,13 +350,18 @@ export type Database = {
           barcode?: string | null
           category?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          image_path?: string | null
+          in_catalog?: boolean
           location?: string | null
           min_qty?: number
           name?: string
           notes?: string | null
+          price?: number | null
           primary_supplier_id?: string | null
           qty?: number
+          reserved?: number
           sku?: string
           unit?: string
           updated_at?: string
@@ -186,6 +375,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      item_requests: {
+        Row: {
+          document_id: string | null
+          created_at: string
+          customer: string | null
+          external_name: string
+          id: string
+          kind: Database["public"]["Enums"]["item_request_kind"]
+          movement_id: string | null
+          normalized_name: string | null
+          note: string | null
+          product_id: string | null
+          proposed_name: string | null
+          qty: number
+          reference: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["item_request_status"]
+          worker_id: string | null
+          worker_note: string | null
+        }
+        Insert: {
+          document_id?: string | null
+          created_at?: string
+          customer?: string | null
+          external_name: string
+          id?: string
+          kind: Database["public"]["Enums"]["item_request_kind"]
+          movement_id?: string | null
+          normalized_name?: string | null
+          note?: string | null
+          product_id?: string | null
+          proposed_name?: string | null
+          qty: number
+          reference?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["item_request_status"]
+          worker_id?: string | null
+          worker_note?: string | null
+        }
+        Update: {
+          document_id?: string | null
+          created_at?: string
+          customer?: string | null
+          external_name?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["item_request_kind"]
+          movement_id?: string | null
+          normalized_name?: string | null
+          note?: string | null
+          product_id?: string | null
+          proposed_name?: string | null
+          qty?: number
+          reference?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["item_request_status"]
+          worker_id?: string | null
+          worker_note?: string | null
+        }
+        Relationships: []
       }
       supplier_items: {
         Row: {
@@ -277,6 +526,27 @@ export type Database = {
         }
         Relationships: []
       }
+      warehouse_layout: {
+        Row: {
+          doc: Json
+          id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          doc: Json
+          id?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          doc?: Json
+          id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       workers: {
         Row: {
           active: boolean
@@ -306,13 +576,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_item_request: {
+        Args: { request_id: string; target_product_id: string }
+        Returns: Database["public"]["Tables"]["item_requests"]["Row"]
+      }
+      cancel_order: {
+        Args: { target_order: string }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
+      }
+      create_order: {
+        Args: {
+          agent: string
+          customer_name: string
+          items: Json
+          order_note: string
+          phone: string
+          request: string
+        }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
+      }
+      deliver_order: {
+        Args: { by_worker?: string; receipt?: string; target_order: string }
+        Returns: Database["public"]["Tables"]["orders"]["Row"]
+      }
       ean13_check: { Args: { digits12: string }; Returns: string }
       normalize_name: { Args: { t: string }; Returns: string }
+      recount_reserved: { Args: { ids: string[] }; Returns: undefined }
     }
     Enums: {
+      document_kind: "in" | "out"
       fault_status: "open" | "resolved"
+      item_request_kind: "unknown" | "new_product"
+      item_request_status: "pending" | "approved" | "rejected"
       mapping_status: "approved" | "pending"
       movement_type: "in" | "out" | "fault" | "adjust"
+      order_status: "open" | "delivered" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -423,9 +721,13 @@ export type Enums<
 export const Constants = {
   public: {
     Enums: {
+      document_kind: ["in", "out"],
       fault_status: ["open", "resolved"],
+      item_request_kind: ["unknown", "new_product"],
+      item_request_status: ["pending", "approved", "rejected"],
       mapping_status: ["approved", "pending"],
       movement_type: ["in", "out", "fault", "adjust"],
+      order_status: ["open", "delivered", "cancelled"],
     },
   },
 } as const

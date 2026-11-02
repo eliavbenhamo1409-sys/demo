@@ -2,24 +2,30 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { logOut, loginErrorMessage } from "@/lib/login/auth";
+import { ORDER_STATUS_LABEL } from "@/lib/format";
 import { useData } from "@/lib/store";
+import { NavItem } from "@/components/ui/NavItem";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
 import { ActionMenu, DEFAULT_ACTIONS, type ActionItem } from "@/components/ui/ActionMenu";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { Modal } from "@/components/ui/Modal";
 import { Notice } from "@/components/ui/Notice";
-import { Square } from "@/components/ui/Mark";
-import { Icon } from "@/components/ui/Icon";
+import { PageHead } from "@/components/ui/PageHead";
 import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
+import { OrderPanel } from "./OrderPanel";
 import { ProductPanel } from "./ProductPanel";
 import "./app-shell.css";
 
 const SHELL_ACTIONS: ActionItem[] = [
   ...DEFAULT_ACTIONS,
-  { key: "new-product", label: "מוצר חדש", sub: "הוספת פריט למלאי", icon: "plus", tone: "neutral" },
-  { key: "new-supplier", label: "ספק חדש", sub: "ספק שעדיין לא במילון", icon: "truck", tone: "neutral" },
-  { key: "new-worker", label: "עובד חדש", sub: "עובד שיופיע באפליקציית הטלפון", icon: "user", tone: "neutral" },
+  { key: "new-product", label: "מוצר חדש", icon: "package" },
+  { key: "new-supplier", label: "ספק חדש", icon: "truck" },
+  { key: "new-worker", label: "עובד חדש", icon: "user-plus" },
+  { key: "new-agent", label: "סוכן חדש", icon: "user-plus" },
 ];
 
 const ACTION_KIND: Record<string, ActionKind> = {
@@ -29,18 +35,32 @@ const ACTION_KIND: Record<string, ActionKind> = {
   "new-product": "new-product",
   "new-supplier": "new-supplier",
   "new-worker": "new-worker",
+  "new-agent": "new-agent",
 };
 
 type SearchHit =
   | { kind: "product"; id: string; title: string; sub: string }
+  | { kind: "order"; id: string; title: string; sub: string }
   | { kind: "supplier"; id: string; title: string; sub: string }
   | { kind: "supplier_item"; id: string; title: string; sub: string };
+
+/* Reached from the settings dialog, not the sidebar. */
+const SETTINGS_PAGES = [
+  { key: "documentation", label: "תיעוד", href: "/documentation" },
+  { key: "team", label: "צוות", href: "/team" },
+];
+
+const HIT_ICON: Record<SearchHit["kind"], IconName> = { product: "package", order: "inbox", supplier: "truck", supplier_item: "tag" };
 
 const MAX_HITS = 8;
 
 function activeKey(pathname: string): string {
   if (pathname.startsWith("/inventory")) return "inventory";
+  if (pathname.startsWith("/3d")) return "map";
+  if (pathname.startsWith("/orders")) return "orders";
+  if (pathname.startsWith("/movements")) return "movements";
   if (pathname.startsWith("/faults")) return "faults";
+  if (pathname.startsWith("/documentation")) return "documentation";
   if (pathname.startsWith("/suppliers")) return "suppliers";
   if (pathname.startsWith("/team")) return "team";
   return "overview";
@@ -63,25 +83,15 @@ function ShellInner({ children }: { children: ReactNode }) {
   /* ───────── sidebar ───────── */
   const items = useMemo(
     () => [
-      { key: "overview", label: "סקירה", icon: "grid" as const, href: "/" },
-      { key: "inventory", label: "מלאי", icon: "package" as const, href: "/inventory" },
-      {
-        key: "faults",
-        label: "תקלות",
-        icon: "alert-triangle" as const,
-        href: "/faults",
-        count: stats.openFaults > 0 ? stats.openFaults : undefined,
-      },
-      {
-        key: "suppliers",
-        label: "מילון ספקים",
-        icon: "book-open" as const,
-        href: "/suppliers",
-        count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined,
-      },
-      { key: "team", label: "צוות", icon: "user" as const, href: "/team" },
+      { key: "overview", label: "סקירה", href: "/", icon: "grid" as const },
+      { key: "inventory", label: "מלאי", href: "/inventory", icon: "package" as const },
+      { key: "map", label: "3D", href: "/3d", icon: "layers" as const },
+      { key: "orders", label: "הזמנות", href: "/orders", icon: "inbox" as const, count: stats.openOrders > 0 ? stats.openOrders : undefined },
+      { key: "movements", label: "תנועות", href: "/movements", icon: "activity" as const },
+      { key: "faults", label: "תקלות", href: "/faults", icon: "tool" as const, count: stats.openFaults > 0 ? stats.openFaults : undefined },
+      { key: "suppliers", label: "מילון ספקים", href: "/suppliers", icon: "book-open" as const, count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined },
     ],
-    [stats.pendingMappings, stats.openFaults],
+    [stats.pendingMappings, stats.openFaults, stats.openOrders],
   );
 
   /* ───────── actions ───────── */
@@ -92,6 +102,10 @@ function ShellInner({ children }: { children: ReactNode }) {
     },
     [ui],
   );
+
+  const onLogOut = useCallback(() => {
+    logOut().catch((error: unknown) => ui.notify({ tone: "danger", title: loginErrorMessage(error) }));
+  }, [ui]);
 
   /* ───────── global search ───────── */
   const [query, setQuery] = useState("");
@@ -112,6 +126,12 @@ function ShellInner({ children }: { children: ReactNode }) {
         out.push({ kind: "product", id: p.id, title: p.name, sub: p.barcode });
       }
     }
+    for (const o of state.orders) {
+      if (out.length >= MAX_HITS) break;
+      if (String(o.number).includes(q) || o.customer.toLowerCase().includes(q)) {
+        out.push({ kind: "order", id: o.id, title: `הזמנה ${o.number}`, sub: `${o.customer} · ${ORDER_STATUS_LABEL[o.status]}` });
+      }
+    }
     for (const s of state.suppliers) {
       if (out.length >= MAX_HITS) break;
       if (s.name.toLowerCase().includes(q)) out.push({ kind: "supplier", id: s.id, title: s.name, sub: "ספק" });
@@ -127,12 +147,12 @@ function ShellInner({ children }: { children: ReactNode }) {
           kind: "supplier_item",
           id: it.id,
           title: it.external_name,
-          sub: pName ? `${who} → ${pName}` : `${who} · לא ממופה`,
+          sub: pName ? `${who} → ${pName}` : `${who} · ללא התאמה`,
         });
       }
     }
     return out;
-  }, [query, state.products, state.suppliers, state.supplierItems]);
+  }, [query, state.products, state.orders, state.suppliers, state.supplierItems]);
 
   const onSearchChange = useCallback((q: string) => {
     setQuery(q);
@@ -150,6 +170,7 @@ function ShellInner({ children }: { children: ReactNode }) {
     (h: SearchHit | undefined) => {
       if (!h) return;
       if (h.kind === "product") ui.openProduct(h.id);
+      else if (h.kind === "order") ui.openOrder(h.id);
       else router.push("/suppliers");
       closeSearch();
     },
@@ -188,27 +209,28 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   /* ───────── panel host ───────── */
   const panel = ui.panel;
-  const close = ui.close;
+  const requestClose = ui.requestClose;
   useEffect(() => {
     if (!panel) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      // An open menu inside the drawer takes its own Escape, so a dropdown never throws the form away.
+      if (e.key === "Escape" && !e.defaultPrevented) requestClose();
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
-  }, [panel, close]);
+  }, [panel, requestClose]);
 
   /* ───────── render ───────── */
-  const liveNode = (
-    <span className="app-live" role="status" aria-live="polite">
-      <Square tone={state.live ? "success" : "neutral"} />
-      {state.live ? "מחובר" : "מסתנכרן"}
-    </span>
+  const active = activeKey(pathname);
+
+  // A working connection needs no sign; only a lost one is worth a word.
+  const liveNode = state.live ? null : (
+    <span className="app-live" role="status" aria-live="polite">מתחבר</span>
   );
 
   const searchSlot =
@@ -229,15 +251,10 @@ function ShellInner({ children }: { children: ReactNode }) {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(h)}
               >
-                <Icon
-                  name={h.kind === "product" ? "package" : h.kind === "supplier" ? "truck" : "book-open"}
-                  className="sa-menu-icon"
-                />
+                <Icon name={HIT_ICON[h.kind]} size={16} />
                 <span className="min-w-0 flex-1">
                   <span className="app-resultTitle">{h.title}</span>
-                  <span className={h.kind === "product" ? `app-resultSub sa-mono` : "app-resultSub"} dir={h.kind === "product" ? "ltr" : undefined}>
-                    {h.sub}
-                  </span>
+                  <span className="app-resultSub"><bdi>{h.sub}</bdi></span>
                 </span>
               </button>
             ))}
@@ -249,20 +266,14 @@ function ShellInner({ children }: { children: ReactNode }) {
   let page: ReactNode;
   if (state.status === "loading") {
     page = (
-      <div className="app-skeletonPage" aria-busy="true" aria-label="טוען נתונים">
-        <span className="sa-skeleton" style={{ width: 220, height: 28 }} />
-        <span className="sa-skeleton" style={{ width: 320 }} />
-        <div className="app-skeletonRow">
-          <span className={`sa-skeleton app-skeletonCard`} />
-          <span className={`sa-skeleton app-skeletonCard`} />
-          <span className={`sa-skeleton app-skeletonCard`} />
-        </div>
-        <span className={`sa-skeleton app-skeletonTable`} />
+      <div className="sa-page" aria-busy="true" aria-label="טוען נתונים">
+        <PageHead title={[...items, ...SETTINGS_PAGES].find((i) => i.key === active)?.label ?? ""} />
+        <span className="sa-skeleton app-skeletonTable" />
       </div>
     );
   } else if (state.status === "error") {
     page = (
-      <Notice tone="danger" title="טעינת הנתונים נכשלה" action="נסה שוב" onAction={() => void reload()}>
+      <Notice tone="danger" title="טעינת הנתונים נכשלה" action="ניסיון נוסף" onAction={() => void reload()}>
         {state.error ?? "שגיאה לא ידועה"}
       </Notice>
     );
@@ -271,11 +282,21 @@ function ShellInner({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className={`sa-shell app-shell`}>
-      <Sidebar items={items} active={activeKey(pathname)} brand="ניהול מלאי" brandSub="לוח ניהול" mark="מ" foot={<ThemeSettingsButton variant="nav" />} />
+    <div className="sa-shell">
+      <Sidebar
+        items={items}
+        active={active}
+        brand="ניהול מלאי"
+        foot={
+          <>
+            <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={SETTINGS_PAGES.some((p) => p.key === active)} />
+            <NavItem icon="log-out" onClick={onLogOut}>יציאה</NavItem>
+          </>
+        }
+      />
       <div className="app-main">
         <TopBar
-          actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} />}
+          actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} variant="secondary" icon="plus" />}
           searchValue={query}
           onSearchChange={onSearchChange}
           onSearch={() => pick(hits[hit])}
@@ -288,10 +309,13 @@ function ShellInner({ children }: { children: ReactNode }) {
 
       {panel ? (
         <>
-          <div className={`sa-scrim app-scrim`} onClick={close} aria-hidden />
-          <div className="app-panelHost" role="dialog" aria-modal="true">
-            {panel.type === "action" ? <ActionDrawer /> : <ProductPanel />}
+          <div className={`sa-scrim app-scrim`} data-closing={ui.closing || undefined} onClick={requestClose} aria-hidden />
+          <div className="app-panelHost" role="dialog" aria-modal="true" data-closing={ui.closing || undefined} onInput={ui.markDirty}>
+            {panel.type === "action" ? <ActionDrawer /> : panel.type === "order" ? <OrderPanel /> : <ProductPanel />}
           </div>
+          {ui.askingClose ? (
+            <Modal title="לסגור בלי לשמור?" tone="danger" confirmLabel="סגירה" cancelLabel="המשך" onConfirm={ui.close} onClose={ui.keepOpen} />
+          ) : null}
         </>
       ) : null}
 

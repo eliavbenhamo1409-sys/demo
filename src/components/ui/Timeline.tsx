@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Mark } from "./Mark";
+import { Icon } from "./Icon";
 import { MOVEMENT_ICON, type MovementType } from "./Movement";
 import { fmtSigned, MOVEMENT_LABEL } from "@/lib/format";
 
@@ -32,17 +32,15 @@ export function Timeline({ items, className }: TimelineProps) {
         const meta = [it.when, it.by].filter(Boolean).join(" · ");
         return (
           <li key={it.id ?? i} className={cx("sa-timeline-item", `is-${t}`)}>
-            <Mark type={t} icon={MOVEMENT_ICON[t]} size="md" />
-            <div className="min-w-0 flex-1">
-              <div className="sa-timeline-body">
-                <div className="min-w-0">
-                  <p className="sa-timeline-title">{it.title ?? MOVEMENT_LABEL[t]}</p>
-                  {meta ? <p className="sa-timeline-meta">{meta}</p> : null}
-                </div>
-                {it.qty != null ? <span className="sa-timeline-qty">{fmtSigned(it.qty, t)}</span> : null}
+            <div className="sa-timeline-body">
+              <Icon name={MOVEMENT_ICON[t]} size={20} strokeWidth={1.5} className="sa-timeline-icon" />
+              <div className="min-w-0">
+                <p className="sa-timeline-title">{it.title ?? MOVEMENT_LABEL[t]}</p>
+                {meta ? <p className="sa-timeline-meta">{meta}</p> : null}
               </div>
-              {it.detail}
+              {it.qty != null ? <span className="sa-timeline-qty">{fmtSigned(it.qty, t)}</span> : null}
             </div>
+            {it.detail}
           </li>
         );
       })}

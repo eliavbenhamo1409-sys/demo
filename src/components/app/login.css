@@ -1,0 +1,495 @@
+/* ── Login: one narrow column on the page canvas ───────────── */
+.app-login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(var(--space-10), 14vh, 112px) var(--space-4) var(--space-10);
+  background: var(--bg-canvas);
+}
+
+.app-login-column {
+  width: 100%;
+  max-width: 380px;
+  margin-inline: auto;
+}
+
+/* The name is the brand: set in type, as in the sidebar. */
+.app-login-brand {
+  margin: 0 0 var(--space-8);
+  font-size: var(--t-16);
+  line-height: var(--l-24);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.app-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.app-login-submit {
+  width: 100%;
+}
+
+/* ── Phone: an LTR row; the country sizes to its label, the number takes the rest ── */
+.app-login-phone {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+/* The Hebrew inside the LTR row stays RTL. Static, so the menu hangs from the whole row. */
+.app-login-phone .sa-select {
+  position: static;
+  flex: 0 1 auto;
+  max-width: calc(100% - 140px);
+  direction: rtl;
+}
+
+.app-login-phone .sa-menu {
+  top: calc(var(--control-md) + var(--space-1));
+}
+
+.app-login-phone .sa-error {
+  direction: rtl;
+}
+
+.app-login-number {
+  flex: 1 1 0;
+}
+
+.app-login-number .sa-input {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Password: room for "הצג" at the field's end, and revealed text in its own direction ── */
+.app-login-secret .sa-input {
+  padding-inline-end: 56px;
+  unicode-bidi: plaintext;
+}
+
+.app-login-secret input::-ms-reveal {
+  display: none;
+}
+
+/* ── Code ───────────────────────────────────────────────────── */
+.app-login-code .sa-input {
+  direction: ltr;
+  text-align: center;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Saved logins: paint over the browser's autofill tint ──── */
+.app-login .sa-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text-primary);
+  box-shadow: 0 0 0 100px var(--bg-surface) inset;
+}
+
+.app-login .sa-input:-webkit-autofill:focus {
+  box-shadow: 0 0 0 100px var(--bg-surface) inset, 0 0 0 1px var(--border-inverse);
+}
+
+.app-login .sa-input.is-error:-webkit-autofill:focus {
+  box-shadow: 0 0 0 100px var(--bg-surface) inset, 0 0 0 1px var(--danger);
+}
+
+/* ── Quiet links ────────────────────────────────────────────── */
+.app-login-links {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.app-login .sa-btn-link {
+  color: var(--text-secondary);
+  transition: color 0.1s linear;
+}
+
+.app-login .sa-btn-link:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+/* The countdown is read, so it keeps its contrast while disabled. */
+.app-login .sa-btn-link:disabled {
+  opacity: 1;
+  color: var(--text-tertiary);
+}
+
+/* Touch: controls grow to the system's target, and 16px type keeps iOS from zooming on focus. */
+@media (hover: none) {
+  .app-login {
+    --control-md: var(--touch);
+  }
+  .app-login .sa-input,
+  .app-login .sa-select-trigger,
+  .app-login .sa-menu-search input {
+    font-size: var(--t-16);
+  }
+  .app-login-code .sa-input {
+    font-size: 18px;
+  }
+  .app-login .sa-btn-link {
+    height: var(--touch);
+  }
+}
+
+/* The code's six places belong to the aluminium style; classic types straight into the field. */
+.app-login-slots {
+  display: none;
+}
+
+/* ── Aluminium: the first thing an owner sees, like opening a new Mac ──
+   The name large in type, one white sheet floating on the silver desk, large fields, one blue button.
+   Light and dark share every shape; the classic style keeps the plain column above. */
+
+/* The first sheet sits a little above the middle of any screen. It sets the top for all the steps, so the name never moves. */
+[data-theme^="minimal"] .app-login {
+  --control-md: var(--touch);
+  padding-top: max(var(--space-8), 45vh - 272px);
+}
+
+[data-theme^="minimal"] .app-login-column {
+  max-width: 460px;
+}
+
+[data-theme^="minimal"] .app-login-brand {
+  margin-bottom: var(--space-8);
+  font-size: clamp(48px, 7.2vh, 64px);
+  line-height: 1.15;
+  font-weight: 700;
+  text-align: center;
+  animation: sa-enter 420ms var(--ease) backwards;
+}
+
+/* LoginScreen plays this transition itself, since height auto cannot animate; the reduced-motion rule reaches it here. */
+[data-theme^="minimal"] .app-login-sheet {
+  padding: var(--space-10);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lift);
+  transition: height var(--dur-3) var(--ease);
+  animation: sa-enter 420ms var(--ease) 80ms backwards;
+}
+
+/* A new step fades in; the sheet and the name stay where they are. */
+[data-theme^="minimal"] .app-login-step {
+  animation: sa-fade var(--dur-3) linear;
+}
+
+[data-theme^="minimal"] .app-login-sheet .sa-page-title {
+  font-size: 28px;
+  line-height: 36px;
+  text-align: center;
+}
+
+[data-theme^="minimal"] .app-login-sheet .sa-page-sub {
+  margin-top: var(--space-1);
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+[data-theme^="minimal"] .app-login-form {
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+[data-theme^="minimal"] .app-login .sa-label {
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+}
+
+[data-theme^="minimal"] .app-login :is(.sa-input, .sa-select-trigger) {
+  padding-inline: var(--space-4);
+  font-size: var(--t-16);
+}
+
+/* minimal.css repaints every field's edge at the same weight as the error, so a field without focus would lose its red. */
+[data-theme^="minimal"] .app-login .sa-input.is-error {
+  border-color: var(--danger);
+}
+
+[data-theme^="minimal"] .app-login .sa-error {
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .app-login-submit {
+  margin-top: var(--space-1);
+  font-size: var(--t-16);
+}
+
+/* ── One well: country and number read as one phone number and light up together ── */
+[data-theme^="minimal"] .app-login-phone {
+  gap: 0;
+}
+
+[data-theme^="minimal"] .app-login-phone::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--control-md);
+  border: var(--hair) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  pointer-events: none;
+  transition: border-color var(--dur-1) linear, box-shadow var(--dur-2) var(--ease);
+}
+
+/* Inside the well, no control draws its own edge in any state: the well does. */
+[data-theme^="minimal"] .app-login-phone .sa-select-trigger,
+[data-theme^="minimal"] .app-login-phone .sa-select-trigger.is-open,
+[data-theme^="minimal"] .app-login-phone .sa-input,
+[data-theme^="minimal"] .app-login-phone .sa-input.is-error,
+[data-theme^="minimal"] .app-login-phone .sa-input.is-error:focus,
+[data-theme^="minimal"] .app-login-phone .sa-input:focus:not(.is-error) {
+  position: relative;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+[data-theme^="minimal"] .app-login-phone:has(.sa-select-trigger.is-open, .sa-select-trigger:focus-visible, .sa-input:focus)::before {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+[data-theme^="minimal"] .app-login-phone:has(.sa-input.is-error)::before {
+  border-color: var(--danger);
+}
+
+[data-theme^="minimal"] .app-login-phone:has(.sa-input.is-error:focus)::before {
+  box-shadow: var(--focus-ring-danger);
+}
+
+/* The picker is still its own control: a fill says so under a mouse, on the keyboard and when pressed. */
+@media (hover: hover) {
+  [data-theme^="minimal"] .app-login-phone:hover:not(:has(.sa-input:focus, .sa-input.is-error, .is-open))::before {
+    border-color: var(--border-control);
+  }
+  [data-theme^="minimal"] .app-login-phone .sa-select-trigger:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+}
+
+[data-theme^="minimal"] .app-login-phone .sa-select-trigger:focus-visible {
+  background: var(--bg-hover);
+}
+
+[data-theme^="minimal"] .app-login-phone .sa-select-trigger:active:not(:disabled) {
+  background: var(--bg-fill);
+  transition-duration: 0ms;
+}
+
+[data-theme^="minimal"] .app-login-phone .sa-select-trigger:disabled {
+  color: var(--text-primary);
+}
+
+[data-theme^="minimal"] .app-login-phone .sa-select-chevron {
+  width: 16px;
+  height: 16px;
+}
+
+/* The short rule between the code and the number, as on an iPhone: it never touches the well's edge. */
+[data-theme^="minimal"] .app-login-number .sa-control::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-3);
+  inset-inline-start: 0;
+  width: var(--hair);
+  background: var(--border-strong);
+}
+
+/* A saved login still paints its tint away, and leaves the ring to the well. */
+[data-theme^="minimal"] .app-login .app-login-phone .sa-input:-webkit-autofill:focus {
+  box-shadow: 0 0 0 100px var(--bg-surface) inset;
+}
+
+/* The menu reads at the size of the fields it serves, and clears the well's ring. A thin bar keeps the rows' inset on Windows. */
+[data-theme^="minimal"] .app-login-phone .sa-menu {
+  top: calc(var(--control-md) + var(--space-2));
+}
+
+[data-theme^="minimal"] .app-login :is(.sa-menu-search input, .sa-menu-item) {
+  font-size: var(--t-15);
+}
+
+[data-theme^="minimal"] .app-login .sa-menu-item {
+  min-height: 44px;
+}
+
+[data-theme^="minimal"] .app-login .sa-menu-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-control) transparent;
+}
+
+/* ── Password: "הסתרה" at this size needs more room than the classic field gives it ── */
+[data-theme^="minimal"] .app-login-secret .sa-input {
+  padding-inline-end: 80px;
+}
+
+[data-theme^="minimal"] .app-login-secret .sa-control-end {
+  inset-inline-end: var(--space-4);
+}
+
+/* ── Code: large digits in one well, the real input invisible over them ── */
+[data-theme^="minimal"] .app-login-code .sa-input {
+  height: 96px;
+  padding: 0;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: transparent;
+}
+
+[data-theme^="minimal"] .app-login-code .sa-input::selection {
+  background: none;
+}
+
+[data-theme^="minimal"] .app-login-code .sa-input:-webkit-autofill {
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme^="minimal"] .app-login-code .sa-control-end {
+  inset: 0;
+  justify-content: center;
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .app-login-slots {
+  display: flex;
+  direction: ltr;
+  width: 100%;
+  justify-content: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-4);
+}
+
+.app-login-slot {
+  position: relative;
+  flex: 0 1 46px;
+  height: 60px;
+  text-align: center;
+  font-size: clamp(30px, 9.5vw, 44px);
+  line-height: 60px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Three and three: the eye holds a code in two halves. */
+.app-login-slot:nth-child(3) {
+  margin-inline-end: var(--space-3);
+}
+
+/* A short mark holds each place still to fill; a digit replaces it, so a full code stands on its own. */
+.app-login-slot:empty::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-1);
+  bottom: 12px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  transition: background-color var(--dur-1) linear;
+}
+
+.app-login-code .sa-input:focus ~ .sa-control-end .is-next::after {
+  background: var(--accent);
+}
+
+/* Read only means the code is being checked: the digits step back until the answer. */
+.app-login-code .sa-input:read-only ~ .sa-control-end .app-login-slot {
+  color: var(--text-tertiary);
+}
+
+.app-login-digit {
+  display: block;
+  animation: sa-fade var(--dur-2) linear;
+}
+
+/* ── An error inside the sheet is a sentence in its colour, not a card on a card ── */
+[data-theme^="minimal"] .app-login .sa-notice {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  justify-content: center;
+  text-align: center;
+  animation: sa-fade var(--dur-2) linear;
+}
+
+[data-theme^="minimal"] .app-login .sa-notice > .sa-dot {
+  display: none;
+}
+
+/* ── Links: blue is what you can press. One stands in the middle, two hold the edges ── */
+[data-theme^="minimal"] .app-login .sa-btn-link,
+[data-theme^="minimal"] .app-login .sa-btn-link:hover:not(:disabled) {
+  color: var(--accent-text);
+}
+
+[data-theme^="minimal"] .app-login .sa-btn-link:disabled {
+  color: var(--text-tertiary);
+}
+
+[data-theme^="minimal"] .app-login-links .sa-btn-link {
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+}
+
+[data-theme^="minimal"] .app-login-links:has(> :only-child) {
+  justify-content: center;
+}
+
+/* A finger's taller target reaches into the gaps instead of widening them. */
+@media (hover: none) {
+  [data-theme^="minimal"] .app-login-links {
+    margin-block: calc((var(--l-22) - var(--touch)) / 2);
+  }
+}
+
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] .app-login-sheet { corner-shape: squircle; }
+  [data-theme^="minimal"] .app-login-phone::before { corner-shape: squircle; }
+}
+
+/* Phones: the sheet keeps its float, closer to the glass. */
+@media (max-width: 600px) {
+  [data-theme^="minimal"] .app-login {
+    padding-top: clamp(var(--space-6), 6vh, var(--space-12));
+    padding-bottom: var(--space-6);
+  }
+  [data-theme^="minimal"] .app-login-brand {
+    margin-bottom: var(--space-6);
+    font-size: 40px;
+    line-height: 48px;
+  }
+  [data-theme^="minimal"] .app-login-sheet {
+    padding: var(--space-6);
+  }
+  [data-theme^="minimal"] .app-login-sheet .sa-page-title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  [data-theme^="minimal"] .app-login-code .sa-input {
+    height: 84px;
+  }
+  [data-theme^="minimal"] .app-login-slots {
+    gap: 6px;
+    padding-inline: var(--space-3);
+  }
+  .app-login-slot:nth-child(3) {
+    margin-inline-end: var(--space-2);
+  }
+}
+
+/* Phones: the sidebar foot sits in the top row, so settings and logout stand side by side. */
+@media (max-width: 899px) {
+  .sa-shell > .sa-sidebar > .sa-nav-foot {
+    flex-direction: row;
+  }
+}

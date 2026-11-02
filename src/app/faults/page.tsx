@@ -9,8 +9,9 @@ import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { isTempId, normalizeName, useData, type Fault } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
-import { Avatar, Button, Card, EmptyState, Icon, SearchBar, Select, Tabs, type SelectOption } from "@/components/ui";
-import { fmtQty, fmtRelative } from "@/lib/format";
+import { ProductThumb } from "@/components/app/Viz";
+import { Button, Card, Count, EmptyState, PageHead, Select, Showing, Tabs, Toolbar, type SelectOption } from "@/components/ui";
+import { fmtAge, fmtDay, fmtName, fmtQty } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 
 type Tab = "open" | "resolved";
@@ -32,7 +33,7 @@ function fmtDuration(fromIso: string, toIso: string): string | null {
   const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
   if (!Number.isFinite(ms) || ms < 0) return null;
   const min = Math.round(ms / 60000);
-  if (min < 1) return null; // same minute: the resolve time alone says it
+  if (min < 1) return null; // same minute: nothing worth saying
   if (min < 60) return `תוך ${fmtQty(min)} דקות`;
   const h = Math.round(min / 60);
   if (h === 1) return "תוך שעה";
@@ -108,7 +109,7 @@ function FaultsInner() {
   const run = useCallback(
     async (f: Fault, fn: () => Promise<void>, success: string, failure: string) => {
       if (isTempId(f.id)) {
-        notify({ tone: "neutral", title: "התקלה עדיין נשמרת", text: "נסה שוב בעוד רגע" });
+        notify({ tone: "neutral", title: "התקלה עדיין נשמרת", text: "אפשר לנסות שוב בעוד רגע" });
         return;
       }
       setBusyId(f.id);
@@ -126,12 +127,6 @@ function FaultsInner() {
 
   const onResolve = useCallback((f: Fault) => run(f, () => resolveFault(f.id), "התקלה סומנה כטופלה", "סימון התקלה נכשל"), [run, resolveFault]);
   const onReopen = useCallback((f: Fault) => run(f, () => reopenFault(f.id), "התקלה נפתחה מחדש", "פתיחת התקלה נכשלה"), [run, reopenFault]);
-
-  /* ───────── header ───────── */
-  const subline: ReactNode[] = [];
-  if (open.length > 0) subline.push(<><span className="sa-num">{fmtQty(open.length)}</span> פתוחות</>);
-  else if (!loading) subline.push(<>אין תקלות פתוחות</>);
-  if (resolvedThisWeek > 0) subline.push(<><span className="sa-num">{fmtQty(resolvedThisWeek)}</span> טופלו השבוע</>);
 
   const tabs = [
     { value: "open", label: "פתוחות", count: open.length },
@@ -159,19 +154,21 @@ function FaultsInner() {
   } else if (visible.length === 0) {
     body =
       state.faults.length === 0 ? (
-        <EmptyState icon="check-circle" title="אין תקלות" hint="דיווח מהטלפון של העובדים או מכאן יופיע ברשימה הזו">
-          <Button variant="secondary" icon="alert-triangle" onClick={() => openAction("fault")}>דיווח תקלה</Button>
+        <EmptyState title="אין תקלות" hint="דיווחים מהטלפון יופיעו כאן">
+          <Button variant="secondary" onClick={() => openAction("fault")}>דיווח תקלה</Button>
         </EmptyState>
       ) : hasFilters ? (
-        <EmptyState icon="search" title="לא נמצאו תקלות" hint="נסה להסיר את הסינון" />
+        <EmptyState title="לא נמצאו תקלות" hint="אפשר להסיר את הסינון" />
       ) : tab === "open" ? (
-        <EmptyState icon="check-circle" title="אין תקלות פתוחות" hint="כל הדיווחים טופלו" />
+        <EmptyState title="אין תקלות פתוחות" />
       ) : (
-        <EmptyState icon="inbox" title="עדיין לא טופלו תקלות" hint="תקלה שתסומן כטופלה תישאר כאן כתיעוד" />
+        <EmptyState title="אין תקלות שטופלו" hint="תקלה שטופלה תישמר כאן" />
       );
   } else {
+    // A fault with no photo of its own shows its product's, and a row with neither keeps the frame's place, so the titles share one edge.
+    const anyPhoto = visible.some((f) => faultPhotoUrl(f.photo_path) || product(f.product_id)?.image_path);
     body = (
-      <ul className="sa-faults" aria-label={tab === "open" ? "תקלות פתוחות" : "תקלות שטופלו"}>
+      <ul className={anyPhoto ? "sa-faults has-photos" : "sa-faults"} aria-label={tab === "open" ? "תקלות פתוחות" : "תקלות שטופלו"}>
         {visible.map((f) => {
           const p = product(f.product_id);
           const w = worker(f.reported_by);
@@ -181,25 +178,28 @@ function FaultsInner() {
           const took = done && f.resolved_at ? fmtDuration(f.created_at, f.resolved_at) : null;
           const meta: ReactNode[] = [];
           if (w) meta.push(<>דווח ע&quot;י {w.name}</>);
-          meta.push(<>{fmtRelative(f.created_at)}</>);
-          if (done && f.resolved_at) meta.push(<>טופל {fmtRelative(f.resolved_at)}{took ? ` · ${took}` : ""}</>);
+          // An open fault counts how long it has waited; a closed one is a record, so it keeps its date.
+          meta.push(<>{done ? fmtDay(f.created_at) : fmtAge(f.created_at)}</>);
+          if (took) meta.push(<span className="sa-fault-took">טופל {took}</span>);
           return (
             <li key={f.id} className={done ? "sa-fault-row is-done" : "sa-fault-row"}>
               {src ? (
-                <a className="sa-fault-thumb" href={src} target="_blank" rel="noreferrer" aria-label="פתח את התמונה">
+                <a className="sa-fault-thumb" href={src} target="_blank" rel="noreferrer" aria-label="פתיחת התמונה">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={src} alt="" loading="lazy" />
                 </a>
-              ) : (
-                <span className="sa-fault-thumb is-empty" aria-hidden="true">
-                  <Icon name="alert-triangle" size={18} strokeWidth={1.75} />
+              ) : p?.image_path ? (
+                <span className="sa-fault-thumb">
+                  <ProductThumb product={p} />
                 </span>
-              )}
+              ) : anyPhoto ? (
+                <span className="sa-fault-thumb is-empty" aria-hidden="true" />
+              ) : null}
               <div className="sa-fault-main">
                 <p className="sa-fault-title">{f.description}</p>
                 {p ? (
                   <button type="button" className="sa-fault-product" onClick={() => openProduct(p.id)}>
-                    <span className="sa-truncate">{p.name}</span>
+                    <span className="sa-truncate">{fmtName(p.name)}</span>
                     <span className="sa-mono ltr">{p.sku}</span>
                   </button>
                 ) : f.product_id ? (
@@ -208,7 +208,6 @@ function FaultsInner() {
                   <span className="sa-fault-meta">ללא מוצר</span>
                 )}
                 <span className="sa-fault-meta">
-                  {w ? <Avatar name={w.name} size="sm" /> : null}
                   {meta.map((m, i) => (
                     <span key={i}>
                       {i > 0 ? " · " : null}
@@ -219,9 +218,9 @@ function FaultsInner() {
               </div>
               <div className="sa-fault-actions">
                 {done ? (
-                  <Button variant="ghost" size="sm" icon="refresh" isLoading={busy} onClick={() => void onReopen(f)}>פתח מחדש</Button>
+                  <Button variant="ghost" icon="refresh" isLoading={busy} onClick={() => void onReopen(f)}>פתיחה מחדש</Button>
                 ) : (
-                  <Button variant="secondary" size="sm" icon="check" isLoading={busy} onClick={() => void onResolve(f)}>סמן כטופל</Button>
+                  <Button variant="secondary" icon="check" isLoading={busy} onClick={() => void onResolve(f)}>סימון כטופל</Button>
                 )}
               </div>
             </li>
@@ -232,38 +231,25 @@ function FaultsInner() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-[1_1_320px]">
-          <h1 className="sa-page-title" style={{ fontSize: 30, lineHeight: "36px", fontWeight: 600 }}>תקלות</h1>
-          <p className="sa-page-sub">
-            דיווחים מרצפת הייצור. תקלה נשארת פתוחה עד שמישהו מסמן שטופלה.
-            {subline.map((c, i) => (
-              <span key={i}> · {c}</span>
-            ))}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button variant="primary" icon="alert-triangle" onClick={() => openAction("fault")}>דיווח תקלה</Button>
-        </div>
-      </header>
+    <div className="sa-page">
+      <PageHead
+        title="תקלות"
+        sub={<Count n={resolvedThisWeek} one="טופלה השבוע" many="טופלו השבוע" />}
+        actions={<Button variant="primary" icon="tool" onClick={() => openAction("fault")}>דיווח תקלה</Button>}
+      />
 
-      <div className="flex flex-wrap items-center gap-[var(--space-3)]">
-        <SearchBar kbd={false} value={query} onChange={setQuery} placeholder="חיפוש לפי תיאור, מוצר או עובד…" className="min-w-[240px] flex-1" />
-        {reporterOptions.length > 0 ? (
-          <Select options={reporterOptions} value={workerId} onChange={setWorkerId} allLabel="כל העובדים" placeholder="דווח ע&quot;י" minWidth={160} />
-        ) : null}
-        <Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "resolved" ? "resolved" : "open")} />
-      </div>
+      <Toolbar
+        tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "resolved" ? "resolved" : "open")} />}
+        filters={reporterOptions.length > 0 ? <Select options={reporterOptions} value={workerId} onChange={setWorkerId} allLabel="כל העובדים" placeholder="עובד" /> : null}
+        query={query}
+        onQuery={setQuery}
+        placeholder="חיפוש לפי תיאור, מוצר או עובד"
+      />
 
       <Card
         flush
         footer={
-          !loading && visible.length > 0 ? (
-            <span>
-              מציג <span className="sa-num">{fmtQty(visible.length)}</span> מתוך <span className="sa-num">{fmtQty(tab === "open" ? open.length : resolved.length)}</span>
-            </span>
-          ) : undefined
+          !loading && hasFilters && visible.length > 0 ? <Showing shown={visible.length} total={tab === "open" ? open.length : resolved.length} /> : undefined
         }
       >
         {body}

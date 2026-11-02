@@ -37,7 +37,7 @@ function cellValue<T>(row: T, key: keyof T | string): ReactNode {
   return String(v);
 }
 
-/** Dense data table: 44px rows, sticky micro headers, mono numeric columns, selected row, hover row actions. */
+/** Ruled data table: 44px rows, sticky headers, tabular numbers, selected row. */
 export function Table<T extends { id?: string | number }>({
   columns, data, isLoading, skeletonRows = 4, empty, onRowClick, selectedId, footer, caption, className, style,
 }: TableProps<T>) {

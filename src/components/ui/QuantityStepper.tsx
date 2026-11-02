@@ -36,7 +36,7 @@ export function QuantityStepper({
   return (
     <div style={{ display: "inline-flex", alignItems: "center" }}>
       <div className={cx("sa-qty", size === "sm" && "is-sm", className)} role="group" aria-label={label}>
-        <button type="button" aria-label="הפחת" disabled={value <= min} onClick={() => set(value - step)}>
+        <button type="button" aria-label="הפחתה" disabled={value <= min} onClick={() => set(value - step)}>
           <Icon name="minus" size={iconSize} strokeWidth={2.5} />
         </button>
         <input
@@ -59,7 +59,7 @@ export function QuantityStepper({
             if (e.key === "ArrowDown") { e.preventDefault(); set(value - step); setDraft(null); }
           }}
         />
-        <button type="button" aria-label="הוסף" disabled={value >= max} onClick={() => set(value + step)}>
+        <button type="button" aria-label="הוספה" disabled={value >= max} onClick={() => set(value + step)}>
           <Icon name="plus" size={iconSize} strokeWidth={2.5} />
         </button>
       </div>

@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-content {
@@ -34,7 +35,7 @@
   z-index: 100;
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app-panelHost > * {
@@ -49,23 +50,46 @@
 }
 
 @keyframes slideIn {
-  from { transform: translateX(-100%); opacity: 0.6; }
-  to { transform: none; opacity: 1; }
+  from { transform: translateX(-100%); }
+  to { transform: none; }
 }
 
 [dir="ltr"] .app-panelHost {
   animation-name: slideInLtr;
 }
 @keyframes slideInLtr {
-  from { transform: translateX(100%); opacity: 0.6; }
-  to { transform: none; opacity: 1; }
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+
+/* It leaves the way it came, a little faster than it arrived. */
+.app-panelHost[data-closing] {
+  animation: slideOut var(--dur-2) var(--ease) forwards;
+  pointer-events: none;
+}
+[dir="ltr"] .app-panelHost[data-closing] {
+  animation-name: slideOutLtr;
+}
+.app-scrim[data-closing] {
+  animation: fadeOut var(--dur-2) linear forwards;
+  pointer-events: none;
+}
+@keyframes slideOut {
+  to { transform: translateX(-100%); }
+}
+@keyframes slideOutLtr {
+  to { transform: translateX(100%); }
+}
+@keyframes fadeOut {
+  to { opacity: 0; }
 }
 
 /* ── Toasts ─────────────────────────────────────────────────── */
+/* Beside the navigation, never over it. */
 .app-toasts {
   position: fixed;
   bottom: var(--space-6);
-  inset-inline-start: var(--space-6);
+  inset-inline-start: calc(var(--sidebar) + var(--space-6));
   z-index: 110;
   display: flex;
   flex-direction: column;
@@ -75,12 +99,7 @@
 
 .app-toast {
   box-shadow: var(--shadow-md);
-  animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes toastIn {
-  from { transform: translateY(8px); opacity: 0; }
-  to { transform: none; opacity: 1; }
+  animation: sa-fade 0.1s linear;
 }
 
 /* ── Global search results ──────────────────────────────────── */
@@ -91,7 +110,7 @@
   inset-inline-end: 0;
   z-index: 60;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-base);
+  border: var(--hair) solid var(--border-base);
   background: var(--bg-surface);
   box-shadow: var(--shadow-md);
   overflow: hidden;
@@ -99,8 +118,8 @@
 
 .app-resultTitle {
   display: block;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -108,73 +127,59 @@
 
 .app-resultSub {
   display: block;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--t-12);
+  line-height: var(--l-16);
   color: var(--text-tertiary);
 }
 
-/* ── Live indicator ─────────────────────────────────────────── */
+/* ── Connection note: only speaks when something is off ────── */
 .app-live {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   color: var(--text-tertiary);
   white-space: nowrap;
-  padding-inline-start: var(--space-2);
 }
 
 /* ── Loading skeleton ───────────────────────────────────────── */
-.app-skeletonPage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.app-skeletonRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
-}
-
-.app-skeletonCard {
-  height: 112px;
-  border-radius: var(--radius-lg);
-}
-
 .app-skeletonTable {
   height: 320px;
   border-radius: var(--radius-lg);
 }
 
-/* ── Mobile: sidebar becomes a top row ──────────────────────── */
+/* ── Phones: the shell itself lives in app/globals.css ─────── */
 @media (max-width: 899px) {
-  .shell {
-    flex-direction: column;
-  }
-  /* sidebar-as-top-row rules live in app/globals.css (.sa-shell > .sa-sidebar) */
-  .main {
+  .app-main {
     min-height: 0;
   }
-  .content {
+  .app-content {
     padding: var(--space-5) var(--space-4);
   }
-  .panelHost {
+  .app-panelHost {
     width: 100%;
+  }
+  .app-toasts {
+    inset-inline: var(--space-4);
+    bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    width: auto;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .app-scrim,
   .app-panelHost,
-  .toast {
+  .app-toast {
     animation: none;
   }
 }
 
 /* ── Supplier dictionary ────────────────────────────────────── */
 .sa-dict-list {
+  /* The head and every row read these tracks, so a column never drifts. */
+  --dict-product: minmax(220px, 300px);
+  --dict-add: 72px;
+  --dict-group: minmax(0, 2fr) minmax(0, 3fr);
+  --dict-line: var(--control-sm);
+  --dict-remove: var(--control-sm);
   display: flex;
   flex-direction: column;
 }
@@ -182,77 +187,74 @@
 .sa-dict-row,
 .sa-dict-head {
   display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) auto;
-  gap: var(--space-3) var(--space-6);
+  grid-template-columns: var(--dict-product) minmax(0, 1fr) var(--dict-add);
+  gap: var(--space-2) var(--space-6);
   align-items: start;
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--hair) solid var(--border-subtle);
 }
 
-/* Column titles so the reader knows what each column holds. */
+/* Reads as a table head: same size, same rule. */
 .sa-dict-head {
-  padding-top: var(--space-2);
-  padding-bottom: var(--space-2);
-  background: var(--bg-canvas);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--text-tertiary);
+  align-items: center;
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom-color: var(--border-strong);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
-.sa-dict-head > span:last-child {
-  /* keeps the third column as wide as the add button beneath it */
-  min-width: 112px;
+.sa-dict-head-names,
+.sa-dict-group {
+  display: grid;
+  grid-template-columns: var(--dict-group);
+  column-gap: var(--space-4);
+  align-items: start;
 }
 
 .sa-dict-action {
   display: flex;
-  justify-content: flex-start;
-  min-width: 112px;
-}
-
-/* The inline form takes the names column and the action column together. */
-.sa-dict-row.is-open .sa-dict-aliases {
-  grid-column: 2 / -1;
-}
-.sa-dict-row.is-open .sa-dict-action {
-  display: none;
+  justify-content: flex-end;
 }
 
 .sa-dict-list > .sa-dict-row:last-child {
   border-bottom: 0;
 }
 
-.sa-dict-row.is-open {
-  background: var(--bg-canvas);
+.sa-dict-product {
+  position: relative;
+  min-height: var(--dict-line);
 }
 
-.sa-dict-product {
+.sa-dict-product-text {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .sa-dict-product-name {
-  display: inline-block;
+  align-self: flex-start;
   max-width: 100%;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  background: none;
   text-align: start;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
   color: var(--text-primary);
   border-radius: var(--radius-sm);
-  cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color 0.1s ease;
+  transition: color 0.1s linear;
+}
+
+/* The photo and the code open the product too: the target is the whole block. */
+.sa-dict-product-name::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .sa-dict-product-name:hover {
@@ -265,151 +267,125 @@
 }
 
 .sa-dict-product-codes {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   color: var(--text-tertiary);
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--space-1);
 }
 
-.sa-dict-aliases {
+.sa-dict-aliases,
+.sa-dict-group-names {
   min-width: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+.sa-dict-none {
+  font-size: var(--t-14);
+  line-height: var(--dict-line);
+  color: var(--text-tertiary);
+}
+
+/* The supplier heads its group, on the line of its first name. */
+.sa-dict-alias-sup {
+  min-width: 0;
+  min-height: var(--dict-line);
+  display: flex;
+  align-items: center;
+  overflow-wrap: anywhere;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  color: var(--text-secondary);
+}
+
+/* One name: the text, its state, its remove button. Long names wrap: a cut name cannot be matched. */
+.sa-dict-alias {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--dict-remove);
+  column-gap: var(--space-3);
+  align-items: center;
+  min-height: var(--dict-line);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  color: var(--text-primary);
+}
+
+.sa-dict-alias-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-dict-alias-name {
+  overflow-wrap: anywhere;
+}
+
+.sa-dict-alias-meta {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+}
+
+.sa-dict-alias-state {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.sa-dict-none {
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--text-tertiary);
+.sa-dict-alias-state .sa-btn-link {
+  height: var(--control-sm);
 }
 
-.sa-dict-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  height: 28px;
-  padding: 0 var(--space-1) 0 var(--space-3);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--text-primary);
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-[dir="ltr"] .sa-dict-chip {
-  padding: 0 var(--space-3) 0 var(--space-1);
-}
-
-.sa-dict-chip-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sa-dict-chip-sup {
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding: 0 var(--space-2);
-  border-radius: 999px;
-  background: var(--bg-muted);
-  font-size: 11px;
-  line-height: 16px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.sa-dict-chip.is-pending {
-  border-style: dashed;
-  border-color: var(--warning);
-  color: var(--warning-text);
-}
-
-.sa-dict-chip.is-pending .sa-dict-chip-sup {
-  color: var(--warning-text);
-  background: color-mix(in srgb, var(--warning) 14%, transparent);
-}
-
-.sa-dict-chip .sa-btn.sa-dict-chip-approve {
-  font-size: 12px;
-  line-height: 16px;
-  margin-inline-start: var(--space-1);
-  color: var(--warning-text);
-}
-
-/* Small glyph, full-height hit area (the chip's own height). */
-.sa-dict-chip .sa-btn.sa-dict-chip-x {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: var(--radius-sm);
+.sa-dict-alias .sa-btn.sa-dict-alias-remove {
   opacity: 0;
-  transition: opacity 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+  transition: opacity 0.1s linear, background-color 0.1s linear, color 0.1s linear;
 }
 
-.sa-dict-chip .sa-btn.sa-dict-chip-x svg {
-  width: 14px;
-  height: 14px;
-}
-
-.sa-dict-chip:hover .sa-btn.sa-dict-chip-x,
-.sa-dict-chip:focus-within .sa-btn.sa-dict-chip-x {
+.sa-dict-alias:hover .sa-btn.sa-dict-alias-remove,
+.sa-dict-alias:focus-within .sa-btn.sa-dict-alias-remove {
   opacity: 1;
 }
 
-/* Touch: always visible, and the chip grows to the system's touch target. */
-@media (hover: none) {
-  .sa-dict-chip,
-  .sa-dict-add {
-    height: var(--touch);
-  }
-
-  .sa-dict-chip .sa-btn.sa-dict-chip-x {
-    width: var(--touch);
-    height: var(--touch);
-    opacity: 1;
-  }
-}
-
 .sa-dict-add {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  height: 28px;
-  padding: 0 var(--space-3);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  background: transparent;
-  font-size: 13px;
-  line-height: 20px;
+  height: var(--dict-line);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   font-weight: 500;
-  color: var(--text-tertiary);
-  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
   white-space: nowrap;
-  transition: color 0.1s ease, border-color 0.1s ease, background-color 0.1s ease;
-}
-
-.sa-dict-add svg {
-  width: 14px;
-  height: 14px;
+  transition: color 0.1s linear;
 }
 
 .sa-dict-add:hover {
   color: var(--text-primary);
-  border-color: var(--text-secondary);
-  background: var(--bg-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .sa-dict-add:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+/* Touch: remove stays visible, and the lines grow to the system's touch target. */
+@media (hover: none) {
+  .sa-dict-list {
+    --dict-line: var(--touch);
+    --dict-remove: var(--touch);
+  }
+
+  .sa-dict-alias-state .sa-btn-link {
+    height: var(--touch);
+  }
+
+  .sa-dict-alias .sa-btn.sa-dict-alias-remove {
+    width: var(--touch);
+    height: var(--touch);
+    opacity: 1;
+  }
 }
 
 .sa-dict-form {
@@ -418,15 +394,15 @@
   align-items: flex-start;
   gap: var(--space-2);
   width: 100%;
-  padding: var(--space-3);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
+}
+
+.sa-dict-alias + .sa-dict-form {
+  margin-top: var(--space-2);
 }
 
 .sa-dict-form > .sa-field {
-  width: 200px;
-  flex: 0 1 200px;
+  width: 190px;
+  flex: 0 1 190px;
 }
 
 .sa-dict-form > .sa-notice {
@@ -435,8 +411,8 @@
 }
 
 .sa-dict-form > .sa-field.is-sku {
-  width: 150px;
-  flex: 0 1 150px;
+  width: 140px;
+  flex: 0 1 140px;
 }
 
 .sa-dict-form > .sa-field.is-supplier {
@@ -456,31 +432,26 @@
   align-items: center;
   gap: var(--space-2);
   height: var(--control-md);
-  font-size: 13px;
+  font-size: var(--t-14);
   color: var(--text-secondary);
 }
 
 .sa-dict-skeleton {
   display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) auto;
-  gap: var(--space-3) var(--space-6);
+  grid-template-columns: var(--dict-product) minmax(0, 1fr) var(--dict-add);
+  gap: var(--space-2) var(--space-6);
   align-items: center;
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--hair) solid var(--border-subtle);
 }
 
 .sa-dict-list > .sa-dict-skeleton:last-child {
   border-bottom: 0;
 }
 
-.sa-dict-skeleton-chips {
+.sa-dict-skeleton-names {
   display: flex;
-  gap: var(--space-2);
-}
-
-.sa-dict-skeleton-chips .sa-skeleton {
-  height: 28px;
-  border-radius: var(--radius-md);
+  gap: var(--space-6);
 }
 
 /* Inbox of pending names */
@@ -489,14 +460,18 @@
   flex-direction: column;
 }
 
+.sa-dict-inbox-mark {
+  display: none;
+}
+
 .sa-dict-inbox-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-6);
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: var(--hair) solid var(--border-subtle);
 }
 
 .sa-dict-inbox-row:last-child {
@@ -504,23 +479,23 @@
 }
 
 .sa-dict-inbox-info {
+  flex: 1 1 280px;
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-2);
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-  font-size: 13px;
-  line-height: 20px;
 }
 
 .sa-dict-inbox-name {
-  font-weight: 600;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
   color: var(--text-primary);
 }
 
 .sa-dict-inbox-meta {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   color: var(--text-tertiary);
 }
 
@@ -530,6 +505,10 @@
   align-items: center;
   gap: var(--space-2);
   margin-inline-start: auto;
+}
+
+.sa-dict-inbox-actions .sa-select {
+  width: 280px;
 }
 
 /* Suppliers panel */
@@ -552,20 +531,16 @@
   width: 100%;
   min-height: 44px;
   padding: var(--space-2) var(--space-6);
-  margin: 0;
-  border: 0;
-  border-bottom: 1px solid var(--border-subtle);
-  background: none;
+  border-bottom: var(--hair) solid var(--border-subtle);
   color: var(--text-primary);
   text-align: start;
-  font-size: 13px;
-  line-height: 20px;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  transition: background-color 0.1s linear;
 }
 
 .sa-dict-supplier:hover {
-  background: var(--bg-muted);
+  background: var(--bg-canvas);
 }
 
 .sa-dict-supplier:focus-visible {
@@ -587,15 +562,41 @@
 }
 
 .sa-dict-supplier-sub {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   color: var(--text-tertiary);
 }
 
 .sa-dict-supplier-count {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--t-13);
   color: var(--text-tertiary);
+}
+
+/* Narrow: the supplier sits over its names, and the names get the room. */
+@media (max-width: 1239px) {
+  .sa-dict-head-names,
+  .sa-dict-group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sa-dict-head-names > span:first-child {
+    display: none;
+  }
+  .sa-dict-alias-sup {
+    min-height: 0;
+    padding-block-start: var(--space-2);
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+  }
+}
+
+@media (max-width: 1023px) {
+  .sa-dict-row,
+  .sa-dict-head,
+  .sa-dict-skeleton {
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) var(--dict-add);
+    column-gap: var(--space-4);
+  }
 }
 
 @media (max-width: 599px) {
@@ -606,8 +607,8 @@
   .sa-dict-head {
     display: none;
   }
-  .sa-dict-row.is-open .sa-dict-aliases {
-    grid-column: auto;
+  .sa-dict-action {
+    justify-content: flex-start;
   }
   .sa-dict-form > .sa-field,
   .sa-dict-form > .sa-field.is-sku,
@@ -620,7 +621,209 @@
     margin-inline-start: 0;
   }
   .sa-dict-inbox-actions .sa-select {
+    width: 100%;
     flex: 1 1 100%;
+  }
+}
+
+/* The aluminium style: the row is a list that breathes, its rule starting at the photo. */
+[data-theme^="minimal"] .sa-dict-list {
+  --dict-product: minmax(260px, 340px);
+  --dict-add: 84px;
+  --dict-line: 48px;
+}
+
+[data-theme^="minimal"] .sa-dict-head {
+  padding-inline: var(--inset);
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+}
+
+[data-theme^="minimal"] .sa-dict-row,
+[data-theme^="minimal"] .sa-dict-skeleton {
+  position: relative;
+  padding: var(--space-2) var(--inset);
+  border-bottom: 0;
+}
+
+[data-theme^="minimal"] :is(.sa-dict-row, .sa-dict-skeleton):not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--inset);
+  bottom: 0;
+  height: var(--hair);
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .sa-dict-product-name {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+}
+
+/* The ring goes round the whole block, since all of it opens the product. */
+[data-theme^="minimal"] .sa-dict-product-name:focus-visible {
+  box-shadow: none;
+}
+
+[data-theme^="minimal"] .sa-dict-product-name:focus-visible::after {
+  border-radius: var(--radius-md);
+  box-shadow: var(--focus-ring);
+}
+
+[data-theme^="minimal"] .sa-dict-alias-name {
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .sa-dict-alias-sup {
+  font-weight: 500;
+}
+
+/* Each supplier is a group of its own: one light line between them, none inside. */
+[data-theme^="minimal"] .sa-dict-group + .sa-dict-group {
+  border-top: var(--hair) solid var(--border-subtle);
+}
+
+[data-theme^="minimal"] .sa-dict-alias .sa-btn.sa-dict-alias-remove {
+  opacity: 1;
+  color: var(--text-tertiary);
+}
+
+/* Blue is what you can press. */
+[data-theme^="minimal"] .sa-dict-add {
+  font-size: var(--t-14);
+  color: var(--accent-text);
+}
+
+[data-theme^="minimal"] .sa-dict-add:hover {
+  color: var(--accent-text);
+}
+
+[data-theme^="minimal"] .sa-dict-form {
+  padding-block: var(--space-2);
+}
+
+/* Waiting names read as a to-do: an open ring, as in Reminders, and the next step at the end of the line. */
+[data-theme^="minimal"] .sa-dict-inbox-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-3) var(--inset);
+  border-bottom: 0;
+}
+
+[data-theme^="minimal"] .sa-dict-inbox-row:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset-inline: calc(var(--inset) + 22px + var(--space-3)) var(--inset);
+  bottom: 0;
+  height: var(--hair);
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .sa-dict-inbox-mark {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border-control);
+  border-radius: var(--radius-full);
+}
+
+[data-theme^="minimal"] .sa-dict-inbox-info {
+  gap: 0;
+}
+
+[data-theme^="minimal"] .sa-dict-inbox-name {
+  overflow-wrap: anywhere;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .sa-dict-inbox-actions {
+  justify-content: flex-end;
+  margin-inline-start: 0;
+}
+
+/* The suppliers panel is the same list: a large name, a rule from the text, the count as a quiet figure. */
+[data-theme^="minimal"] .sa-dict-supplier {
+  position: relative;
+  min-height: 64px;
+  padding: var(--space-2) var(--inset);
+  border-bottom: 0;
+}
+
+[data-theme^="minimal"] .sa-dict-suppliers-list li:not(:last-child) .sa-dict-supplier::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--inset);
+  bottom: 0;
+  height: var(--hair);
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .sa-dict-supplier-name {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .sa-dict-supplier-count {
+  font-size: var(--t-14);
+}
+
+@media (max-width: 1239px) {
+  [data-theme^="minimal"] .sa-dict-list {
+    --dict-product: minmax(220px, 270px);
+  }
+  [data-theme^="minimal"] .sa-dict-inbox-row {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+  [data-theme^="minimal"] .sa-dict-inbox-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 599px) {
+  [data-theme^="minimal"] .sa-dict-head,
+  [data-theme^="minimal"] .sa-dict-row,
+  [data-theme^="minimal"] .sa-dict-skeleton,
+  [data-theme^="minimal"] .sa-dict-inbox-row {
+    padding-inline: var(--space-4);
+  }
+  [data-theme^="minimal"] :is(.sa-dict-row, .sa-dict-skeleton):not(:last-child)::after {
+    inset-inline: var(--space-4);
+  }
+  [data-theme^="minimal"] .sa-dict-inbox-row:not(:last-child)::after {
+    inset-inline: calc(var(--space-4) + 22px + var(--space-3)) var(--space-4);
+  }
+  [data-theme^="minimal"] .sa-dict-inbox-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  /* The longest title and two buttons do not share a phone's line: the buttons take their own, and it is a big target. */
+  [data-theme^="minimal"] .sa-dict-page > .sa-pagehead {
+    grid-template: "title" 44px "sub" var(--l-22) "actions" auto / minmax(0, 1fr);
+  }
+  [data-theme^="minimal"] .sa-dict-page .sa-pagehead-actions {
+    margin-block-start: var(--space-3);
+  }
+  [data-theme^="minimal"] .sa-dict-page .sa-pagehead-actions > .sa-btn {
+    flex: 1;
   }
 }
 
@@ -635,10 +838,10 @@
 
 .sa-fault-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: var(--hair) solid var(--border-subtle);
 }
 
 .sa-faults > .sa-fault-row:last-child {
@@ -651,24 +854,18 @@
 
 .sa-fault-thumb {
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 56px;
   height: 56px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-base);
+  border: var(--hair) solid var(--border-base);
   background: var(--bg-muted);
   overflow: hidden;
-  color: var(--danger-text);
 }
 
 .sa-fault-thumb.is-empty {
-  color: var(--text-tertiary);
-}
-
-.sa-fault-row:not(.is-done) .sa-fault-thumb.is-empty {
-  color: var(--danger-text);
+  border: 0;
+  background: none;
 }
 
 .sa-fault-thumb img {
@@ -688,20 +885,21 @@ a.sa-fault-thumb:focus-visible {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
 .sa-fault-title {
   margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
+  font-size: var(--t-14);
+  line-height: var(--l-21);
+  font-weight: 500;
   color: var(--text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .sa-fault-product {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -710,16 +908,15 @@ a.sa-fault-thumb:focus-visible {
   margin: 0;
   border: 0;
   background: none;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   color: var(--text-secondary);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color 0.1s ease;
+  transition: color 0.1s linear;
 }
 
 .sa-fault-product .sa-mono {
-  font-size: 12px;
   color: var(--text-tertiary);
 }
 
@@ -733,13 +930,15 @@ a.sa-fault-thumb:focus-visible {
 }
 
 .sa-fault-meta {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  font-size: 12px;
-  line-height: 16px;
+  display: block;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
   color: var(--text-tertiary);
+}
+
+.sa-fault-took {
+  color: var(--success-text);
+  font-weight: 500;
 }
 
 .sa-fault-actions {
@@ -747,29 +946,906 @@ a.sa-fault-thumb:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding-top: 2px;
 }
 
 @media (max-width: 599px) {
   .sa-fault-row {
     flex-wrap: wrap;
   }
+  .sa-fault-thumb.is-empty {
+    display: none;
+  }
   .sa-fault-actions {
     width: 100%;
     justify-content: flex-end;
-    padding-top: 0;
+  }
+}
+
+/* A fault is a short story: the photo, what happened, which product, who said so and when. */
+[data-theme^="minimal"] .sa-faults {
+  --fault-photo: 96px;
+  --fault-gap: var(--space-5);
+}
+
+[data-theme^="minimal"] .sa-fault-row {
+  position: relative;
+  gap: var(--fault-gap);
+  padding: var(--space-5) var(--inset);
+  border-bottom: 0;
+}
+
+/* The rule starts at the text, as on an iPhone. */
+[data-theme^="minimal"] .sa-fault-row:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--inset);
+  bottom: 0;
+  height: var(--hair);
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+
+[data-theme^="minimal"] .sa-faults.has-photos .sa-fault-row:not(:last-child)::after {
+  inset-inline-start: calc(var(--inset) + var(--fault-photo) + var(--fault-gap));
+}
+
+[data-theme^="minimal"] .sa-fault-thumb {
+  width: var(--fault-photo);
+  height: var(--fault-photo);
+  border: 0;
+}
+
+[data-theme^="minimal"] .sa-fault-main {
+  gap: var(--space-2);
+}
+
+[data-theme^="minimal"] .sa-fault-title {
+  font-size: var(--t-17);
+  line-height: var(--l-24);
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .sa-fault-product {
+  gap: var(--space-3);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+[data-theme^="minimal"] .sa-fault-product .sa-mono {
+  font-size: var(--t-13);
+  font-weight: 400;
+}
+
+[data-theme^="minimal"] .sa-fault-actions .sa-btn {
+  flex-shrink: 0;
+}
+
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] .sa-fault-thumb {
+    corner-shape: squircle;
+  }
+}
+
+@media (max-width: 599px) {
+  [data-theme^="minimal"] .sa-faults {
+    --fault-photo: 72px;
+    --fault-gap: var(--space-4);
+  }
+  [data-theme^="minimal"] .sa-fault-row {
+    padding-block: var(--space-4);
+  }
+  /* The button is the row's way out: a full line, where a thumb reaches it. */
+  [data-theme^="minimal"] .sa-fault-actions .sa-btn {
+    flex: 1;
+  }
+}
+
+/* ── Documentation page ─────────────────────────────────────── */
+.sa-doc-grid {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-5);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-6) var(--space-5);
+}
+
+.sa-doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  text-align: start;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.sa-doc-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sa-doc-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  background: var(--bg-muted);
+  border: var(--hair) solid var(--border-base);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.1s linear;
+}
+
+/* A fault reported without a photo: a hairline frame, not a grey tile. */
+.sa-doc-thumb.is-empty {
+  background: none;
+}
+
+.sa-doc-card:hover .sa-doc-thumb {
+  border-color: var(--border-inverse);
+}
+
+.sa-doc-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.sa-doc-nophoto {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+}
+
+.sa-doc-caption {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.sa-doc-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--t-14);
+  line-height: var(--l-21);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sa-doc-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+}
+
+.sa-doc-meta svg,
+.sa-doc-date {
+  flex-shrink: 0;
+}
+
+/* A report with no photo: its own words stand where the photo would, under the product's picture when it has one. */
+.sa-doc-grid .sa-doc-thumb.is-empty {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.sa-doc-grid .sa-doc-thumb .sa-thumb {
+  align-self: flex-start;
+  width: 44px;
+  height: 44px;
+}
+
+.sa-doc-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin-block-start: auto;
+  font-size: var(--t-14);
+  line-height: var(--l-21);
+  color: var(--text-primary);
+}
+
+.sa-doc-photo {
+  display: block;
+  border: var(--hair) solid var(--border-base);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.sa-doc-photo:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sa-doc-photo img {
+  display: block;
+  width: 100%;
+  max-height: 56vh;
+  object-fit: contain;
+}
+
+.sa-doc-photo-wait {
+  display: block;
+  width: 100%;
+  height: 280px;
+}
+
+.sa-doc-lines h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sa-doc-lines ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sa-doc-lines li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  color: var(--text-primary);
+  border-bottom: var(--hair) solid var(--border-subtle);
+}
+
+.sa-doc-lines li:last-child {
+  border-bottom: 0;
+}
+
+.sa-doc-qty {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 599px) {
+  .sa-doc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Two across leave room for the words, not for their icon. */
+  .sa-doc-meta svg {
+    display: none;
+  }
+}
+
+/* The aluminium style: the photos lie on the desk itself, in rows, the way Photos lays them out. */
+[data-theme^="minimal"] .sa-card.sa-doc-desk {
+  overflow: visible;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+[data-theme^="minimal"] .sa-doc-desk .sa-card-foot {
+  padding-inline: 0;
+  border-top: 0;
+}
+
+[data-theme^="minimal"] .sa-doc-grid {
+  padding: 0;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-8) var(--space-5);
+}
+
+[data-theme^="minimal"] .sa-doc-card {
+  gap: var(--space-3);
+}
+
+[data-theme^="minimal"] .sa-doc-card:focus-visible {
+  box-shadow: none;
+}
+
+[data-theme^="minimal"] .sa-doc-grid .sa-doc-thumb {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur-3) var(--ease), box-shadow var(--dur-3) var(--ease);
+}
+
+[data-theme^="minimal"] .sa-doc-card:focus-visible .sa-doc-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+@media (hover: hover) {
+  [data-theme^="minimal"] .sa-doc-card:hover .sa-doc-thumb {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+}
+
+[data-theme^="minimal"] .sa-doc-card:active .sa-doc-thumb {
+  transform: scale(0.98);
+  transition-duration: 0ms;
+}
+
+[data-theme^="minimal"] .sa-doc-grid .sa-doc-thumb.is-empty {
+  padding: var(--space-5);
+}
+
+[data-theme^="minimal"] .sa-doc-note {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+[data-theme^="minimal"] .sa-doc-caption {
+  padding-inline: var(--space-1);
+}
+
+[data-theme^="minimal"] .sa-doc-title {
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+}
+
+/* The panel: the photo whole, never cropped, then the facts as a list. */
+[data-theme^="minimal"] .sa-doc-panel .sa-panel-title {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+[data-theme^="minimal"] .sa-doc-photo {
+  flex-shrink: 0;
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme^="minimal"] .sa-doc-photo img {
+  width: auto;
+  max-width: 100%;
+  max-height: 60vh;
+}
+
+[data-theme^="minimal"] .sa-doc-photo-wait {
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+}
+
+[data-theme^="minimal"] .sa-fields.sa-doc-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+[data-theme^="minimal"] .sa-doc-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-block: 11px;
+}
+
+[data-theme^="minimal"] .sa-doc-facts > div + div {
+  border-top: var(--hair) solid var(--border-subtle);
+}
+
+[data-theme^="minimal"] .sa-doc-facts dt {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: var(--t-14);
+  line-height: var(--l-22);
+}
+
+[data-theme^="minimal"] .sa-doc-facts dd {
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: end;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+}
+
+[data-theme^="minimal"] .sa-doc-lines h3 {
+  margin-block-end: var(--space-1);
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme^="minimal"] .sa-doc-lines li {
+  gap: var(--space-3);
+  min-height: 56px;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 500;
+}
+
+[data-theme^="minimal"] .sa-doc-lines li .sa-truncate {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+[data-theme^="minimal"] .sa-doc-qty {
+  font-size: var(--t-13);
+  color: var(--text-tertiary);
+}
+
+[data-theme^="minimal"] .sa-doc-qty .sa-num {
+  font-size: var(--t-17);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] :is(.sa-doc-grid .sa-doc-thumb, .sa-doc-photo) {
+    corner-shape: squircle;
+  }
+}
+
+@media (max-width: 599px) {
+  [data-theme^="minimal"] .sa-doc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6) var(--space-3);
+  }
+  [data-theme^="minimal"] .sa-doc-grid .sa-doc-thumb.is-empty {
+    padding: var(--space-4);
+  }
+  [data-theme^="minimal"] .sa-doc-grid .sa-doc-thumb .sa-thumb {
+    width: 36px;
+    height: 36px;
+  }
+  [data-theme^="minimal"] .sa-doc-note {
+    -webkit-line-clamp: 3;
+    font-size: var(--t-15);
+    line-height: var(--l-22);
+  }
+}
+
+/* ── Inventory page ─────────────────────────────────────────── */
+/* Nine columns, and from this width a table clips instead of scrolling, so the cells sit closer. */
+@media (min-width: 1100px) {
+  .sa-inventory-table .sa-table :is(th, td) {
+    padding-inline: var(--space-3);
   }
 }
 
 /* ── Team page ──────────────────────────────────────────────── */
-.sa-team-name {
+.sa-table .sa-team-inactive {
+  color: var(--text-tertiary);
+}
+
+/* The week: a figure, then its seven days. The bars sit in the row here, not in a card's corner. */
+.sa-team-week {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-4);
+}
+
+.sa-team-week > .sa-row-figure {
+  min-width: 2.2em;
+}
+
+.sa-team-week .viz-spark {
+  position: static;
+  display: flex;
+  height: 32px;
+  gap: 3px;
+}
+
+.sa-team-week .viz-spark > span {
+  width: 6px;
+  min-height: 6px;
+}
+
+/* Someone who left reads quieter, their week included. */
+.sa-table tr:has(.sa-team-inactive) td {
+  color: var(--text-tertiary);
+}
+
+.sa-table tr:has(.sa-team-inactive) .sa-row-figure:not(.text-ink-3) {
+  color: var(--text-tertiary);
+}
+
+.sa-table tr:has(.sa-team-inactive) .viz-spark > :is(.is-on, .is-today) {
+  background: var(--chart-bar, var(--border-control));
+}
+
+/* Phones: the name, its second line and the first figure; a row tap opens the rest. */
+@media (max-width: 599px) {
+  .sa-team-table th:nth-child(n + 3),
+  .sa-team-table td:nth-child(n + 3) {
+    display: none;
+  }
+  [data-theme^="minimal"] .sa-team-table .sa-table td:nth-child(2) {
+    padding-inline-end: var(--inset);
+  }
+  [data-theme^="minimal"] .sa-team-table .sa-table tbody tr:not(:last-child) td:nth-child(2)::after {
+    inset-inline-end: var(--inset);
+  }
+}
+
+/* ── Product panel ──────────────────────────────────────────── */
+.sa-product-photo {
+  flex-shrink: 0;
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border: var(--hair) solid var(--border-base);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+}
+
+/* ── Order panel ────────────────────────────────────────────── */
+/* A line opens its product; the name answers the pointer the way a link does. */
+@media (hover: hover) {
+  .sa-order-line:hover .sa-truncate {
+    text-decoration: underline;
+    text-decoration-color: var(--border-control);
+    text-underline-offset: 3px;
+  }
+}
+
+/* ── Orders page ────────────────────────────────────────────── */
+/* Who, what, how much, where it stands: every row reads the same four beats, the way Mail reads a message. */
+[data-theme^="minimal"] .sa-table .sa-row-lead {
+  font-size: var(--t-17);
+  line-height: var(--l-24);
+}
+
+[data-theme^="minimal"] .sa-table .sa-row-figure {
+  font-size: var(--t-17);
+  line-height: var(--l-24);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+[data-theme^="minimal"] .sa-orders-table td {
+  height: 76px;
+}
+
+/* Phones hide the status column, so the total takes the row's far edge and the rule stops where the text does.
+   A figure's cell runs left to right, so its far edge is its start. */
+@media (max-width: 600px) {
+  [data-theme^="minimal"] .sa-orders-table .sa-table td:nth-child(3) {
+    padding-inline-start: var(--inset);
+  }
+  [data-theme^="minimal"] .sa-orders-table .sa-table tbody tr:not(:last-child) td:nth-child(3)::after {
+    inset-inline-start: var(--inset);
+  }
+}
+
+.sa-order-what {
+  display: flex;
+  align-items: baseline;
   gap: var(--space-2);
+  font-weight: 500;
+}
+
+.sa-order-more {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sa-order-state {
+  display: block;
+  font-weight: 600;
+}
+
+.sa-order-state.is-open {
+  color: var(--accent-text);
+}
+
+.sa-order-state.is-delivered {
+  color: var(--success-text);
+}
+
+.sa-order-state.is-cancelled {
+  color: var(--text-tertiary);
+}
+
+.sa-order-state.is-short {
+  color: var(--short);
+}
+
+/* ── Movements page ─────────────────────────────────────────── */
+.sa-moves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.sa-team-name.is-inactive .sa-cell-primary {
+/* The filters and the list are one sheet; the menus would be cut off inside a card, so the sheet is drawn here. */
+[data-theme^="minimal"] .sa-moves {
+  gap: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme^="minimal"] .sa-moves > .sa-table-wrap {
+  background: none;
+  box-shadow: none;
+}
+
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] .sa-moves {
+    corner-shape: squircle;
+  }
+}
+
+/* The figure is the row's largest thing, what happened a word under it, as stock reads on the inventory page. */
+.sa-mv-qty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+[data-theme^="minimal"] .sa-mv-qty .sa-move {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+}
+
+/* The day has a column of its own, so the times stand under each other. */
+.sa-mv-when {
+  display: inline-grid;
+  grid-template-columns: minmax(3.2em, max-content) max-content;
+  justify-content: start;
+  column-gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.sa-mv-when > :last-child {
   color: var(--text-tertiary);
+}
+
+.sa-mv-who {
+  max-width: 150px;
+}
+
+.sa-mv-source {
+  max-width: 170px;
+}
+
+/* A wide sheet gives its air to the columns, not to the gap after the name. */
+@media (min-width: 1400px) {
+  .sa-mv-qty {
+    min-width: 112px;
+  }
+  .sa-mv-when {
+    min-width: 136px;
+  }
+  .sa-mv-who {
+    min-width: 132px;
+  }
+  .sa-mv-source {
+    min-width: 170px;
+  }
+}
+
+/* Under the width the closer cells start at, the same closeness, so the name keeps its room. */
+@media (max-width: 1239px) {
+  [data-theme^="minimal"] .sa-moves .sa-table :is(th, td):not(:first-child) {
+    padding-inline-start: var(--space-3);
+  }
+  [data-theme^="minimal"] .sa-moves .sa-table :is(th, td):not(:last-child) {
+    padding-inline-end: var(--space-3);
+  }
+  .sa-mv-source {
+    max-width: 124px;
+  }
+}
+
+/* Phones hide the columns after the quantity, so the quantity takes the row's far edge and the rule stops where the text does.
+   A name is what a phone row is for: it takes two lines before it is cut, and the word under the figure gives up its icon. */
+@media (max-width: 600px) {
+  [data-theme^="minimal"] .sa-moves .sa-table td:nth-child(2) {
+    padding-inline-end: var(--inset);
+  }
+  [data-theme^="minimal"] .sa-moves .sa-table tbody tr:not(:last-child) td:nth-child(2)::after {
+    inset-inline-end: var(--inset);
+  }
+  [data-theme^="minimal"] .sa-moves .sa-table td {
+    padding-block: var(--space-3);
+  }
+  [data-theme^="minimal"] .sa-moves .sa-cell-primary {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .sa-mv-qty .sa-move svg {
+    display: none;
+  }
+  [data-theme^="minimal"] .app-filters .sa-select-trigger {
+    padding-inline: var(--space-2);
+  }
+  [data-theme^="minimal"] .app-filters {
+    padding-inline: calc(var(--inset) - var(--space-2));
+  }
+  [data-theme^="minimal"] .app-filters .app-range {
+    padding-inline: var(--space-2);
+  }
+  /* The hours stand beside their labels; a bare row has no box for them to spread across. */
+  [data-theme^="minimal"] .app-filters .app-range input[type="time"] {
+    flex: 0 1 5em;
+  }
+}
+
+.app-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Words, not fields: a menu is its name and a chevron until it is set, and then it turns blue. */
+[data-theme^="minimal"] .app-filters {
+  gap: 0 var(--space-1);
+  padding: var(--space-3) calc(var(--inset) - var(--space-3)) var(--space-1);
+}
+
+[data-theme^="minimal"] .app-filters .sa-select {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 220px;
+}
+
+[data-theme^="minimal"] .app-filters :is(.sa-select-trigger, .app-range) {
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
   font-weight: 500;
+}
+
+[data-theme^="minimal"] .app-filters .sa-select-trigger {
+  gap: 6px;
+}
+
+[data-theme^="minimal"] .app-filters .sa-select-value.is-placeholder {
+  color: inherit;
+}
+
+[data-theme^="minimal"] .app-filters .sa-select-trigger:has(.sa-select-value:not(.is-placeholder)) .sa-select-chevron {
+  color: inherit;
+}
+
+[data-theme^="minimal"] .app-filters .app-range input {
+  color: var(--text-tertiary);
+}
+
+[data-theme^="minimal"] .app-filters .app-range.is-set,
+[data-theme^="minimal"] .app-filters .app-range.is-set input {
+  color: var(--accent-text);
+}
+
+@media (hover: hover) {
+  [data-theme^="minimal"] .app-filters :is(.sa-select-trigger, .app-range):hover:not(:disabled) {
+    background: var(--bg-fill);
+  }
+}
+
+.app-filters .sa-select {
+  flex: 0 1 140px;
+  min-width: 112px;
+}
+
+.app-filters-clear {
+  margin-inline-start: auto;
+}
+
+/* A from and to pair in one control, the height and border of the selects beside it. */
+.app-range {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--control-md);
+  padding: 0 var(--space-3);
+  border: var(--hair) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  white-space: nowrap;
+  transition: border-color 0.1s linear, box-shadow 0.1s linear;
+}
+
+.app-range:focus-within {
+  border-color: var(--border-inverse);
+  box-shadow: 0 0 0 1px var(--border-inverse);
+}
+
+[data-theme^="minimal"] .app-range:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus);
+}
+
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] .app-range {
+    corner-shape: squircle;
+  }
+}
+
+.app-range input {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-range input::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .app-range:hover {
+    border-color: var(--border-control);
+  }
+}
+
+@media (hover: none) {
+  .app-range input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-range {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  /* Width 0 lets both fields share the row; a date's own width would push the page sideways. */
+  .app-range input {
+    flex: 1 1 0;
+    width: 0;
+  }
+  .app-filters .sa-select {
+    flex: 1 1 calc(50% - var(--space-2));
+  }
+}
+
+/* A touch opens the picker from anywhere in the field, so the icon only takes room. */
+@media (max-width: 600px) and (hover: none) {
+  .app-range input::-webkit-calendar-picker-indicator {
+    display: none;
+  }
 }

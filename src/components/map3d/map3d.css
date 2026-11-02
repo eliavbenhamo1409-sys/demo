@@ -1,0 +1,1046 @@
+/* The 3D page: scene albedos per theme, the full-bleed layout, labels, rail and time ruler. */
+
+/* ── Scene: soft albedos under one shared rig; only these change per theme ── */
+[data-theme="light"] {
+  --scene-canvas: #eef0ec;
+  --scene-slab: #cfd4cc;
+  --scene-grid: #bcc4b8;
+  --scene-wall: #e5e7e1;
+  --scene-wall-top: #f1f2ed;
+  --scene-column: #a7b0a4;
+  --scene-door: #788a7f;
+  --scene-upright: #526858;
+  --scene-shelf: #7c8b83;
+  --scene-shelf-edge: #a5b3a9;
+  --scene-machine: #75958b;
+  --scene-machine-detail: #e0e4dd;
+  --scene-lane: #aebdac;
+  --scene-lane-mark: #e9d68f;
+  --scene-zone: #b4bd9e;
+  --scene-zone-line: #dfc56f;
+  --scene-ground-shadow: 0.16;
+  --scene-sky: 2.2;
+  --scene-sun: 3;
+}
+[data-theme="dark"] {
+  --scene-canvas: #171a18;
+  --scene-slab: #39403b;
+  --scene-grid: #4a524c;
+  --scene-wall: #4a524c;
+  --scene-wall-top: #5d665f;
+  --scene-column: #5d665f;
+  --scene-door: #66786d;
+  --scene-upright: #6f8c79;
+  --scene-shelf: #6b7a71;
+  --scene-shelf-edge: #8a998f;
+  --scene-machine: #6a8a80;
+  --scene-machine-detail: #c2c9c3;
+  --scene-lane: #454e47;
+  --scene-lane-mark: #a79e6c;
+  --scene-zone: #484e41;
+  --scene-zone-line: #a79e6c;
+  --scene-ground-shadow: 0.4;
+  --scene-sky: 1.1;
+  --scene-sun: 1.7;
+}
+/* The aluminium style: brushed metal on a pale silver floor, in a soft studio. The stage is the desk itself, so the
+   building floats on the same silver as the rail and the sidebar. */
+[data-theme="minimal"] {
+  --scene-canvas: var(--bg-canvas);
+  --scene-slab: #dadbe1;
+  --scene-grid: #c8c9d1;
+  --scene-wall: #dfe0e6;
+  --scene-wall-top: #f4f4f7;
+  --scene-column: #9b9ea7;
+  --scene-door: #b4b6be;
+  --scene-upright: #8b8e97;
+  --scene-shelf: #a6a9b1;
+  --scene-shelf-edge: #c6c8cf;
+  --scene-machine: #9a9da6;
+  --scene-machine-detail: #dedfe4;
+  --scene-lane: #c9cbd3;
+  --scene-lane-mark: #f4f4f7;
+  --scene-zone: #cfd1d8;
+  --scene-zone-line: #f4f4f7;
+  --scene-ground-shadow: 0.12;
+  --scene-sky: 0.9;
+  --scene-sun: 2.1;
+  --scene-sun-color: #fffcf6;
+  --scene-bounce: #b9bcc6;
+  --scene-studio: 0.35;
+  --scene-metal: 0.6;
+  --scene-contact: 0.34;
+}
+[data-theme="minimal-dark"] {
+  --scene-canvas: var(--bg-canvas);
+  --scene-slab: #3c3c40;
+  --scene-grid: #4c4c52;
+  --scene-wall: #515156;
+  --scene-wall-top: #6c6c72;
+  --scene-column: #77777e;
+  --scene-door: #66666c;
+  --scene-upright: #a2a2aa;
+  --scene-shelf: #85858d;
+  --scene-shelf-edge: #b4b4bb;
+  --scene-machine: #8a8a92;
+  --scene-machine-detail: #c7c7cc;
+  --scene-lane: #4c4c52;
+  --scene-lane-mark: #98989f;
+  --scene-zone: #48484d;
+  --scene-zone-line: #98989f;
+  --scene-ground-shadow: 0.5;
+  --scene-sky: 1;
+  --scene-sun: 1.6;
+  --scene-sun-color: #ffffff;
+  --scene-bounce: #56565d;
+  --scene-studio: 0.3;
+  --scene-metal: 0.7;
+  --scene-contact: 0.5;
+}
+
+/* ── Full bleed: the rail holds the page's head, the stage takes everything else to the edge ── */
+.app-content:has(> .m3d-page) {
+  max-width: none;
+  padding: 0;
+}
+
+.sa-page.m3d-page {
+  --m3d-gutter: var(--space-10);
+  --m3d-rail: 460px;
+  display: grid;
+  grid-template-columns: var(--m3d-rail) minmax(0, 1fr);
+  height: calc(100dvh - var(--topbar));
+  min-height: 560px;
+}
+
+.sa-page.m3d-page > * + * {
+  margin-block-start: 0;
+}
+
+.m3d-side {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-block-start: var(--space-8);
+  padding-inline: var(--m3d-gutter) var(--space-5);
+}
+
+.m3d-bar {
+  position: relative;
+  z-index: 3;
+  flex: 0 1 300px;
+  min-width: 200px;
+}
+
+.m3d-bar .sa-search {
+  max-width: none;
+}
+
+.m3d-editbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.m3d-editbar-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ── Search results ─────────────────────────────────────────── */
+.m3d-results {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  inset-inline: 0;
+  border-radius: var(--radius-lg);
+  border: var(--hair) solid var(--border-base);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.m3d-result-text {
+  display: block;
+  min-width: 0;
+  flex: 1;
+}
+
+/* ── Stage: no card, the canvas colour is the page colour ───── */
+.m3d-stage {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--scene-canvas);
+  border-start-start-radius: var(--radius-xl);
+  overflow: hidden;
+  scroll-margin-block-start: var(--space-12);
+}
+
+.m3d-view {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.m3d-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.m3d-fail {
+  position: absolute;
+  top: var(--space-5);
+  inset-inline: var(--space-5);
+  max-width: 420px;
+}
+
+.m3d-corner {
+  position: absolute;
+  z-index: 2;
+  top: var(--space-4);
+  inset-inline: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.m3d-corner > * {
+  pointer-events: auto;
+}
+
+.m3d-views {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.m3d-walkhint {
+  position: absolute;
+  z-index: 2;
+  bottom: var(--space-3);
+  inset-inline-end: var(--space-5);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-secondary);
+}
+
+/* ── Labels: small soft tags glued to the scene. The engine writes only the transform of .m3d-label ── */
+.m3d-labels {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.m3d-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+.m3d-tag {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 2px rgba(30, 45, 38, 0.1), 0 4px 12px -4px rgba(30, 45, 38, 0.18);
+  font-family: var(--font-sans);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-primary);
+  pointer-events: auto;
+  transition: box-shadow var(--dur-1) linear;
+}
+
+.m3d-tag:focus-visible {
+  box-shadow: none;
+}
+
+.m3d-tag-code {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* A place with nothing to say keeps its name and no more. */
+.m3d-label.is-quiet .m3d-tag {
+  padding: 1px 6px;
+  background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+  box-shadow: none;
+  font-size: var(--t-12);
+  line-height: var(--l-16);
+}
+
+/* What stands low sits under the racks' labels in a three-quarter view, so it waits for the plan or a pointer. */
+.m3d-label.is-minor {
+  display: none;
+}
+
+.m3d-labels.is-plan .m3d-label.is-minor,
+.m3d-label.is-minor.is-hover,
+.m3d-label.is-minor.is-selected,
+.m3d-label.is-minor.is-kept {
+  display: block;
+}
+
+/* A name lying on the floor must not take the pointer from the floor under it. */
+.m3d-label.is-flat .m3d-tag {
+  bottom: 0;
+  pointer-events: none;
+}
+
+.m3d-tag-more {
+  display: none;
+}
+
+.m3d-label.is-hover .m3d-tag-more,
+.m3d-label.is-selected .m3d-tag-more {
+  display: inline;
+}
+
+@media (hover: hover) {
+  .m3d-tag:hover .m3d-tag-more {
+    display: inline;
+  }
+  .m3d-tag:hover .m3d-tag-code {
+    color: var(--text-primary);
+  }
+}
+
+.m3d-label.is-hover .m3d-tag-code,
+.m3d-label.is-selected .m3d-tag-code {
+  color: var(--text-primary);
+}
+
+.m3d-label.is-selected .m3d-tag {
+  box-shadow: 0 0 0 1.5px var(--focus), 0 4px 12px -4px rgba(30, 45, 38, 0.18);
+}
+
+/* What the map dims, its label dims with. */
+.m3d-label.is-faded {
+  opacity: 0.4;
+}
+
+.m3d-num-good {
+  color: var(--success-text);
+}
+
+.m3d-num-low {
+  color: var(--warning-text);
+}
+
+.m3d-num-out {
+  color: var(--danger-text);
+}
+
+.m3d-num-short {
+  color: var(--short);
+}
+
+/* ── Summary: three figures, each with its name under it ─────── */
+.m3d-summary {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  margin: 0;
+  border: var(--hair) solid var(--border-base);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.m3d-summary > div {
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.m3d-summary > div + div {
+  border-inline-start: var(--hair) solid var(--border-base);
+}
+
+.m3d-summary dd {
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.m3d-summary dt {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* ── Rail ───────────────────────────────────────────────────── */
+.m3d-rail {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-block-end: var(--space-8);
+}
+
+.m3d-rail:focus-visible {
+  box-shadow: none;
+}
+
+.m3d-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* ── The ledger: every product against its minimum, one grid for the head and the lines ── */
+.m3d-ledger {
+  --ledger-columns: minmax(0, 1fr) 44px 52px 76px;
+  display: flex;
+  flex-direction: column;
+}
+
+.m3d-ledger-head,
+.m3d-line {
+  display: grid;
+  grid-template-columns: var(--ledger-columns);
+  column-gap: var(--space-2);
+  align-items: center;
+}
+
+.m3d-ledger-head.is-past,
+.m3d-line.is-past {
+  grid-template-columns: minmax(0, 1fr) 48px 96px;
+}
+
+.m3d-ledger.is-count {
+  --ledger-columns: minmax(0, 1fr) 44px 80px 52px;
+}
+
+.m3d-ledger.is-value {
+  --ledger-columns: 44px minmax(0, 1fr) 80px 52px;
+}
+
+.m3d-ledger-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-block: var(--space-2);
+  background: var(--bg-canvas);
+  border-bottom: 2px solid var(--text-primary);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.m3d-num {
+  text-align: end;
+}
+
+.m3d-group {
+  margin: 0;
+  padding-block: var(--space-3) var(--space-1);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.m3d-line {
+  width: 100%;
+  min-height: 60px;
+  padding-block: var(--space-2);
+  text-align: start;
+  border-bottom: var(--hair) solid var(--border-subtle);
+  transition: background-color var(--dur-1) linear;
+}
+
+.m3d-line:disabled {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .m3d-line:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+}
+
+.m3d-line:focus-visible {
+  outline: 1.5px solid var(--focus);
+  outline-offset: -1.5px;
+  box-shadow: none;
+}
+
+.m3d-line-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.m3d-line-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m3d-line-when {
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-secondary);
+}
+
+.m3d-note {
+  margin: var(--space-3) 0 0;
+}
+
+.m3d-line-place {
+  font-family: var(--font-mono);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.m3d-line-place.is-none {
+  color: var(--text-quiet);
+}
+
+.m3d-line-qty {
+  display: block;
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.m3d-line-unit {
+  display: block;
+  font-size: var(--t-12);
+  line-height: var(--l-16);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.m3d-line-share {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.m3d-line-share .sa-meter {
+  width: 100%;
+}
+
+.m3d-line-percent {
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.m3d-move-qty {
+  font-size: var(--t-15);
+  font-weight: 600;
+}
+
+.m3d-move-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: 2px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+}
+
+.m3d-move-meta .sa-move {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.m3d-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.m3d-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--row);
+  padding-block: var(--space-2);
+  border-bottom: var(--hair) solid var(--border-subtle);
+}
+
+.m3d-list > .m3d-row:last-child {
+  border-bottom: 0;
+}
+
+.m3d-row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.m3d-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.m3d-row-line > .sa-truncate {
+  min-width: 0;
+  flex: 1;
+}
+
+.m3d-row-end {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.m3d-count {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-inline-start: var(--space-2);
+}
+
+.m3d-empty {
+  margin: 0;
+  padding-block: var(--space-3);
+  font-size: var(--t-14);
+  line-height: var(--l-21);
+  color: var(--text-tertiary);
+}
+
+.m3d-pick {
+  padding-block-start: var(--space-2);
+}
+
+.m3d-all > summary {
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--control-md);
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.m3d-all > summary::-webkit-details-marker {
+  display: none;
+}
+
+.m3d-all > summary svg {
+  color: var(--text-tertiary);
+  transition: transform var(--dur-2) var(--ease);
+}
+
+.m3d-all[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+/* ── One order, opened in place ─────────────────────────────── */
+.m3d-order.is-open {
+  border-bottom: var(--hair) solid var(--border-subtle);
+  padding-block-end: var(--space-3);
+}
+
+.m3d-order > .m3d-row {
+  border-bottom: 0;
+}
+
+.m3d-order:not(.is-open) > .m3d-row {
+  border-bottom: var(--hair) solid var(--border-subtle);
+}
+
+.m3d-list > .m3d-order:last-child > .m3d-row {
+  border-bottom: 0;
+}
+
+.m3d-order-lines {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ── Value ──────────────────────────────────────────────────── */
+.m3d-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-end: var(--space-2);
+  border-bottom: var(--hair) solid var(--border-strong);
+  font-weight: 500;
+}
+
+.m3d-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.m3d-share {
+  min-width: 4ch;
+  text-align: left;
+  color: var(--text-tertiary);
+}
+
+/* ── Object card ────────────────────────────────────────────── */
+.m3d-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.m3d-card-back {
+  align-self: flex-start;
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+.m3d-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m3d-card-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+}
+
+.m3d-card-sub {
+  margin: 0;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  color: var(--text-secondary);
+}
+
+.m3d-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.m3d-item + .m3d-item {
+  padding-block-start: var(--space-5);
+  border-top: var(--hair) solid var(--border-base);
+}
+
+.m3d-name {
+  display: block;
+  max-width: 100%;
+  text-align: start;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .m3d-name:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--border-control);
+    text-underline-offset: 3px;
+  }
+}
+
+.m3d-qty {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--t-14);
+  line-height: var(--l-21);
+  color: var(--text-tertiary);
+}
+
+.m3d-qty .sa-num {
+  font-size: 24px;
+  line-height: 30px;
+  color: var(--text-primary);
+}
+
+.m3d-qty .sa-num.m3d-num-good {
+  color: var(--success-text);
+}
+
+.m3d-num-low {
+  color: var(--warning-text);
+}
+
+.m3d-qty .sa-num.m3d-num-out {
+  color: var(--danger-text);
+}
+
+.m3d-qty .sa-num.m3d-num-short {
+  color: var(--short);
+}
+
+.m3d-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+/* ── Layout editor ──────────────────────────────────────────── */
+.m3d-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.m3d-form-sizes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+/* ── Time ruler: past on the left, today on the right, as in the weekly chart ── */
+.m3d-rulerslot {
+  min-height: 48px;
+}
+
+.m3d-ruler {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-4);
+  height: 48px;
+  padding-inline: var(--space-5);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+}
+
+.m3d-track {
+  position: relative;
+  height: 32px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.m3d-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--hair);
+  background: var(--border-strong);
+}
+
+.m3d-ticks {
+  position: absolute;
+  left: 0;
+  top: calc(50% - 5px);
+  width: 100%;
+  height: 10px;
+  overflow: visible;
+  fill: none;
+  stroke-width: 1px;
+  pointer-events: none;
+}
+
+.m3d-ticks path {
+  vector-effect: non-scaling-stroke;
+  stroke: var(--border-control);
+}
+
+.m3d-ticks .is-in {
+  stroke: var(--qty-in);
+}
+
+.m3d-ticks .is-out {
+  stroke: var(--danger-text);
+}
+
+.m3d-handle {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 18px;
+  margin-inline-start: -1px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: var(--bg-inverse);
+}
+
+.m3d-handle::before {
+  content: "";
+  position: absolute;
+  inset: -7px -10px;
+}
+
+.m3d-when {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--t-12);
+  line-height: var(--l-16);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.m3d-edge {
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+
+/* ── Fullscreen: the stage alone, in the page colour ─────────── */
+.m3d-stage:fullscreen {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Narrower two columns ───────────────────────────────────── */
+@media (max-width: 1099px) {
+  .sa-page.m3d-page {
+    --m3d-gutter: var(--space-5);
+    --m3d-rail: 320px;
+  }
+}
+
+/* ── Stacked: the map first, the rail flows below, one finger scrolls the page ── */
+@media (max-width: 899px) {
+  .sa-page.m3d-page {
+    --m3d-gutter: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    height: auto;
+    padding-block-start: var(--space-5);
+  }
+  .m3d-side {
+    display: contents;
+  }
+  .m3d-side > :not(.m3d-rail) {
+    margin-inline: var(--m3d-gutter);
+  }
+  .m3d-stage {
+    order: 1;
+    grid-template-rows: auto auto;
+    border-radius: 0;
+  }
+  .m3d-rail {
+    order: 2;
+    overflow: visible;
+    padding-inline: var(--m3d-gutter);
+    padding-block: var(--space-2) var(--space-8);
+  }
+  .m3d-view {
+    height: 52dvh;
+    min-height: 280px;
+  }
+  .m3d-ruler {
+    padding-inline: var(--m3d-gutter);
+    column-gap: var(--space-3);
+  }
+  .m3d-label:not(.is-attention, .is-selected, .is-flash),
+  .m3d-labels.is-plan .m3d-label.is-minor:not(.is-selected) {
+    display: none;
+  }
+  .m3d-tag {
+    gap: 3px;
+    padding: 2px 5px;
+    font-size: 11px;
+    line-height: 14px;
+  }
+  /* The notch of the floor plan is free, so the view switch stands there and hides nothing. */
+  .m3d-corner {
+    top: auto;
+    bottom: var(--space-2);
+    inset-inline: var(--space-3);
+    justify-content: flex-end;
+  }
+  .m3d-corner .m3d-bar,
+  .m3d-corner .sa-btn {
+    display: none;
+  }
+  .m3d-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+  .m3d-summary > div {
+    padding: var(--space-2) var(--space-3);
+  }
+  .m3d-summary dd {
+    font-size: 18px;
+    line-height: 24px;
+  }
+  .m3d-summary dt {
+    font-size: var(--t-12);
+    line-height: var(--l-16);
+  }
+}
+
+/* Three figures don't fit a phone side by side: the value takes its own line. */
+@media (max-width: 480px) {
+  .m3d-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .m3d-summary > div:last-child:nth-child(3) {
+    grid-column: 1 / -1;
+    border-inline-start: 0;
+    border-block-start: var(--hair) solid var(--border-base);
+  }
+}
+
+/* Top bar scrolls with the page here, so the map never sits under it. */
+@media (max-width: 899px) and (hover: none) {
+  .m3d-track {
+    height: 44px;
+  }
+}

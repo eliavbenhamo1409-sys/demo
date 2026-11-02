@@ -5,8 +5,7 @@ export { cx, type ClassValue } from "./cx";
 // Primitives
 export { Icon, ICON_NAMES, type IconProps, type IconName, type Tone, type MovementType } from "./Icon";
 export { Spinner, type SpinnerProps } from "./Spinner";
-export { Mark, Square, type MarkProps, type SquareProps } from "./Mark";
-export { Avatar, type AvatarProps } from "./Avatar";
+export { Dot, type DotProps } from "./Dot";
 export { Button, type ButtonProps } from "./Button";
 export { Badge, type BadgeProps } from "./Badge";
 export { Input, type InputProps } from "./Input";
@@ -22,6 +21,9 @@ export { ThemeSettingsButton, type ThemeSettingsButtonProps } from "./ThemeSetti
 
 // Composites (written alongside; present at integration time)
 export * from "./Card";
+export * from "./PageHead";
+export * from "./Toolbar";
+export * from "./Count";
 export * from "./Table";
 export * from "./Stat";
 export * from "./Attention";
@@ -29,7 +31,6 @@ export * from "./SidePanel";
 export * from "./Fields";
 export * from "./Timeline";
 export * from "./Movement";
-export * from "./MappingStatus";
 export * from "./Sidebar";
 export * from "./NavItem";
 export * from "./TopBar";

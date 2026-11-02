@@ -74,7 +74,7 @@ export function WorkerForm({ ctx, mode = "new" }: { ctx?: ActionContext; mode?: 
       subtitle={editing ? (editing.active ? editing.role : `${editing.role} · לא פעיל`) : undefined}
       onClose={close}
       onSubmit={submit}
-      submitLabel={mode === "edit" ? "שמור" : "הוסף"}
+      submitLabel={mode === "edit" ? "שמירה" : "הוספת עובד"}
       submitDisabled={missing}
       busy={form.busy}
       error={form.error}
@@ -82,12 +82,12 @@ export function WorkerForm({ ctx, mode = "new" }: { ctx?: ActionContext; mode?: 
       footerStart={
         editing ? (
           editing.active ? (
-            <Button variant="ghost" icon="log-out" onClick={() => void toggleActive()} isLoading={toggling} disabled={form.busy}>
-              השבת עובד
+            <Button variant="ghost" onClick={() => void toggleActive()} isLoading={toggling} disabled={form.busy}>
+              השבתת עובד
             </Button>
           ) : (
-            <Button variant="secondary" icon="refresh" onClick={() => void toggleActive()} isLoading={toggling} disabled={form.busy}>
-              הפעל מחדש
+            <Button variant="secondary" onClick={() => void toggleActive()} isLoading={toggling} disabled={form.busy}>
+              הפעלה מחדש
             </Button>
           )
         ) : null
@@ -98,7 +98,7 @@ export function WorkerForm({ ctx, mode = "new" }: { ctx?: ActionContext; mode?: 
       ) : (
         <>
           {editing && !editing.active ? (
-            <Notice tone="neutral" title="עובד לא פעיל">לא מופיע באפליקציית הטלפון. ההיסטוריה שלו נשמרת.</Notice>
+            <Notice tone="neutral" title="עובד לא פעיל">לא מופיע באפליקציית הטלפון. ההיסטוריה נשמרת.</Notice>
           ) : null}
           <Input
             label="שם"
@@ -109,7 +109,7 @@ export function WorkerForm({ ctx, mode = "new" }: { ctx?: ActionContext; mode?: 
             autoComplete="off"
           />
           <Select label="תפקיד" options={roleOptions} value={role} onChange={setRole} searchable={false} block />
-          {!editing ? <p className="sa-muted m-0 text-[12px]">העובד יוכל להיכנס לאפליקציית הטלפון ולדווח קליטות, הוצאות ותקלות.</p> : null}
+          {!editing ? <p className="sa-hint m-0">העובד יוכל להיכנס לאפליקציית הטלפון</p> : null}
         </>
       )}
     </FormPanel>

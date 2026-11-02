@@ -61,15 +61,15 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
         subtitle={sup?.name}
         onClose={close}
         onSubmit={submit}
-        submitLabel="אשר"
+        submitLabel="אישור"
         submitDisabled={!item}
         busy={form.busy}
         error={form.error}
         onDismissError={() => form.setError(null)}
         footerStart={
           item ? (
-            <Button variant="ghost" icon="trash" onClick={() => setConfirmDelete(true)} disabled={form.busy} style={{ color: "var(--danger-text)" }}>
-              מחק
+            <Button variant="danger" onClick={() => setConfirmDelete(true)} disabled={form.busy}>
+              מחיקה
             </Button>
           ) : null
         }
@@ -80,7 +80,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
             </Button>
           ) : (
             <Button variant="ghost" onClick={close} disabled={form.busy}>
-              סגור
+              סגירה
             </Button>
           )
         }
@@ -92,7 +92,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
             <Fields
               items={[
                 { label: "ספק", value: sup?.name },
-                { label: "סטטוס", value: item.status === "approved" ? "מאושר" : "ממתין לאישור" },
+                { label: "סטטוס", value: item.status === "approved" ? "מאושר" : "ממתין" },
                 { label: "שם אצל הספק", value: item.external_name },
                 { label: "מק\"ט חיצוני", value: item.external_sku ?? undefined, num: true },
                 {
@@ -108,21 +108,21 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
             />
             <div className="sa-field">
               <Select
-                label="מוצר במפעל"
+                label="מוצר במחסן"
                 options={prodOpts}
                 value={productId}
                 onChange={(v) => { setProductId(v); form.clearField("product"); }}
-                placeholder="בחר מוצר"
+                placeholder="בחירת מוצר"
                 block
               />
               {form.errors.product ? (
                 <span className="sa-error" role="alert">{form.errors.product}</span>
               ) : target ? (
                 <span className="sa-hint">
-                  <span className="sa-num">{target.sku}</span> · במלאי {target.qty} {target.unit}
+                  <span className="sa-mono ltr">{target.sku}</span> · במלאי {target.qty} {target.unit}
                 </span>
               ) : (
-                <span className="sa-hint">אחרי האישור המערכת תזהה את השם הזה לבד בפעם הבאה</span>
+                <span className="sa-hint">יזוהה אוטומטית בפעם הבאה</span>
               )}
             </div>
           </>
@@ -133,7 +133,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
         <Modal
           title={`למחוק את ${item.external_name}?`}
           tone="danger"
-          confirmLabel="מחק"
+          confirmLabel="מחיקה"
           busy={deleting}
           onConfirm={() => void onDelete()}
           onClose={() => { if (!deleting) { setConfirmDelete(false); setDeleteError(null); } }}

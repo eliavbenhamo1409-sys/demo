@@ -1,73 +1,84 @@
-/* ניהול מלאי — generated from tokens.json */
+/* ניהול מלאי — design tokens. Two styles, each in light and dark.
+   classic: graphite ink on warm paper, thin rules, earth pigments for state, and nothing else.
+   minimal: aluminium, white sheets floating on a silver desk or on black, blue for what you can press (see minimal.css).
+   Copied byte for byte to worker/src/design/tokens.css. */
 :root, [data-theme="light"] {
-  --bg-canvas: #fafafa;
+  color-scheme: light;
+  --bg-canvas: #f6f5f1;
   --bg-surface: #ffffff;
-  --bg-muted: #f5f5f5;
-  --bg-inverse: #171717;
-  --bg-inverse-hover: #0a0a0a;
-  --bg-scrim: #0a0a0a66;
-  --text-primary: #171717;
-  --text-secondary: #525252;
-  --text-tertiary: #737373;
-  --text-disabled: #a1a1a1;
-  --text-inverse: #fafafa;
-  --border-subtle: #f5f5f5;
-  --border-base: #e5e5e5;
-  --border-strong: #d4d4d4;
-  --border-inverse: #171717;
-  --accent: #2563eb;
+  --bg-muted: #efeee9;
+  --bg-inverse: #1b1b19;
+  --bg-inverse-hover: #33332f;
+  --bg-scrim: rgba(27, 27, 25, 0.38);
+  --text-primary: #1b1b19;
+  --text-secondary: #56554f;
+  --text-tertiary: #6c6a63;
+  --text-disabled: #a5a39b;
+  --text-inverse: #fbfaf7;
+  --border-subtle: #eeece6;
+  --border-base: #e2e0d9;
+  --border-strong: #cdcac1;
+  --border-control: #949289;
+  --border-inverse: #1b1b19;
+  --accent: #1f4a66;
+  --accent-hover: #173a51;
   --on-accent: #ffffff;
-  --accent-text: #1d4ed8;
-  --success: #047857;
+  --accent-text: #1f4a66;
+  --success: #2f6b4f;
   --on-success: #ffffff;
-  --success-text: #047857;
-  --warning: #d97706;
-  --on-warning: #0a0a0a;
-  --warning-text: #92400e;
-  --danger: #dc2626;
+  --success-text: #2a6047;
+  --qty-in: #1a7f4e;
+  --warning: #a66a12;
+  --on-warning: #ffffff;
+  --warning-text: #855410;
+  --danger: #a8382a;
   --on-danger: #ffffff;
-  --danger-text: #b91c1c;
+  --danger-text: #a03325;
   --focus: var(--accent);
-  --shadow-sm: 0 1px 2px 0 rgba(10, 10, 10, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(10, 10, 10, 0.08), 0 2px 4px -2px rgba(10, 10, 10, 0.06);
-  --shadow-modal: 0 25px 50px -12px rgba(10, 10, 10, 0.25);
-  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
-  --focus-ring-danger: 0 0 0 2px #ffffff, 0 0 0 4px #dc2626;
+  --shadow-sm: none;
+  --shadow-md: 0 6px 20px rgba(27, 27, 25, 0.1);
+  --shadow-modal: 0 18px 48px rgba(27, 27, 25, 0.18);
+  --focus-ring: 0 0 0 2px var(--bg-surface), 0 0 0 3.5px var(--focus);
+  --focus-ring-danger: 0 0 0 2px var(--bg-surface), 0 0 0 3.5px var(--danger);
 }
 [data-theme="dark"] {
-  --bg-canvas: #0a0a0a;
-  --bg-surface: #171717;
-  --bg-muted: #262626;
-  --bg-inverse: #fafafa;
+  color-scheme: dark;
+  --bg-canvas: #141412;
+  --bg-surface: #1b1b18;
+  --bg-muted: #262622;
+  --bg-inverse: #ecebe6;
   --bg-inverse-hover: #ffffff;
-  --bg-scrim: #0a0a0a99;
-  --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
-  --text-tertiary: #8a8a8a;
-  --text-disabled: #525252;
-  --text-inverse: #171717;
-  --border-subtle: #202020;
-  --border-base: #2e2e2e;
-  --border-strong: #404040;
-  --border-inverse: #fafafa;
-  --accent: #2563eb;
-  --on-accent: #ffffff;
-  --accent-text: #60a5fa;
-  --success: #047857;
-  --on-success: #ffffff;
-  --success-text: #34d399;
-  --warning: #d97706;
-  --on-warning: #0a0a0a;
-  --warning-text: #fbbf24;
-  --danger: #dc2626;
-  --on-danger: #ffffff;
-  --danger-text: #f87171;
-  --focus: var(--accent);
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.5);
-  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  --focus-ring: 0 0 0 2px #171717, 0 0 0 4px #60a5fa;
-  --focus-ring-danger: 0 0 0 2px #171717, 0 0 0 4px #ef4444;
+  --bg-scrim: rgba(0, 0, 0, 0.55);
+  --text-primary: #ecebe6;
+  --text-secondary: #b6b4ab;
+  --text-tertiary: #97958c;
+  --text-disabled: #64625b;
+  --text-inverse: #141412;
+  --border-subtle: #262622;
+  --border-base: #32312d;
+  --border-strong: #46453f;
+  --border-control: #6f6d65;
+  --border-inverse: #ecebe6;
+  --accent: #8fb5cf;
+  --accent-hover: #a5c5da;
+  --on-accent: #12222d;
+  --accent-text: #9cc0d8;
+  --success: #7dba9a;
+  --on-success: #0f2419;
+  --success-text: #8cc7a8;
+  --qty-in: #8cc7a8;
+  --warning: #d9a85b;
+  --on-warning: #241803;
+  --warning-text: #e0b673;
+  --danger: #e08a7a;
+  --on-danger: #2b0e08;
+  --danger-text: #e9a093;
+  --focus: var(--accent-text);
+  --shadow-sm: none;
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 18px 48px rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 2px var(--bg-surface), 0 0 0 3.5px var(--focus);
+  --focus-ring-danger: 0 0 0 2px var(--bg-surface), 0 0 0 3.5px var(--danger);
 }
 :root {
   --space-1: 4px;
@@ -79,38 +90,205 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
   --radius-full: 9999px;
-  --control-sm: 32px;
+  --hair: 1px;
+  /* One curve, three lengths: colour and release, small surfaces and every exit, large surfaces arriving. */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-1: 100ms;
+  --dur-2: 180ms;
+  --dur-3: 280ms;
+  /* The type scale, named by its classic size. Every small size in the product reads from here. */
+  --t-12: 12px; --t-13: 13px; --t-14: 14px; --t-15: 15px; --t-16: 16px; --t-17: 17px;
+  --l-16: 16px; --l-18: 18px; --l-20: 20px; --l-21: 21px; --l-22: 22px; --l-23: 23px; --l-24: 24px;
+  --control-sm: 30px;
   --control-md: 36px;
   --control-lg: 40px;
-  --touch: 48px;
-  --touch-lg: 56px;
+  --touch: 52px;
+  --touch-lg: 60px;
   --row: 44px;
   --topbar: 56px;
-  --sidebar: 232px;
+  --sidebar: 216px;
   --panel: 440px;
   --modal: 480px;
-  --content: 1280px;
+  --content: 1240px;
   --worker: 480px;
-  --font-sans: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-sans: 'IBM Plex Sans Hebrew', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  /* Numbers and codes stay in the same family; only their figures turn tabular. */
+  --font-mono: var(--font-sans);
 }
-@font-face { font-family: "Heebo"; src: url("/fonts/Heebo.ttf"); font-weight: 100 900; font-style: normal; font-display: swap; }
-.kpi { font-family: var(--font-sans); font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; }
-.page-title { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; }
-.panel-title { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.01em; }
-.section-title { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 600; }
-.body { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 400; }
-.body-strong { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 600; }
-.control { font-family: var(--font-sans); font-size: 13px; line-height: 20px; font-weight: 500; }
-.label { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 500; }
-.caption { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 500; }
-.micro { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; }
-.touch { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 500; }
-.num { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 500; }
-.num-lg { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; }
-.num-micro { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; }
+
+/* The aluminium style is read at arm's length, for hours, by people on their feet: one size up, and bigger targets. */
+[data-theme^="minimal"] {
+  --t-12: 13px; --t-13: 14px; --t-14: 15px; --t-15: 16px; --t-16: 17px; --t-17: 18px;
+  --l-16: 18px; --l-18: 20px; --l-20: 22px; --l-21: 23px; --l-22: 24px; --l-23: 25px; --l-24: 26px;
+  --control-sm: 34px;
+  --control-md: 40px;
+  --control-lg: 46px;
+  --row: 64px;
+  --topbar: 72px;
+  --sidebar: 248px;
+  --panel: 480px;
+  --modal: 520px;
+  --content: 1340px;
+  --gap: 16px;
+  --inset: 24px;
+  --shell-gap: 12px;
+}
+
+/* ── "מינימל": aluminium ─────────────────────────────────────────────────────
+   Light on a cool silver desk, the way Apple lights its own products: white sheets that float on a soft shadow
+   instead of boxes drawn with lines, one blue for what you can press, and the system's green, orange and red
+   for what the stock is doing. Type does the hierarchy, and it is the platform's own face:
+   San Francisco on a Mac or an iPhone, Segoe on Windows, Roboto on Android.
+   Surfaces run surface > hover > canvas > muted, and the lines run darker from there. Keep that order:
+   hovering and pressed states depend on it. --text-quiet is only for what is empty, unset or still to come.
+   Placed after :root so the radii and the family here win. */
+[data-theme="minimal"] {
+  color-scheme: light;
+  --bg-canvas: #eeeef3;
+  --bg-surface: #ffffff;
+  --bg-muted: #e4e4ea;
+  --bg-hover: #f4f4f7;
+  --bg-thumb: #ffffff;
+  --bg-fill: rgba(118, 118, 128, 0.12);
+  --bg-fill-hover: rgba(118, 118, 128, 0.2);
+  --bg-selected: rgba(0, 113, 227, 0.08);
+  --bg-glass: rgba(238, 238, 243, 0.72);
+  --bg-inverse: #1d1d1f;
+  --bg-inverse-hover: #3a3a3c;
+  --bg-scrim: rgba(20, 20, 24, 0.32);
+  --text-primary: #1d1d1f;
+  --text-secondary: #3a3a3e;
+  --text-tertiary: #5c5c62;
+  --text-quiet: #6e6e74;
+  --text-disabled: #8e8e93;
+  --text-inverse: #ffffff;
+  --border-subtle: #e9e9ee;
+  --border-base: #e1e1e7;
+  --border-strong: #d1d1d7;
+  --border-control: #aeaeb4;
+  --border-inverse: #1d1d1f;
+  --accent: #0071e3;
+  --accent-hover: #0062c4;
+  --on-accent: #ffffff;
+  --accent-text: #0066cc;
+  --success: #34c759;
+  --on-success: #ffffff;
+  --success-text: #0d8439;
+  --qty-in: #0d8439;
+  --chart-in: #34c759;
+  --chart-out: #0a84ff;
+  --chart-other: #c7c7cc;
+  --chart-track: #e8e8ed;
+  --chart-bar: #c9c9cf;
+  --chart-today: #0071e3;
+  --selection: rgba(0, 113, 227, 0.18);
+  --warning: #ff9500;
+  --on-warning: #ffffff;
+  --warning-text: #bf5000;
+  --danger: #ff3b30;
+  --on-danger: #ffffff;
+  --danger-text: #c9182b;
+  --focus: var(--accent);
+  --shadow-sm: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -6px rgba(0, 0, 0, 0.08);
+  --shadow-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 36px -8px rgba(0, 0, 0, 0.14);
+  --shadow-md: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08), 0 20px 48px -8px rgba(0, 0, 0, 0.2);
+  --shadow-modal: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 8px 20px rgba(0, 0, 0, 0.08), 0 40px 80px -16px rgba(0, 0, 0, 0.3);
+  --focus-ring: 0 0 0 4px rgba(0, 113, 227, 0.28);
+  --focus-ring-danger: 0 0 0 4px rgba(201, 24, 43, 0.24);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'IBM Plex Sans Hebrew', Roboto, Arial, sans-serif;
+  --font-mono: var(--font-sans);
+}
+[data-theme="minimal-dark"] {
+  color-scheme: dark;
+  --bg-canvas: #000000;
+  --bg-surface: #1c1c1e;
+  --bg-muted: #38383a;
+  --bg-hover: #2c2c2e;
+  --bg-thumb: #636366;
+  --bg-fill: rgba(118, 118, 128, 0.24);
+  --bg-fill-hover: rgba(118, 118, 128, 0.36);
+  --bg-selected: rgba(10, 132, 255, 0.2);
+  --bg-glass: rgba(0, 0, 0, 0.72);
+  --bg-inverse: #f5f5f7;
+  --bg-inverse-hover: #ffffff;
+  --bg-scrim: rgba(0, 0, 0, 0.6);
+  --text-primary: #f5f5f7;
+  --text-secondary: #d6d6db;
+  --text-tertiary: #aeaeb4;
+  --text-quiet: #98989f;
+  --text-disabled: #6e6e73;
+  --text-inverse: #1d1d1f;
+  --border-subtle: #2c2c2e;
+  --border-base: #38383a;
+  --border-strong: #48484a;
+  --border-control: #636366;
+  --border-inverse: #f5f5f7;
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --on-accent: #ffffff;
+  --accent-text: #4da3ff;
+  --success: #30d158;
+  --on-success: #06240f;
+  --success-text: #30d158;
+  --qty-in: #30d158;
+  --chart-in: #30d158;
+  --chart-out: #0a84ff;
+  --chart-other: #636366;
+  --chart-track: #2c2c2e;
+  --chart-bar: #48484a;
+  --chart-today: #0a84ff;
+  --selection: rgba(10, 132, 255, 0.34);
+  --warning: #ff9f0a;
+  --on-warning: #241400;
+  --warning-text: #ffb340;
+  --danger: #ff453a;
+  --on-danger: #ffffff;
+  --danger-text: #ff7b72;
+  --focus: var(--accent-text);
+  --shadow-sm: 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+  --shadow-lift: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 16px 36px -8px rgba(0, 0, 0, 0.7);
+  --shadow-md: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4), 0 20px 48px -8px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 8px 20px rgba(0, 0, 0, 0.4), 0 40px 80px -16px rgba(0, 0, 0, 0.8);
+  --focus-ring: 0 0 0 4px rgba(10, 132, 255, 0.4);
+  --focus-ring-danger: 0 0 0 4px rgba(255, 69, 58, 0.36);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'IBM Plex Sans Hebrew', Roboto, Arial, sans-serif;
+  --font-mono: var(--font-sans);
+}
+
+/* One device pixel in the dark, as Apple draws its separators. White stays a full pixel: half a pixel on white read as nothing.
+   The radii grow with continuous corners, which look smaller than round ones at the same value. */
+@media (min-resolution: 2dppx) {
+  [data-theme="minimal-dark"] { --hair: 0.5px; }
+}
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] { --radius-sm: 8px; --radius-md: 14px; --radius-lg: 26px; --radius-xl: 32px; }
+}
+
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 400; src: url('/fonts/plex/hebrew-400.woff2') format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 500; src: url('/fonts/plex/hebrew-500.woff2') format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 600; src: url('/fonts/plex/hebrew-600.woff2') format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 700; src: url('/fonts/plex/hebrew-700.woff2') format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 400; src: url('/fonts/plex/latin-400.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 500; src: url('/fonts/plex/latin-500.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 600; src: url('/fonts/plex/latin-600.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans Hebrew'; font-style: normal; font-display: swap; font-weight: 700; src: url('/fonts/plex/latin-700.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+/* A finger needs 44px, whatever the style. */
+@media (hover: none) {
+  :root, [data-theme^="minimal"] { --control-sm: 44px; --control-md: 44px; --control-lg: 48px; }
+}

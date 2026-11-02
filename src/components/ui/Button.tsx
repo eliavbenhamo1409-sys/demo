@@ -12,13 +12,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconEnd?: IconName;
   iconOnly?: boolean;
   isLoading?: boolean;
-  /** Keyboard hint rendered as a kbd chip. */
-  kbd?: string;
 }
 
-/** One button, six roles. `primary` is the near-black action — once per area. */
+/** One button, six roles. `primary` is the graphite action — once per area. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", icon, iconEnd, iconOnly, isLoading, kbd, className, children, disabled, type = "button", title, ...rest },
+  { variant = "primary", size = "md", icon, iconEnd, iconOnly, isLoading, className, children, disabled, type = "button", title, ...rest },
   ref,
 ): ReactElement {
   const ariaLabel = rest["aria-label"] ?? (iconOnly ? title : undefined);
@@ -51,7 +49,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {lead}
       {iconOnly ? null : children}
       {iconEnd && !iconOnly ? <Icon name={iconEnd} size={iconSize} /> : null}
-      {kbd && !iconOnly ? <kbd className="sa-kbd" aria-hidden="true">{kbd}</kbd> : null}
     </button>
   );
 });

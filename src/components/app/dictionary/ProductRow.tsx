@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * One product in the dictionary: its central name and codes at the start, and
- * every supplier's name for it as chips at the end, plus the add chip.
+ * One product in the dictionary: its photo, name and code at the start, and what
+ * every supplier calls it, grouped by supplier, then the add link.
  */
 import { useEffect, useRef } from "react";
-import { Button, Icon } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
+import { ProductThumb } from "@/components/app/Viz";
 import { isTempId, type Product, type SupplierItem } from "@/lib/store";
 import { fmtQty } from "@/lib/format";
 import { InlineAliasForm } from "./InlineAliasForm";
@@ -23,74 +24,104 @@ export interface ProductRowProps {
   approvingId: string | null;
 }
 
+/** How often a name turned up on delivery notes. */
+export function seenText(times: number): string {
+  if (times === 1) return "נראה פעם אחת";
+  if (times === 2) return "נראה פעמיים";
+  return `נראה ${fmtQty(times)} פעמים`;
+}
+
+/** One supplier's names stay together, in the order the page sorted them, so whatever waits still comes first. */
+function bySupplier(aliases: SupplierItem[]): SupplierItem[][] {
+  const groups = new Map<string, SupplierItem[]>();
+  for (const a of aliases) {
+    const group = groups.get(a.supplier_id);
+    if (group) group.push(a);
+    else groups.set(a.supplier_id, [a]);
+  }
+  return [...groups.values()];
+}
+
 export function ProductRow({ product, aliases, supplierName, open, onOpen, onClose, onOpenProduct, onApprove, onRemove, approvingId }: ProductRowProps) {
   const addRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
 
-  // When the inline form closes, focus goes back to the add chip.
+  // When the inline form closes, focus goes back to the add button.
   useEffect(() => {
     if (wasOpen.current && !open) addRef.current?.focus();
     wasOpen.current = open;
   }, [open]);
 
   return (
-    <div className={open ? "sa-dict-row is-open" : "sa-dict-row"} role="listitem">
-      <div className="sa-dict-product">
-        <button type="button" className="sa-dict-product-name" onClick={onOpenProduct} aria-label={`פתח מוצר ${product.name}`} title="פתח מוצר">
-          {product.name}
-        </button>
-        <span className="sa-dict-product-codes">
-          <span className="sa-mono ltr">{product.sku}</span>
-          {product.barcode ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="sa-mono ltr">{product.barcode}</span>
-            </>
-          ) : null}
-        </span>
+    <div className="sa-dict-row" role="listitem">
+      <div className="sa-dict-product sa-thumbed">
+        <ProductThumb product={product} />
+        <div className="sa-dict-product-text">
+          <button type="button" className="sa-dict-product-name" onClick={onOpenProduct} aria-label={`פתיחת מוצר ${product.name}`} title="פתיחת מוצר">
+            {product.name}
+          </button>
+          <span className="sa-dict-product-codes">
+            <span className="sa-mono ltr">{product.sku}</span>
+          </span>
+        </div>
       </div>
 
       <div className="sa-dict-aliases">
-        {aliases.length === 0 && !open ? <span className="sa-dict-none">אין עדיין שמות של ספקים</span> : null}
-        {aliases.map((a) => {
-          const pending = a.status === "pending";
-          const sup = supplierName(a.supplier_id);
-          const saving = isTempId(a.id);
-          const meta = [
-            a.external_sku ? `מק"ט חיצוני ${a.external_sku}` : null,
-            a.times_seen > 0 ? `נראה ${fmtQty(a.times_seen)} פעמים` : null,
-            saving ? "עדיין נשמר" : null,
-          ]
-            .filter((v): v is string => v !== null)
-            .join(" · ");
+        {aliases.length === 0 && !open ? <span className="sa-dict-none">אין שמות</span> : null}
+        {bySupplier(aliases).map((group) => {
+          const sup = supplierName(group[0].supplier_id);
           return (
-            <span key={a.id} className={pending ? "sa-dict-chip is-pending" : "sa-dict-chip"} title={meta || undefined}>
-              <bdi className="sa-dict-chip-name">{a.external_name}</bdi>
-              <span className="sa-dict-chip-sup" aria-label={`אצל ${sup}`}>{sup}</span>
-              {pending ? (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="sa-dict-chip-approve"
-                  aria-label={`אשר את "${a.external_name}" של ${sup}`}
-                  isLoading={approvingId === a.id}
-                  disabled={saving}
-                  onClick={() => onApprove(a)}
-                >
-                  אשר
-                </Button>
-              ) : null}
-              <Button
-                variant="ghost"
-                size="sm"
-                iconOnly
-                icon="x"
-                aria-label={`הסר את "${a.external_name}" של ${sup}`}
-                className="sa-dict-chip-x"
-                disabled={saving}
-                onClick={() => onRemove(a)}
-              />
-            </span>
+            <div key={group[0].supplier_id} className="sa-dict-group">
+              <span className="sa-dict-alias-sup" aria-label={`אצל ${sup}`}>{sup}</span>
+              <div className="sa-dict-group-names">
+                {group.map((a) => {
+                  const pending = a.status === "pending";
+                  const saving = isTempId(a.id);
+                  const facts = [a.times_seen > 0 ? seenText(a.times_seen) : null, saving ? "עדיין נשמר" : null].filter((v): v is string => v !== null);
+                  return (
+                    <div key={a.id} className="sa-dict-alias">
+                      <span className="sa-dict-alias-text">
+                        <span className="sa-dict-alias-name"><bdi>{a.external_name}</bdi></span>
+                        {a.external_sku || facts.length > 0 ? (
+                          <span className="sa-dict-alias-meta">
+                            {a.external_sku ? <span className="sa-mono ltr">{a.external_sku}</span> : null}
+                            {a.external_sku && facts.length > 0 ? " · " : null}
+                            {facts.join(" · ")}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="sa-dict-alias-state">
+                        {pending ? (
+                          <>
+                            <Badge tone="warning" dot={false}>ממתין</Badge>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              aria-label={`אישור "${a.external_name}" של ${sup}`}
+                              isLoading={approvingId === a.id}
+                              disabled={saving}
+                              onClick={() => onApprove(a)}
+                            >
+                              אישור
+                            </Button>
+                          </>
+                        ) : null}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        icon="x"
+                        aria-label={`הסרת "${a.external_name}" של ${sup}`}
+                        className="sa-dict-alias-remove"
+                        disabled={saving}
+                        onClick={() => onRemove(a)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
         {open ? <InlineAliasForm product={product} onClose={onClose} /> : null}
@@ -98,9 +129,8 @@ export function ProductRow({ product, aliases, supplierName, open, onOpen, onClo
 
       <div className="sa-dict-action">
         {open ? null : (
-          <button ref={addRef} type="button" className="sa-dict-add" onClick={onOpen} aria-label={`שם של ספק עבור ${product.name}`}>
-            <Icon name="plus" size={14} />
-            שם של ספק
+          <button ref={addRef} type="button" className="sa-dict-add" onClick={onOpen} aria-label={`הוספת שם עבור ${product.name}`}>
+            הוספת שם
           </button>
         )}
       </div>

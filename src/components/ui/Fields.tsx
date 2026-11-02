@@ -25,7 +25,7 @@ export function Fields({ items, columns = 2, className }: FieldsProps) {
         return (
           <div key={i}>
             <dt>{f.label}</dt>
-            <dd className={cx(f.num && "is-num") || undefined} title={typeof f.value === "string" ? f.value : undefined}>
+            <dd className={cx(f.num && "is-num", empty && "is-empty") || undefined} title={typeof f.value === "string" ? f.value : undefined}>
               {empty ? "—" : f.value}
             </dd>
           </div>

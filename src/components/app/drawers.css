@@ -1,0 +1,226 @@
+/* What floats over the page: the product and order drawers, the action forms, the actions menu and the settings dialog.
+   Base rules for the two blocks the classic style also shows, then the aluminium style, scoped to [data-theme^="minimal"].
+
+   In the aluminium style a drawer is a silver sheet holding white groups, the way Settings does on an iPhone,
+   so depth stays white on silver and no box is drawn. A field is a white well on the silver.
+   Coloured words stay on white: the -text tokens clear 4.5:1 there, not on silver.
+   In the dark the sheet lifts one step above the page, as iOS lifts its sheets. */
+
+/* The photo moved into the head, so it needs the air the body's gap used to give it. */
+.sa-panel-heading > .sa-product-photo { margin-bottom: var(--space-3); }
+
+/* The three numbers that matter, and the stock against its minimum. */
+.sa-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-3) 0 0; }
+.sa-figure { min-width: 0; }
+.sa-figure dt { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.sa-figure dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-1); margin: 0; font-size: var(--t-17); line-height: var(--l-24); font-weight: 600; color: var(--text-primary); }
+.sa-figure-unit { font-size: var(--t-13); line-height: var(--l-18); font-weight: 400; color: var(--text-tertiary); }
+.sa-figure.is-quiet dd { color: var(--text-tertiary); }
+:is(.sa-figure.is-warning dd, .sa-product-state.is-warning) { color: var(--warning-text); }
+:is(.sa-figure.is-danger dd, .sa-product-state.is-danger) { color: var(--danger-text); }
+:is(.sa-figure.is-short dd, .sa-product-state.is-short) { color: var(--short); }
+.sa-product-level { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); }
+.sa-product-level .sa-meter { width: 100%; }
+.sa-product-level-words { display: flex; justify-content: space-between; gap: var(--space-3); margin: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.sa-product-state { margin-inline-start: auto; font-weight: 600; }
+
+/* A break between a form's groups and a movement's icon: the classic style keeps its plain stack and its plain rows. */
+.sa-form-break, .sa-timeline-icon { display: none; }
+
+/* ── The sheet ─────────────────────────────────────────────── */
+[data-theme="minimal"] .app-panelHost { --sheet: var(--bg-canvas); --group: var(--bg-surface); }
+[data-theme="minimal-dark"] .app-panelHost { --sheet: var(--bg-surface); --group: var(--bg-hover); }
+[data-theme^="minimal"] .app-panelHost {
+  --sheet-gap: var(--shell-gap);
+  --group-inset: var(--space-4);
+  --group-radius: calc(var(--radius-xl) - var(--sheet-gap));
+  --bar: calc(var(--control-md) + 2 * var(--space-2));
+  --figure: 28px;
+  --figure-line: 34px;
+}
+
+[data-theme^="minimal"] .app-panelHost > .sa-panel { background: var(--sheet); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-head { padding: var(--space-2) var(--space-5) var(--space-3); padding-inline-end: var(--sheet-gap); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-heading { padding-top: 3px; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-title { font-size: var(--figure); line-height: var(--figure-line); white-space: normal; overflow: visible; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-sub { font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-eyebrow { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-actions { gap: var(--space-2); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-actions .sa-btn { height: var(--control-md); background: var(--bg-fill); color: var(--text-secondary); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-actions .sa-btn-icon { width: var(--control-md); border-radius: var(--radius-full); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-actions .sa-btn svg { width: 18px; height: 18px; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-body { padding: var(--space-2) var(--space-5) var(--space-6); gap: var(--space-5); scrollbar-width: none; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot { flex-shrink: 0; padding: var(--space-3) var(--sheet-gap); padding-bottom: max(var(--space-3), env(safe-area-inset-bottom)); background: var(--group); border-top: var(--hair) solid var(--border-subtle); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot > div:empty { display: none; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot > div:last-child { flex: 1; min-width: 0; justify-content: flex-end; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn { height: var(--control-lg); padding-inline: var(--space-4); font-size: var(--t-15); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn svg { width: 18px; height: 18px; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn-primary { flex: 1; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn-ghost { background: var(--bg-fill); color: var(--text-primary); }
+[data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-order-cancel { color: var(--danger-text); }
+@media (hover: hover) {
+  [data-theme^="minimal"] .app-panelHost :is(.sa-panel-foot .sa-btn-ghost, .sa-panel-actions .sa-btn):where(:hover:not(:disabled)) { background: var(--bg-fill-hover); color: var(--text-primary); }
+  [data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-order-cancel:where(:hover:not(:disabled)) { color: var(--danger-text); }
+}
+
+/* A product and an order read as one page: the whole sheet scrolls, its close button and its actions stay put. */
+[data-theme^="minimal"] .app-panelHost > .sa-panel.sa-sheet { overflow: hidden auto; scrollbar-width: none; }
+[data-theme^="minimal"] .sa-sheet > .sa-panel-head { display: contents; }
+[data-theme^="minimal"] .sa-sheet .sa-panel-actions { position: sticky; top: 0; z-index: 3; order: -1; justify-content: flex-end; height: var(--bar); padding: var(--space-2) var(--sheet-gap); background: var(--sheet); border-bottom: var(--hair) solid var(--border-base); }
+[data-theme^="minimal"] .sa-sheet .sa-panel-heading { flex-shrink: 0; display: flex; flex-direction: column; margin-inline: var(--sheet-gap); padding: var(--group-inset); background: var(--group); border-radius: var(--group-radius); box-shadow: var(--shadow-card); }
+[data-theme^="minimal"] .sa-sheet .sa-panel-sub { margin-top: var(--space-1); }
+[data-theme^="minimal"] .sa-sheet > .sa-panel-tabs { position: sticky; top: var(--bar); z-index: 2; flex-shrink: 0; padding: var(--space-3) var(--sheet-gap); background: var(--sheet); }
+[data-theme^="minimal"] .sa-sheet > .sa-panel-body { flex: none; overflow: visible; padding: 0 var(--sheet-gap) var(--space-5); gap: var(--sheet-gap); }
+[data-theme^="minimal"] .sa-sheet > .sa-panel-head + .sa-panel-body { padding-top: var(--sheet-gap); }
+[data-theme^="minimal"] .sa-sheet > .sa-panel-foot { position: sticky; bottom: 0; z-index: 3; margin-top: auto; }
+@supports (animation-timeline: scroll()) {
+  [data-theme^="minimal"] .sa-sheet .sa-panel-actions { animation: sa-edge linear both; animation-timeline: scroll(nearest block); animation-range: 0 24px; }
+}
+
+/* ── The product's page: its photo, large and rounded, then its name, then its numbers ── */
+[data-theme^="minimal"] .sa-product .sa-panel-heading { padding: var(--space-2) var(--space-2) var(--space-5); }
+[data-theme^="minimal"] .sa-product .sa-panel-heading > :not(.sa-product-photo) { margin-inline: var(--space-2); }
+[data-theme^="minimal"] .sa-product .sa-panel-heading:not(:has(> .sa-product-photo)) { padding-top: var(--space-4); }
+[data-theme^="minimal"] .sa-product .sa-panel-eyebrow { order: 1; margin-block: 2px 0; }
+[data-theme^="minimal"] .sa-product .sa-panel-heading > :is(.sa-figures, .sa-product-level) { order: 2; }
+[data-theme^="minimal"] .app-panelHost .sa-panel-heading > .sa-product-photo { width: 100%; height: auto; aspect-ratio: 3 / 2; margin: 0 0 var(--space-4); border: 0; border-radius: calc(var(--group-radius) - var(--space-2)); }
+[data-theme^="minimal"] .sa-figures { gap: var(--space-2); margin-top: var(--space-5); }
+[data-theme^="minimal"] .sa-figure dt { font-weight: 500; }
+[data-theme^="minimal"] .sa-figure dd { font-size: var(--figure); line-height: var(--figure-line); font-weight: 700; letter-spacing: -0.02em; }
+[data-theme^="minimal"] .sa-figure-unit { font-weight: 500; letter-spacing: 0; }
+[data-theme^="minimal"] .sa-figure.is-quiet dd { color: var(--text-quiet); }
+[data-theme^="minimal"] .sa-product-level { margin-top: var(--space-4); }
+[data-theme^="minimal"] .sa-product-level .sa-meter { height: 10px; }
+[data-theme^="minimal"] .sa-product-level .sa-meter > i { animation: sa-meter-fill var(--dur-3) var(--ease) backwards; }
+@keyframes sa-meter-fill { from { width: 0; } }
+
+/* ── Groups: lists that read like Settings ─────────────────── */
+[data-theme^="minimal"] .app-panelHost :is(.sa-group, .sa-fields, .sa-timeline, .sa-dict-suppliers-list) { background: var(--group); border-radius: var(--group-radius); box-shadow: var(--shadow-card); }
+[data-theme^="minimal"] .app-panelHost :is(.sa-group, .sa-timeline, .sa-dict-suppliers-list) { overflow: hidden; }
+[data-theme^="minimal"] .app-panelHost .sa-group { gap: 0; padding-top: var(--space-4); }
+[data-theme^="minimal"] .app-panelHost .sa-group > .sa-section-title { padding-inline: var(--group-inset); }
+[data-theme^="minimal"] .app-panelHost .sa-group > .sa-hint { margin: 0; padding: var(--space-1) var(--group-inset) var(--space-4); }
+[data-theme^="minimal"] .app-panelHost .sa-rows > li { position: relative; min-height: 68px; padding: var(--space-3) var(--group-inset); border: 0; font-size: var(--t-15); line-height: var(--l-22); }
+[data-theme^="minimal"] .app-panelHost .sa-rows > li:not(:last-child)::after { content: ""; position: absolute; inset-inline: var(--group-inset) 0; bottom: 0; height: var(--hair); background: var(--border-subtle); pointer-events: none; }
+[data-theme^="minimal"] .app-panelHost .sa-rows > li:has(> .sa-thumb)::after { inset-inline-start: calc(var(--group-inset) + 44px + var(--space-3)); }
+[data-theme^="minimal"] .app-panelHost .sa-rows .sa-truncate { font-weight: 600; color: var(--text-primary); }
+[data-theme^="minimal"] .app-panelHost .sa-rows .sa-num { font-size: var(--t-17); line-height: var(--l-24); font-weight: 600; }
+@media (hover: hover) {
+  [data-theme^="minimal"] .app-panelHost .sa-order-line:hover { background: var(--bg-fill); }
+  [data-theme^="minimal"] .app-panelHost .sa-order-line:hover .sa-truncate { text-decoration: none; }
+}
+[data-theme^="minimal"] .app-panelHost .sa-rows > .sa-order-total { min-height: 72px; font-weight: 600; }
+[data-theme^="minimal"] .app-panelHost .sa-rows > .sa-order-total > :last-child { font-size: var(--figure); line-height: var(--figure-line); font-weight: 700; letter-spacing: -0.02em; }
+[data-theme^="minimal"] .sa-order-status { font-weight: 600; }
+[data-theme^="minimal"] .sa-order-status .sa-dot { display: none; }
+[data-theme^="minimal"] .sa-order-status.is-open { color: var(--accent-text); }
+[data-theme^="minimal"] .sa-order-status.is-delivered { color: var(--success-text); }
+[data-theme^="minimal"] .sa-order-status.is-cancelled { color: var(--text-tertiary); }
+
+/* The word at the start, the value at the end, a rule that starts at the text. */
+[data-theme^="minimal"] .app-panelHost .sa-fields { display: block; }
+[data-theme^="minimal"] .app-panelHost .sa-fields > div { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); min-height: 52px; padding: var(--space-3) var(--group-inset); }
+[data-theme^="minimal"] .app-panelHost .sa-fields > div:not(:last-child)::after { content: ""; position: absolute; inset-inline: var(--group-inset) 0; bottom: 0; height: var(--hair); background: var(--border-subtle); }
+[data-theme^="minimal"] .app-panelHost .sa-fields dt { flex-shrink: 0; margin: 0; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); }
+[data-theme^="minimal"] .app-panelHost .sa-fields dd { min-width: 0; font-size: var(--t-15); line-height: var(--l-22); text-align: end; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+[data-theme^="minimal"] .app-panelHost .sa-fields dd.is-empty { color: var(--text-quiet); }
+[data-theme^="minimal"] .app-panelHost .sa-fields dd .sa-btn-link { height: auto; padding: 0; font-size: inherit; line-height: inherit; }
+[data-theme^="minimal"] .app-panelHost .sa-fields.is-1 > div { display: block; }
+[data-theme^="minimal"] .app-panelHost .sa-fields.is-1 dd { text-align: start; }
+
+/* History: a movement's thin icon, the word, who and when, and the figure in its colour. */
+[data-theme^="minimal"] .app-panelHost .sa-timeline-item { padding: var(--space-3) var(--group-inset); }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-item + .sa-timeline-item { border-top: 0; }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-item:not(:last-child)::after { content: ""; position: absolute; inset-inline: calc(var(--group-inset) + 20px + var(--space-3)) 0; bottom: 0; height: var(--hair); background: var(--border-subtle); }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-body { justify-content: flex-start; min-height: 44px; }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-body > .min-w-0 { flex: 1; }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-icon { display: block; flex-shrink: 0; color: var(--text-tertiary); }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-title { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-qty { font-size: var(--t-15); line-height: var(--l-22); }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-detail { padding-inline-start: calc(20px + var(--space-3)); }
+
+/* The suppliers list is one white group too. */
+[data-theme^="minimal"] .app-panelHost.app-panelHost .sa-dict-suppliers .sa-panel-body { padding-inline: var(--sheet-gap); }
+[data-theme^="minimal"] .app-panelHost .sa-dict-supplier { position: relative; min-height: 68px; padding: var(--space-3) var(--group-inset); border-bottom: 0; }
+[data-theme^="minimal"] .app-panelHost .sa-dict-suppliers-list > li:not(:last-child) .sa-dict-supplier::after { content: ""; position: absolute; inset-inline: var(--group-inset) 0; bottom: 0; height: var(--hair); background: var(--border-subtle); }
+
+/* ── Forms: white wells on the silver, big words, room between the groups ── */
+[data-theme^="minimal"] .sa-form-break { display: block; height: 0; margin: 0; border: 0; }
+[data-theme^="minimal"] .app-panelHost .sa-field { gap: var(--space-2); }
+[data-theme^="minimal"] .app-panelHost .sa-label { align-items: baseline; font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); }
+[data-theme^="minimal"] .app-panelHost .sa-label :is(.sa-label-opt, .sa-faint) { font-size: var(--t-13); font-weight: 500; color: var(--text-tertiary); }
+[data-theme^="minimal"] .app-panelHost .sa-section-title { font-size: var(--t-15); line-height: var(--l-22); }
+[data-theme^="minimal"] .app-panelHost .sa-error { font-weight: 500; }
+[data-theme^="minimal"] .app-panelHost :is(.sa-input, .sa-select-trigger) { padding-inline: var(--space-4); font-size: var(--t-16); line-height: var(--l-24); }
+[data-theme^="minimal"] .app-panelHost :is(.sa-input:not(.sa-textarea), .sa-select-trigger) { height: 52px; }
+[data-theme^="minimal"] .app-panelHost .sa-textarea { min-height: 104px; padding-block: 14px; }
+[data-theme^="minimal"] .app-panelHost :is(.sa-input, .sa-select-trigger):not(:disabled) { background: var(--group); }
+[data-theme^="minimal"] .app-panelHost :is(.sa-input:not(:focus, .is-error), .sa-select-trigger:not(.is-open)) { border-color: transparent; box-shadow: var(--shadow-sm); }
+@media (hover: hover) {
+  [data-theme^="minimal"] .app-panelHost :is(.sa-input:not(:focus, .is-error), .sa-select-trigger:not(.is-open)):hover:not(:disabled) { border-color: var(--border-control); }
+}
+[data-theme^="minimal"] .app-panelHost .sa-select-chevron { width: 16px; height: 16px; }
+[data-theme^="minimal"] .app-panelHost .sa-control-end .sa-hint { font-size: var(--t-14); font-weight: 500; }
+
+/* The quantity is what every form asks: a big figure between two big keys. The unit sits under it, so a long number never meets it. */
+[data-theme^="minimal"] .sa-qtyfield { position: relative; display: block; }
+[data-theme^="minimal"] .app-panelHost .sa-qtyfield .sa-input.sa-input-mono { height: 88px; padding-inline: 84px; text-align: center; font-size: var(--figure); line-height: var(--figure-line); font-weight: 700; letter-spacing: -0.02em; border-radius: var(--radius-lg); }
+[data-theme^="minimal"] .app-panelHost .sa-qtyfield .sa-control:has(.sa-control-end) .sa-input { padding-bottom: 20px; }
+[data-theme^="minimal"] .sa-qtyfield .sa-control-end { inset-inline: 0; bottom: 12px; justify-content: center; pointer-events: none; }
+[data-theme^="minimal"] .sa-qtyfield > :last-child { position: absolute; inset: 0 0 auto; height: 88px; pointer-events: none; }
+[data-theme^="minimal"] .sa-qtyfield .sa-qty { flex: 1; justify-content: space-between; height: 100%; padding-inline: 14px; border: 0; background: none; overflow: visible; }
+[data-theme^="minimal"] .sa-qtyfield .sa-qty button { width: 60px; height: 60px; border-radius: var(--radius-md); background: var(--bg-fill); color: var(--text-primary); pointer-events: auto; }
+[data-theme^="minimal"] .sa-qtyfield .sa-qty button:disabled { color: var(--text-disabled); }
+[data-theme^="minimal"] .sa-qtyfield .sa-qty button:where(:hover:not(:disabled)) { background: var(--bg-fill-hover); }
+[data-theme^="minimal"] .sa-qtyfield .sa-qty button svg { width: 24px; height: 24px; stroke-width: 2; }
+
+/* A choice that is simply on or off is a switch, the size of a row. */
+[data-theme^="minimal"] .sa-switch { justify-content: space-between; min-height: 52px; padding-inline: var(--space-4); font-size: var(--t-15); font-weight: 600; color: var(--text-primary); background: var(--group); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+[data-theme^="minimal"] .sa-switch input { order: 1; flex-shrink: 0; position: relative; width: 52px; height: 32px; border-radius: var(--radius-full); background: var(--bg-fill-hover); appearance: none; transition: background-color var(--dur-2) var(--ease); }
+[data-theme^="minimal"] .sa-switch input::before { content: ""; position: absolute; top: 2px; inset-inline-start: 2px; width: 28px; height: 28px; border-radius: var(--radius-full); background: var(--on-accent); box-shadow: var(--shadow-sm); transition: inset-inline-start var(--dur-2) var(--ease); }
+[data-theme^="minimal"] .sa-switch input:checked { background: var(--accent); }
+[data-theme^="minimal"] .sa-switch input:checked::before { inset-inline-start: 22px; }
+[data-theme^="minimal"] .sa-switch input:focus-visible { box-shadow: var(--focus-ring); }
+
+/* ── Dialogs ───────────────────────────────────────────────── */
+/* The settings are the same silver and white as a drawer: two groups of rows. */
+.sa-settings-group + .sa-settings-group { margin-top: var(--space-4); padding-top: var(--space-4); border-top: var(--hair) solid var(--border-subtle); }
+[data-theme="minimal"] .sa-modal:has(.sa-settings-group) { --sheet: var(--bg-canvas); --group: var(--bg-surface); }
+[data-theme="minimal-dark"] .sa-modal:has(.sa-settings-group) { --sheet: var(--bg-surface); --group: var(--bg-hover); }
+[data-theme^="minimal"] .sa-modal:has(.sa-settings-group) { background: var(--sheet); }
+[data-theme^="minimal"] .sa-modal:has(.sa-settings-group) .sa-modal-head { padding: var(--space-3) var(--shell-gap) var(--space-2); padding-inline-start: var(--space-5); }
+[data-theme^="minimal"] .sa-modal:has(.sa-settings-group) .sa-modal-head .sa-btn { width: var(--control-md); height: var(--control-md); border-radius: var(--radius-full); background: var(--bg-fill); color: var(--text-secondary); }
+[data-theme^="minimal"] .sa-modal:has(.sa-settings-group) .sa-modal-head svg { width: 18px; height: 18px; }
+[data-theme^="minimal"] .sa-modal:has(.sa-settings-group) .sa-modal-body { display: flex; flex-direction: column; gap: var(--shell-gap); padding: var(--space-2) var(--shell-gap) var(--shell-gap); }
+[data-theme^="minimal"] .sa-settings-group { background: var(--group); border-radius: calc(var(--radius-xl) - var(--shell-gap)); box-shadow: var(--shadow-card); }
+[data-theme^="minimal"] .sa-settings-group + .sa-settings-group { margin-top: 0; padding-top: 0; border-top: 0; }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance { position: relative; min-height: 60px; padding: var(--space-2) var(--space-4); }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance + .sa-appearance { margin-top: 0; padding-top: var(--space-2); border-top: 0; }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance:not(:last-child)::after { content: ""; position: absolute; inset-inline: var(--space-4) 0; bottom: 0; height: var(--hair); background: var(--border-subtle); }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance-label { font-size: var(--t-15); line-height: var(--l-22); font-weight: 500; color: var(--text-primary); }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance-link { min-height: 52px; }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance-link svg { color: var(--text-tertiary); }
+[data-theme^="minimal"] .sa-settings-group .sa-appearance-opts { flex-shrink: 0; }
+
+/* A question: its words at reading size, and its two answers apart from them. */
+[data-theme^="minimal"] .sa-modal:not(:has(.sa-settings-group)) .sa-modal-head { padding: var(--inset) var(--inset) 0; }
+[data-theme^="minimal"] .sa-modal:not(:has(.sa-settings-group)) .sa-modal-body { padding: var(--space-3) var(--inset) var(--space-5); font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); }
+[data-theme^="minimal"] .sa-modal:not(:has(.sa-settings-group)) .sa-modal-foot { padding: 0 var(--inset) var(--inset); }
+[data-theme^="minimal"] .sa-modal:not(:has(.sa-settings-group)) .sa-modal-foot .sa-btn { height: var(--control-lg); padding-inline: var(--space-5); font-size: var(--t-15); }
+
+/* ── The actions menu: generous rows and thin grey icons, as in a context menu on a Mac ── */
+[data-theme^="minimal"] .sa-actionmenu .sa-menu { min-width: 280px; border-radius: var(--radius-lg); }
+[data-theme^="minimal"] .sa-actionmenu .sa-menu-list { padding: var(--space-2); }
+[data-theme^="minimal"] .sa-actionmenu .sa-menu-item { position: relative; min-height: 48px; gap: var(--space-3); padding: var(--space-2) var(--space-3); font-size: var(--t-15); line-height: var(--l-22); font-weight: 500; border-radius: calc(var(--radius-lg) - var(--space-2)); }
+[data-theme^="minimal"] .sa-actionmenu .sa-menu-item > svg { width: 20px; height: 20px; stroke-width: 1.5; }
+[data-theme^="minimal"] .sa-actionmenu .sa-menu-item.ends-group { margin-bottom: 9px; }
+[data-theme^="minimal"] .sa-actionmenu .sa-menu-item.ends-group::after { content: ""; position: absolute; inset-inline: var(--space-3); bottom: -5px; height: var(--hair); background: var(--border-base); }
+
+@supports (corner-shape: squircle) {
+  [data-theme^="minimal"] :is(.app-panelHost :is(.sa-group, .sa-fields, .sa-timeline, .sa-dict-suppliers-list, .sa-product-photo, .sa-panel-heading), .sa-settings-group, .sa-switch, .sa-qtyfield .sa-qty button) { corner-shape: squircle; }
+  /* A circle is a circle: on a squircle the full radius squares its corners off. */
+  [data-theme^="minimal"] :is(.app-panelHost .sa-panel-actions .sa-btn-icon, .sa-modal:has(.sa-settings-group) .sa-modal-head .sa-btn) { corner-shape: round; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme^="minimal"] .sa-product-level .sa-meter > i { animation: none; }
+}

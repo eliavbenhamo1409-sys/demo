@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "../design/tokens.css";
 @import "../design/components.css";
-@import "../design/theme-modern.css";
+@import "../design/minimal.css";
 
 /* Map design tokens into Tailwind v4 so utilities and `sa-*` classes share one source. */
 @theme inline {
@@ -24,6 +24,7 @@
   --color-warning-text: var(--warning-text);
   --color-danger: var(--danger);
   --color-danger-text: var(--danger-text);
+  --color-short: var(--short);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --radius-sm: var(--radius-sm);
@@ -35,6 +36,24 @@
   --shadow-modal: var(--shadow-modal);
 }
 
+/* The admin reads a step deeper than the shared tokens: greys, rules and the canvas, so white cards stand off it. Light only. */
+[data-theme="light"] {
+  --bg-canvas: #f2f1ec;
+  --bg-muted: #e9e8e2;
+  --text-secondary: #484740;
+  --text-tertiary: #5d5b55;
+  --border-subtle: #e6e4dd;
+  --border-base: #d9d6cd;
+  --border-strong: #c2bfb5;
+  --border-control: #85837a;
+}
+
+/* A real red, a step past --danger, for one thing only: orders holding more than the shelf has. */
+:root { --short: #d91f26; }
+[data-theme$="dark"] { --short: #ff6b6b; }
+[data-theme="minimal"] { --short: #e8000d; }
+[data-theme="minimal-dark"] { --short: #ff453a; }
+
 html, body { height: 100%; }
 body { background: var(--bg-canvas); color: var(--text-primary); font-family: var(--font-sans); }
 
@@ -42,79 +61,60 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
 .ltr { direction: ltr; unicode-bidi: isolate; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
-
-/* ── Mobile: sidebar becomes a top row (paired with AppShell.module.css) ── */
-@media (max-width: 899px) {
-  .sa-shell > .sa-sidebar {
-    width: 100%;
-    border-inline-end: 0;
-    border-bottom: 1px solid var(--border-base);
-    flex-direction: row;
-    align-items: center;
-    padding-inline-end: var(--space-3);
-  }
-  .sa-shell > .sa-sidebar > .sa-brand {
-    border-bottom: 0;
-    flex-shrink: 0;
-  }
-  .sa-shell > .sa-sidebar > .sa-nav {
-    flex-direction: row;
-    padding: var(--space-2);
-    gap: var(--space-1);
-    overflow-x: auto;
-  }
-  /* On phones the footer keeps only the settings row, inline at the end of the bar. */
-  .sa-shell > .sa-sidebar > .sa-nav-foot {
-    flex-direction: row;
-    align-items: center;
-    border-top: 0;
-    padding: var(--space-2);
-    flex-shrink: 0;
-  }
-  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-user {
-    display: none;
-  }
-  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item > span {
-    display: none;
-  }
-  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item {
-    width: var(--control-md);
-    padding: 0;
-    justify-content: center;
-  }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
 /* Codes and numbers never wrap inside table cells. */
 .sa-table td.is-ltr, .sa-table td.is-mono, .sa-table td.is-num { white-space: nowrap; }
 
-/* Stat tiles: 3 → 2 → 1 columns as the screen narrows. */
+/* Stats: 3 → 2 → 1 columns as the screen narrows. */
 @media (max-width: 899px) { .sa-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .sa-stats { grid-template-columns: 1fr; } .sa-page-title { font-size: 24px; line-height: 30px; } }
-
-/* ── Density: one notch smaller than the spec, so more fits on a laptop screen ── */
-:root {
-  --control-md: 34px;
-  --control-lg: 38px;
-  --row: 40px;
-  --topbar: 52px;
-  --sidebar: 220px;
-  --panel: 420px;
+@media (max-width: 600px) {
+  .sa-stats { grid-template-columns: 1fr; }
+  .sa-stat { flex-direction: row; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); }
+  .sa-stat-value { font-size: 24px; line-height: 30px; }
+  .sa-stat-foot { display: none; }
 }
-.sa-stat { padding: var(--space-4) var(--space-5); gap: var(--space-2); }
-.sa-stat-value { font-size: 32px; line-height: 36px; }
-.sa-page-title { font-size: 24px; line-height: 30px; }
-.sa-nav-item { height: 34px; font-size: 13px; }
-.sa-panel-head { padding: var(--space-4) var(--space-5) var(--space-3); }
-.sa-panel-body { padding: var(--space-4) var(--space-5); gap: var(--space-4); }
-.sa-panel-foot { padding: var(--space-3) var(--space-5); }
-.sa-card-body { padding: var(--space-3) var(--space-4); }
 
-/* Top bar menus (actions, search results) float above page content. */
-.sa-topbar { position: relative; z-index: 70; }
-.sa-actionmenu .sa-menu { z-index: 80; }
-.sa-actionmenu .sa-menu-list { max-height: none; }
+/* Phones and small tablets: the side navigation becomes two rows at the top. */
+@media (max-width: 899px) {
+  .sa-shell { flex-direction: column; }
+  .sa-shell > .sa-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    border-inline-end: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .sa-shell > .sa-sidebar > .sa-brand { flex: 1; min-width: 0; height: 48px; padding-inline: var(--space-4); }
+  .sa-shell > .sa-sidebar > .sa-nav-foot { padding: 0 var(--space-2); }
+  .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item { width: auto; padding-inline: var(--space-2); border-inline-start: 0; }
+  .sa-shell > .sa-sidebar > .sa-nav {
+    order: 3;
+    width: 100%;
+    flex: none;
+    flex-direction: row;
+    gap: var(--space-5);
+    padding: 0 var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: var(--hair) solid var(--border-base);
+  }
+  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item {
+    width: auto;
+    height: 40px;
+    flex-shrink: 0;
+    gap: 6px;
+    padding: 0;
+    border-inline-start: 0;
+    border-bottom: 1.5px solid transparent;
+    white-space: nowrap;
+  }
+  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { border-bottom-color: var(--border-inverse); }
+  .sa-topbar { position: static; padding-inline: var(--space-4); }
+}
 
 /* A card clips its corners, but never an open select menu inside it. */
 .sa-card:has(.sa-select-trigger.is-open), .sa-card-body:has(.sa-select-trigger.is-open) { overflow: visible !important; }

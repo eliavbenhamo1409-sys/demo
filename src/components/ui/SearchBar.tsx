@@ -9,15 +9,15 @@ export interface SearchBarProps {
   defaultValue?: string;
   onChange?: (q: string) => void;
   onSubmit?: (q: string) => void;
-  isSearching?: boolean;
   placeholder?: string;
+  /** Key that focuses the field; false for a local table filter. */
   kbd?: string | false;
   className?: string;
 }
 
 /** The one global search (top bar) — also the local table filter with `kbd={false}`. */
 export function SearchBar({
-  value: valueProp, defaultValue, onChange, onSubmit, isSearching, placeholder = 'חיפוש מוצר, מק"ט, ספק…', kbd = "/", className,
+  value: valueProp, defaultValue, onChange, onSubmit, placeholder = 'חיפוש לפי מוצר, מק"ט או ספק', kbd = "/", className,
 }: SearchBarProps): ReactElement {
   const [valueState, setValueState] = useState(defaultValue ?? "");
   const value = valueProp !== undefined ? valueProp : valueState;
@@ -51,11 +51,7 @@ export function SearchBar({
   return (
     <div className={cx("sa-search", className)} role="search">
       <div className="sa-control has-icon" style={{ width: "100%" }}>
-        {isSearching ? (
-          <span className="sa-ping" aria-hidden="true" />
-        ) : (
-          <span className="sa-control-icon"><Icon name="search" /></span>
-        )}
+        <span className="sa-control-icon"><Icon name="search" /></span>
         <input
           ref={inputRef}
           type="search"
@@ -77,13 +73,11 @@ export function SearchBar({
           <button
             type="button"
             className="sa-btn sa-btn-ghost sa-btn-sm sa-btn-icon sa-control-end"
-            aria-label="נקה"
+            aria-label="ניקוי"
             onClick={() => { set(""); inputRef.current?.focus(); }}
           >
             <Icon name="x" size={14} />
           </button>
-        ) : kbd !== false ? (
-          <kbd className="sa-kbd" aria-hidden="true">{kbd}</kbd>
         ) : null}
       </div>
     </div>

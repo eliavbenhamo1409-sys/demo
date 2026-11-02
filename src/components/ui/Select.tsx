@@ -38,8 +38,8 @@ function labelText(label: ReactNode): string {
 
 /** Searchable select; `allLabel` adds an empty "all" option first. */
 export function Select({
-  options, value: valueProp, defaultValue, onChange, label, placeholder = "בחר", allLabel, searchPlaceholder = "חיפוש…",
-  emptyLabel = "אין תוצאות", searchable = true, disabled, open: openProp, defaultOpen, inline, activeIndex: activeProp,
+  options, value: valueProp, defaultValue, onChange, label, placeholder = "בחירה", allLabel, searchPlaceholder = "חיפוש לפי שם",
+  emptyLabel = "לא נמצאו תוצאות", searchable = true, disabled, open: openProp, defaultOpen, inline, activeIndex: activeProp,
   minWidth, maxWidth, block, className,
 }: SelectProps): ReactElement {
   const [openState, setOpenState] = useState(!!defaultOpen);
@@ -83,11 +83,14 @@ export function Select({
   }, [normalized, value, allLabel]);
 
   const select = useCallback((v: string) => {
+    // A button fires no input event, so a real change announces itself as a native <select> would.
+    // It goes before onChange: that may open another panel, which must start clean.
+    if (v !== value) rootRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
     setValueState(v);
     setOpen(false);
     onChange?.(v);
     triggerRef.current?.focus();
-  }, [onChange, setOpen]);
+  }, [value, onChange, setOpen]);
 
   // Click outside closes.
   useEffect(() => {
@@ -165,7 +168,7 @@ export function Select({
     <div
       ref={rootRef}
       className={cx("sa-select", className)}
-      style={{ minWidth, maxWidth, width: block ? "100%" : undefined }}
+      style={{ minWidth: block ? 0 : minWidth, maxWidth, width: block ? "100%" : undefined }}
       onKeyDown={onKeyDown}
     >
       <button
@@ -194,6 +197,7 @@ export function Select({
                 type="text"
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setActive(0); }}
+                onInput={(e) => e.stopPropagation()} // searching the list changes nothing in the form
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
                 aria-controls={listId}
