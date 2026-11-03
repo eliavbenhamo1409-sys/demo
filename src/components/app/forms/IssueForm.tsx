@@ -8,6 +8,7 @@ import { fmtQty, fmtUnit } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { CodeDialog } from "./CodeDialog";
 import { FormPanel } from "./FormPanel";
+import { MoreFields } from "./MoreFields";
 import { QtyField } from "./QtyField";
 import { ReceiptField, useExitProof } from "./ReceiptField";
 import { NEW_OPTION, productOptions, workerOptions } from "./options";
@@ -113,9 +114,10 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
         <hr className="sa-form-break" />
         <Input label="לקוח" required value={customer} onChange={(e) => { setCustomer(e.target.value); form.clearField("customer"); }} error={form.errors.customer} autoComplete="off" />
         <ReceiptField proof={proof} disabled={form.busy} />
-        <hr className="sa-form-break" />
-        <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
-        <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
+        <MoreFields>
+          <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
+          <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
+        </MoreFields>
       </FormPanel>
 
       {proving && proof.phone ? (

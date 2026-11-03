@@ -15,19 +15,19 @@ export interface RailItem {
 /** The place of the work first, the work on it after. A rule between them says so without a heading. */
 const AREAS = ["overview", "inventory", "map", "suppliers"];
 
+/** The day closes last, so its page stands at the end of the work. */
+const LAST = "closing";
+
 /** The rail's own order, so the search lists the pages the way the rail does. */
 export function railOrder(items: RailItem[]): { areas: RailItem[]; rest: RailItem[] } {
   return {
     areas: items.filter((item) => AREAS.includes(item.key)).sort((a, b) => AREAS.indexOf(a.key) - AREAS.indexOf(b.key)),
-    rest: items.filter((item) => !AREAS.includes(item.key)),
+    rest: items.filter((item) => !AREAS.includes(item.key)).sort((a, b) => Number(a.key === LAST) - Number(b.key === LAST)),
   };
 }
 
-/** Words this style uses for the same pages. */
-export const WORDS: Record<string, string> = { map: "מחסן" };
-
-/** A stop on the bar is one narrow word: a second line would run into its own tick and count. */
-const BAR_WORDS: Record<string, string> = { ...WORDS, suppliers: "מיפוי" };
+/** Words this style uses for the same pages: the place, and the people who bring to it. */
+export const WORDS: Record<string, string> = { map: "מחסן", suppliers: "ספקים" };
 
 /** What stays under the thumb on a phone. The rest waits behind עוד. */
 const NEAR = ["overview", "inventory", "map", "orders"];
@@ -202,7 +202,7 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
       aria-current={item.key === active ? "page" : undefined}
       onClick={(e) => onPick(e, item.key)}
     >
-      <span className="mh-stop-word" data-word={BAR_WORDS[item.key] ?? item.label}>{BAR_WORDS[item.key] ?? item.label}</span>
+      <span className="mh-stop-word" data-word={WORDS[item.key] ?? item.label}>{WORDS[item.key] ?? item.label}</span>
       {item.count ? <span className="mh-stop-count ltr">{fmtQty(item.count)}</span> : null}
     </Link>
   );

@@ -6,6 +6,7 @@ import { useData, type SupplierItem } from "@/lib/store";
 import { fmtQty, fmtUnit } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
+import { MoreFields } from "./MoreFields";
 import { PlaceField } from "./PlaceField";
 import { QtyField } from "./QtyField";
 import { NEW_OPTION, productOptions, supplierOptions, workerOptions } from "./options";
@@ -195,73 +196,6 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
       onDismissError={() => form.setError(null)}
     >
       <Select label="ספק" options={supOpts} value={supplierId} onChange={onSupplier} allLabel="ללא ספק" block />
-
-      {supplierId ? (
-        <div className="sa-field">
-          <div className="sa-form-pair grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-[var(--space-3)]">
-            <div className="sa-field relative">
-              <Input
-                label="שם בתעודת המשלוח"
-                optional
-                placeholder="כפי שכתוב אצל הספק"
-                value={externalName}
-                onChange={(e) => onExternalName(e.target.value)}
-                onFocus={() => setSuggestOpen(true)}
-                onBlur={() => window.setTimeout(() => setSuggestOpen(false), 120)}
-                onKeyDown={onNameKeyDown}
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={suggestOpen && suggestions.length > 0}
-                aria-controls={listId}
-                aria-autocomplete="list"
-              />
-              {suggestOpen && suggestions.length > 0 ? (
-                <div className="sa-menu" id={listId} role="listbox" aria-label="שמות מהמיפוי" style={{ top: "100%" }}>
-                  <div className="sa-menu-list">
-                    {suggestions.map((s, i) => {
-                      const mapped = s.product_id ? product(s.product_id) : undefined;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          role="option"
-                          aria-selected={i === activeIdx}
-                          className={`sa-menu-item${i === activeIdx ? " is-active" : ""}`}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => pickSuggestion(s)}
-                        >
-                          <span className="flex flex-col min-w-0 flex-1">
-                            <span className="flex items-center gap-[var(--space-2)] min-w-0">
-                              <span className="truncate">{s.external_name}</span>
-                              {s.external_sku ? <span className="sa-mono ltr sa-faint">{s.external_sku}</span> : null}
-                            </span>
-                            <span className="sa-menu-item-sub">
-                              {mapped ? mapped.name : "ללא התאמה"}
-                              {" · "}
-                              נראה <span className="sa-mono">{s.times_seen}</span> פעמים
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-            <Input
-              label={'מק"ט חיצוני'}
-              optional
-              mono
-              value={externalSku}
-              onChange={(e) => setExternalSku(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </div>
-          {resolutionLine}
-        </div>
-      ) : null}
-
       <hr className="sa-form-break" />
       <div className="sa-field">
         <Select label="מוצר" options={prodOpts} value={productId} onChange={onProduct} placeholder="בחירת מוצר" block />
@@ -269,9 +203,76 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
       </div>
       <QtyField label="כמות" value={qty} onChange={(n) => { setQty(n); form.clearField("qty"); }} unit={unit || undefined} min={1} error={form.errors.qty} required />
       {selected ? <PlaceField key={selected.id} optional product={selected} value={place} onChange={setPlace} /> : null}
-      <hr className="sa-form-break" />
-      <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
-      <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
+
+      <MoreFields>
+        {supplierId ? (
+          <div className="sa-field">
+            <div className="sa-form-pair grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-[var(--space-3)]">
+              <div className="sa-field relative">
+                <Input
+                  label="שם בתעודת המשלוח"
+                  optional
+                  placeholder="כפי שכתוב אצל הספק"
+                  value={externalName}
+                  onChange={(e) => onExternalName(e.target.value)}
+                  onFocus={() => setSuggestOpen(true)}
+                  onBlur={() => window.setTimeout(() => setSuggestOpen(false), 120)}
+                  onKeyDown={onNameKeyDown}
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={suggestOpen && suggestions.length > 0}
+                  aria-controls={listId}
+                  aria-autocomplete="list"
+                />
+                {suggestOpen && suggestions.length > 0 ? (
+                  <div className="sa-menu" id={listId} role="listbox" aria-label="שמות מהמיפוי" style={{ top: "100%" }}>
+                    <div className="sa-menu-list">
+                      {suggestions.map((s, i) => {
+                        const mapped = s.product_id ? product(s.product_id) : undefined;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            role="option"
+                            aria-selected={i === activeIdx}
+                            className={`sa-menu-item${i === activeIdx ? " is-active" : ""}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickSuggestion(s)}
+                          >
+                            <span className="flex flex-col min-w-0 flex-1">
+                              <span className="flex items-center gap-[var(--space-2)] min-w-0">
+                                <span className="truncate">{s.external_name}</span>
+                                {s.external_sku ? <span className="sa-mono ltr sa-faint">{s.external_sku}</span> : null}
+                              </span>
+                              <span className="sa-menu-item-sub">
+                                {mapped ? mapped.name : "ללא התאמה"}
+                                {" · "}
+                                נראה <span className="sa-mono">{s.times_seen}</span> פעמים
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <Input
+                label={'מק"ט חיצוני'}
+                optional
+                mono
+                value={externalSku}
+                onChange={(e) => setExternalSku(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            {resolutionLine}
+          </div>
+        ) : null}
+        <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
+        <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
+      </MoreFields>
     </FormPanel>
   );
 }

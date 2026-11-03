@@ -25,7 +25,7 @@ export interface CommandSearch {
 const HIT_ICON: Record<CommandHit["kind"], IconName> = { product: "package", order: "inbox", supplier: "truck", supplier_item: "tag" };
 
 /** The same words as the rail. */
-const PAGE_WORD: Record<string, string> = { "/3d": "מחסן" };
+const PAGE_WORD: Record<string, string> = { "/3d": "מחסן", "/suppliers": "ספקים" };
 
 const GROUP = { hit: null, action: "פעולות", page: "עמודים" } as const;
 

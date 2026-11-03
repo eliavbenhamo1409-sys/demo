@@ -11,18 +11,13 @@ import { useUi } from "./ui-state";
 import { StockMeter } from "./Viz";
 import { useFloorObjects } from "@/components/map3d/use-floor-objects";
 import { Badge, Button, cx, Fields, Notice, SidePanel, Spinner, Timeline, type TimelineItem } from "@/components/ui";
-import { fmtDate, fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
+import { fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { placeWords, resolvePlace } from "@/lib/map3d/place";
 import { useShelves } from "@/lib/map3d/shelves";
 import { productPhotoUrl } from "@/lib/product-photos";
 
 type PanelTab = "details" | "history";
-
-function sameMonth(iso: string, now: Date): boolean {
-  const d = new Date(iso);
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-}
 
 /** One of a sheet's numbers, in `.sa-figures`: a word over a big figure and its unit. */
 export function Figure({ label, value, unit, tone }: { label: string; value: ReactNode; unit?: string; tone?: "quiet" | "warning" | "danger" | "short" }) {
@@ -110,12 +105,6 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
     [state.orders, linesOf, id],
   );
 
-  const monthCount = useMemo(() => {
-    const now = new Date();
-    const src = rows ?? state.movements.filter((m) => m.product_id === id);
-    return src.filter((m) => sameMonth(m.created_at, now)).length;
-  }, [rows, state.movements, id]);
-
   const run = useCallback(
     async (key: string, fn: () => Promise<void>, success: string) => {
       setBusy(key);
@@ -126,18 +115,6 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
         notify({ tone: "danger", title: "הפעולה נכשלה", text: e instanceof Error ? e.message : undefined });
       } finally {
         setBusy(null);
-      }
-    },
-    [notify],
-  );
-
-  const copyBarcode = useCallback(
-    async (barcode: string) => {
-      try {
-        await navigator.clipboard.writeText(barcode);
-        notify({ tone: "success", title: "הברקוד הועתק" });
-      } catch {
-        notify({ tone: "danger", title: "ההעתקה נכשלה" });
       }
     },
     [notify],
@@ -378,32 +355,9 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
           <Fields
             items={[
               { label: "ספק ראשי", value: supplier(p.primary_supplier_id)?.name },
-              {
-                label: "ברקוד",
-                value: p.barcode ? (
-                  <span className="inline-flex items-baseline gap-[var(--space-2)]">
-                    <span className="sa-mono ltr">{p.barcode}</span>
-                    <Button variant="link" size="sm" aria-label="העתקת ברקוד" title="העתקת ברקוד" onClick={() => void copyBarcode(p.barcode as string)}>
-                      העתקה
-                    </Button>
-                  </span>
-                ) : undefined,
-              },
-            ]}
-          />
-          <Fields
-            items={[
               { label: "קטגוריה", value: p.category },
-              { label: "יחידה", value: p.unit },
               ...(p.price !== null ? [{ label: "מחיר", value: fmtPrice(p.price), num: true }] : []),
               { label: "קטלוג", value: p.in_catalog ? "מוצג" : "לא מוצג" },
-            ]}
-          />
-          <Fields
-            items={[
-              { label: "תנועות החודש", value: fmtQty(monthCount), num: true },
-              { label: "עודכן", value: fmtRelative(p.updated_at) },
-              { label: "נוצר", value: fmtDate(p.created_at), num: true },
             ]}
           />
           {p.notes ? (

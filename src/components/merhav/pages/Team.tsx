@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * צוות as a duty roster: one line for each person, the seven days in columns, and the sum of every column standing over it
- * as the page's figure, so the team reads from the total down to who did it. Same data and the same forms as the shared
+ * צוות as a roster: one line for each person, what they did this week, and the sum of every column standing over it as
+ * the page's figure, so the team reads from the total down to who did it. Same data and the same forms as the shared
  * page; nobody is deleted, a form deactivates them.
  */
 
-import { useCallback, useMemo, useState, type CSSProperties, type ReactElement, type SyntheticEvent } from "react";
+import { useCallback, useMemo, useState, type ReactElement } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { Button, cx, EmptyState, SearchBar, Showing, Table, type TableColumn } from "@/components/ui";
 import { fmtQty, fmtRelative } from "@/lib/format";
@@ -26,10 +26,9 @@ const digitsOf = (text: string) => text.replace(/\D/g, "");
 /** A search with letters in it looks for a name, even one with a number in it, so it never matches a phone. */
 const phoneDigits = (q: string) => (/\p{L}/u.test(q) ? "" : digitsOf(q));
 
-type Activity = { week: number; days: number[]; openFaults: number; last: string | null };
+type Activity = { week: number; openFaults: number; last: string | null };
 type AgentOrders = { open: number; month: number; last: string | null };
 
-const NO_DAYS = [0, 0, 0, 0, 0, 0, 0];
 const none = <span className="mh-tone-quiet">—</span>;
 
 /** The newest of what a list of rows last did. */
@@ -44,17 +43,16 @@ export function Team(): ReactElement {
 
   const [tab, setTab] = useState<Tab>("active");
   const [query, setQuery] = useState("");
-  const [spot, setSpot] = useState<Worker | null>(null);
 
   /* ───────── per-worker activity (from the recent movements the store holds) ───────── */
   const activity = useMemo(() => {
-    // The week is the overview's seven days, so a figure always equals its bars.
-    const dayIndex = new Map(weekly.map((d, i) => [d.day, i]));
+    // The week is the overview's seven days, so a figure here always equals the one there.
+    const week = new Set(weekly.map((d) => d.day));
     const map = new Map<string, Activity>();
     const get = (id: string) => {
       let a = map.get(id);
       if (!a) {
-        a = { week: 0, days: weekly.map(() => 0), openFaults: 0, last: null };
+        a = { week: 0, openFaults: 0, last: null };
         map.set(id, a);
       }
       return a;
@@ -62,11 +60,7 @@ export function Team(): ReactElement {
     for (const m of state.movements) {
       if (!m.worker_id) continue;
       const a = get(m.worker_id);
-      const day = dayIndex.get(dayKey(m.created_at));
-      if (day !== undefined) {
-        a.days[day] += 1;
-        a.week += 1;
-      }
+      if (week.has(dayKey(m.created_at))) a.week += 1;
       if (!a.last || m.created_at > a.last) a.last = m.created_at;
     }
     for (const f of state.faults) {
@@ -98,21 +92,14 @@ export function Team(): ReactElement {
     const rows = visible.flatMap((w) => activity.get(w.id) ?? []);
     return {
       week: rows.reduce((n, a) => n + a.week, 0),
-      days: weekly.map((_, i) => rows.reduce((n, a) => n + a.days[i], 0)),
       faults: rows.reduce((n, a) => n + a.openFaults, 0),
       last: latest(rows),
     };
-  }, [visible, activity, weekly]);
+  }, [visible, activity]);
 
   const edit = useCallback((w: Worker) => ui.openAction("edit-worker", { workerId: w.id }), [ui]);
 
   const selectedId = ui.panel?.type === "action" && ui.panel.kind === "edit-worker" ? ui.panel.ctx.workerId : undefined;
-
-  // The row under the pointer or the keyboard fills its own share of the team's bars.
-  const onRow = (e: SyntheticEvent<HTMLElement>) => {
-    const row = e.target instanceof Element ? e.target.closest<HTMLTableRowElement>("tbody tr") : null;
-    setSpot(row ? visible[row.sectionRowIndex] ?? null : null);
-  };
 
   const columns = useMemo<TableColumn<Worker>[]>(
     () => [
@@ -125,23 +112,6 @@ export function Team(): ReactElement {
             <span className="mh-row-sub">{w.role}</span>
           </span>
         ),
-      },
-      {
-        key: "days",
-        title: (
-          <span className="mh-team-days" dir="ltr">
-            {weekly.map((d, i) => <span key={d.day} className={cx("mh-team-dayname", i === weekly.length - 1 && "is-today")}>{d.label}</span>)}
-          </span>
-        ),
-        width: "var(--mh-team-c2)",
-        render: (w) => {
-          const a = activity.get(w.id);
-          return (
-            <span className="mh-team-days" dir="ltr" role="img" aria-label={`${fmtQty(a?.week ?? 0)} תנועות בשבעת הימים האחרונים`}>
-              {(a?.days ?? NO_DAYS).map((n, i) => <span key={i} className={cx("mh-team-day", n === 0 && "is-none")}>{n === 0 ? "·" : fmtQty(n)}</span>)}
-            </span>
-          );
-        },
       },
       { key: "week", title: "תנועות השבוע", width: "var(--mh-team-c3)", render: (w) => rowFigure(activity.get(w.id)?.week ?? 0) },
       {
@@ -164,7 +134,7 @@ export function Team(): ReactElement {
         },
       },
     ],
-    [activity, weekly],
+    [activity],
   );
 
   const lens: { key: Tab; word: string; count: number }[] = [
@@ -189,8 +159,6 @@ export function Team(): ReactElement {
     );
 
   const onAgents = tab === "agents";
-  const top = Math.max(1, ...team.days);
-  const share = spot ? activity.get(spot.id)?.days : undefined;
 
   return (
     <div className="mh-team">
@@ -221,31 +189,22 @@ export function Team(): ReactElement {
         <>
           {visible.length > 0 ? (
             <div className="mh-team-band">
-              <span className="mh-team-who">{spot ? spot.name : null}</span>
-              <span className="mh-team-bars" dir="ltr" aria-hidden="true">
-                {team.days.map((n, i) => (
-                  <i key={weekly[i].day} style={{ "--h": n / top } as CSSProperties}>
-                    <b style={{ "--share": share && n > 0 ? share[i] / n : 0 } as CSSProperties} />
-                  </i>
-                ))}
-              </span>
+              <span />
               <Figure className="mh-team-sum" text={fmtQty(team.week)} label={`${fmtQty(team.week)} תנועות השבוע`} />
               <Figure className={cx("mh-team-sum", team.faults > 0 && "mh-tone-out")} text={fmtQty(team.faults)} label={`${fmtQty(team.faults)} תקלות פתוחות`} />
               <span className="mh-team-sumword">{team.last ? fmtRelative(team.last) : "—"}</span>
             </div>
           ) : null}
-          <div onPointerOver={onRow} onPointerLeave={() => setSpot(null)} onFocus={onRow} onBlur={() => setSpot(null)}>
-            <Table<Worker>
-              caption="רשימת העובדים"
-              className={cx("mh-team-table", tab === "inactive" && "is-off")}
-              columns={columns}
-              data={visible}
-              selectedId={selectedId}
-              empty={empty}
-              onRowClick={edit}
-              footer={q && visible.length > 0 ? <Showing shown={visible.length} total={tab === "active" ? activeWorkers.length : inactiveWorkers.length} /> : undefined}
-            />
-          </div>
+          <Table<Worker>
+            caption="רשימת העובדים"
+            className={cx("mh-team-table", tab === "inactive" && "is-off")}
+            columns={columns}
+            data={visible}
+            selectedId={selectedId}
+            empty={empty}
+            onRowClick={edit}
+            footer={q && visible.length > 0 ? <Showing shown={visible.length} total={tab === "active" ? activeWorkers.length : inactiveWorkers.length} /> : undefined}
+          />
         </>
       )}
     </div>

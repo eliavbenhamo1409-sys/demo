@@ -216,3 +216,19 @@ html[data-theme^="merhav"] {
 [data-theme^="merhav"] .sa-thumb { width: var(--mh-thumb); height: var(--mh-thumb); border-radius: var(--radius-md); object-fit: cover; background: var(--bg-muted); flex: none; }
 /* No photo keeps the column and draws nothing: an empty frame is a tile with nothing on it. */
 [data-theme^="merhav"] span.sa-thumb { background: none; box-shadow: none; }
+
+/* ── What waits on a person: three lanes, each its count, its first rows, and the rest on request ── */
+.mh-lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 44px clamp(32px, 4vw, 88px); }
+.mh-lane { min-width: 0; }
+.mh-lane-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-strong); }
+.mh-lane-n { font-size: 34px; line-height: 1; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.mh-lane-head h2 { margin: 0; font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; }
+/* The key of a lane with no key keeps nothing, so its last word stands where the row ends. */
+.mh-lane .mh-rows:not(:has(> li > .sa-btn)) { --mh-key: 0px; }
+.mh-lane-more { height: 40px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; font-size: var(--t-14); cursor: pointer; }
+.mh-lane-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mh-lane-more:focus-visible { outline: none; border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+/* Three lanes need the room of a wide desk; under it they stand one under the other, in the same order. */
+@media (max-width: 1339px) {
+  .mh-lanes { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+}

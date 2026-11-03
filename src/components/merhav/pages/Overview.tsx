@@ -14,7 +14,7 @@ import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, Notice } from "@/components/ui";
 import { useDismissedAlerts } from "@/lib/dismissed-alerts";
 import { faultPhotoUrl } from "@/lib/fault-photos";
-import { byPromise, daysUntil, fmtAge, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtSigned, fmtTime, fmtToday, fmtWhen, isToday, MOVEMENT_LABEL } from "@/lib/format";
+import { byPromise, daysUntil, fmtAge, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtSigned, fmtTime, fmtToday, isToday, MOVEMENT_LABEL } from "@/lib/format";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { movedWorth, PACE_DAYS, runway, shelfWorth, type Runway } from "@/lib/snapshot";
 import { available, orderTotal, useData, type AttentionEntry, type AttentionKind, type Movement } from "@/lib/store";
@@ -77,6 +77,30 @@ function DayStrip({ onHover, onOpen }: { onHover: (m: Movement | null) => void; 
         ) : null}
       </div>
     </div>
+  );
+}
+
+/* ───────── one lane of what waits on a person: the count, the first rows, the rest on request ───────── */
+
+const LANE_ROWS = 3;
+
+function Lane({ word, tone, items, empty, row }: { word: string; tone: string; items: AttentionEntry[]; empty: string; row: (a: AttentionEntry) => ReactNode }): ReactElement {
+  const [all, setAll] = useState(false);
+  const shown = all ? items : items.slice(0, LANE_ROWS);
+  return (
+    <section className="mh-lane" aria-label={word}>
+      <header className="mh-lane-head">
+        <span className={cx("mh-lane-n ltr", items.length > 0 ? tone : "mh-tone-ok")}>{fmtQty(items.length)}</span>
+        <h2>{word}</h2>
+      </header>
+      <ul className="mh-rows">
+        {shown.map(row)}
+        {items.length === 0 ? <li className="mh-empty">{empty}</li> : null}
+      </ul>
+      {items.length > shown.length ? (
+        <button type="button" className="mh-lane-more" onClick={() => setAll(true)}>עוד {fmtQty(items.length - shown.length)}</button>
+      ) : null}
+    </section>
   );
 }
 
@@ -147,8 +171,11 @@ export function Overview(): ReactElement {
   const pending = stats.pendingRequests + stats.pendingMappings;
   const toRefill = soon.filter((r) => r.state === "out" || r.state === "low").length;
 
-  /* ───────── what waits on a person ───────── */
+  /* ───────── what waits on a person: three lanes, each one kind of answer ───────── */
   const work = useMemo(() => attention.filter((a) => !isStock(a)), [attention]);
+  const faults = useMemo(() => work.filter((a) => a.kind === "fault"), [work]);
+  const approvals = useMemo(() => work.filter((a) => a.kind === "request" || a.kind === "mapping"), [work]);
+  const shortages = useMemo(() => work.filter((a) => a.kind === "short"), [work]);
 
   const openEntry = (a: AttentionEntry) => {
     if (a.kind === "request") openAction("review-item-request", { requestId: a.requestId });
@@ -210,7 +237,6 @@ export function Overview(): ReactElement {
     };
   }, []);
 
-  const recent = useMemo(() => state.movements.slice(0, 6), [state.movements]);
   const orders = useMemo(() => state.orders.filter((o) => o.status === "open").reverse().sort(byPromise), [state.orders]);
   const worthText = whole(worth.total);
   const firstNote = worth.unpriced > 0 ? `${fmtQty(worth.unpriced)} מוצרים ללא מחיר` : `${fmtQty(state.products.filter((p) => p.qty > 0).length)} מוצרים על המדפים`;
@@ -243,7 +269,7 @@ export function Overview(): ReactElement {
             </dl>
           </div>
 
-          <Link href={promises.uncovered > 0 ? "/orders?filter=short" : "/orders"} className="mh-ov-cover">
+          <Link href="/orders" className="mh-ov-cover">
             <span className="mh-label">הזמנות מכוסות</span>
             <Figure className={cx("mh-ov-cover-n", promises.open === 0 ? "" : promises.uncovered > 0 ? "mh-tone-short" : "mh-tone-ok")} text={promises.open === 0 ? "—" : `${covered}%`} />
             <span className="mh-ov-note">
@@ -289,10 +315,14 @@ export function Overview(): ReactElement {
         ) : null}
 
         {work.length > 0 ? (
-          <Column title="דורש טיפול" note={fmtQty(work.length)}>
-            <ul className="mh-rows">
-              {work.map((a) => {
-                const photo = a.kind === "fault" ? faultPhotoUrl(a.photoPath) : null;
+          <div className="mh-lanes">
+            <Lane
+              word="תקלות"
+              tone="mh-tone-out"
+              items={faults}
+              empty="אין תקלות פתוחות"
+              row={(a) => {
+                const photo = faultPhotoUrl(a.photoPath);
                 return (
                   <li key={a.id} onPointerEnter={() => onSpot(a.productId)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(a.productId)} onBlur={() => onSpot(null)}>
                     <button type="button" className="mh-row" onClick={() => openEntry(a)}>
@@ -302,16 +332,53 @@ export function Overview(): ReactElement {
                       ) : null}
                       <span className="mh-row-main">
                         <span className="mh-row-title">{a.title}</span>
-                        <span className="mh-row-sub">{a.meta.join(" · ")}</span>
+                        <span className="mh-row-sub">{[...a.meta, fmtAge(a.at)].join(" · ")}</span>
                       </span>
-                      <span className={cx("mh-row-word", a.kind === "short" ? "mh-tone-short" : a.severity === "danger" ? "mh-tone-out" : "mh-tone-warn")}>{a.label}</span>
                     </button>
-                    {a.faultId ? <Button variant="ghost" size="sm" aria-label={`סגירה עם תיעוד: ${a.title}`} onClick={() => openFault(a.faultId ?? "")}>סגירה עם תיעוד</Button> : null}
+                    <Button variant="ghost" size="sm" aria-label={`סגירה עם תיעוד: ${a.title}`} onClick={() => openFault(a.faultId ?? "")}>סגירה עם תיעוד</Button>
                   </li>
                 );
-              })}
-            </ul>
-          </Column>
+              }}
+            />
+            <Lane
+              word="אישורים"
+              tone="mh-tone-warn"
+              items={approvals}
+              empty="אין ממתינים"
+              row={(a) => (
+                <li key={a.id} onPointerEnter={() => onSpot(a.productId)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(a.productId)} onBlur={() => onSpot(null)}>
+                  <button type="button" className="mh-row" onClick={() => openEntry(a)}>
+                    <span className="mh-row-main">
+                      <span className="mh-row-title">{a.title}</span>
+                      <span className="mh-row-sub">{a.meta.join(" · ")}</span>
+                    </span>
+                    <span className="mh-row-word mh-tone-warn">{a.label}</span>
+                  </button>
+                </li>
+              )}
+            />
+            <Lane
+              word="חסר להזמנות"
+              tone="mh-tone-short"
+              items={shortages}
+              empty="הכל מכוסה"
+              row={(a) => {
+                const p = product(a.productId);
+                return (
+                  <li key={a.id} onPointerEnter={() => onSpot(a.productId)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(a.productId)} onBlur={() => onSpot(null)}>
+                    <button type="button" className="mh-row" onClick={() => openEntry(a)}>
+                      <ProductThumb product={p} />
+                      <span className="mh-row-main">
+                        <span className="mh-row-title">{p ? fmtName(p.name) : a.title}</span>
+                        <span className="mh-row-sub">{a.meta.join(" · ")}</span>
+                      </span>
+                      <span className="mh-row-word mh-tone-short">{p ? `חסר ${fmtQty(-available(p))}` : a.label}</span>
+                    </button>
+                  </li>
+                );
+              }}
+            />
+          </div>
         ) : null}
 
         <div className="mh-sheet-split">
@@ -372,30 +439,6 @@ export function Overview(): ReactElement {
             </ul>
           </Column>
         </div>
-
-        <Column title="תנועות אחרונות" href="/movements?period=all" link="כל התנועות">
-          <ul className="mh-rows">
-            {recent.map((m) => {
-              const p = product(m.product_id);
-              return (
-                <li key={m.id} onPointerEnter={() => onSpot(m.product_id)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(m.product_id)} onBlur={() => onSpot(null)}>
-                  <button type="button" className="mh-row" onClick={() => openProduct(m.product_id, "history")}>
-                    <ProductThumb product={p} />
-                    <span className="mh-row-main">
-                      <span className="mh-row-title">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
-                      <span className="mh-row-sub">{MOVEMENT_LABEL[m.type]} · {fmtWhen(m.created_at)}</span>
-                    </span>
-                    <span className="mh-row-fig">
-                      <span className={cx("ltr", m.type === "in" ? "mh-tone-in" : m.type === "out" ? "mh-tone-out" : undefined)}>{fmtSigned(m.qty, m.type)}</span>
-                      <small>{p?.unit}</small>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-            {recent.length === 0 ? <li className="mh-empty">אין תנועות</li> : null}
-          </ul>
-        </Column>
       </div>
 
     </div>

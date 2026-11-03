@@ -63,6 +63,17 @@ a.sa-product-photo > img { display: block; width: 100%; height: 100%; object-fit
 /* A break between a form's groups: the classic style keeps its plain stack. */
 .sa-form-break { display: none; }
 
+/* עוד פרטים: the fields an owner seldom needs fold under one quiet word, a rule above it and no box.
+   The word is a plain button; what opens keeps the form's own rhythm. */
+.sa-form-more { display: flex; flex-direction: column; gap: inherit; padding-top: var(--space-4); border-top: var(--hair) solid var(--border-subtle); }
+.sa-form-more-toggle { display: inline-flex; align-items: center; gap: var(--space-1); align-self: flex-start; margin: 0; padding: 0; border: 0; border-radius: var(--radius-sm); background: none; font: inherit; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-quiet, var(--text-tertiary)); cursor: pointer; transition: color var(--dur-1) var(--ease); }
+.sa-form-more-toggle:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
+@media (hover: hover) { .sa-form-more-toggle:hover { color: var(--accent-text); } }
+.sa-form-more-chevron { flex-shrink: 0; transition: transform var(--dur-2) var(--ease); }
+.sa-form-more.is-open > .sa-form-more-toggle .sa-form-more-chevron { transform: rotate(180deg); }
+.sa-form-more-body { display: flex; flex-direction: column; gap: inherit; }
+@media (prefers-reduced-motion: reduce) { .sa-form-more-chevron { transition: none; } }
+
 /* ── The sheet ─────────────────────────────────────────────── */
 [data-theme="minimal"] .app-panelHost { --sheet: var(--bg-canvas); --group: var(--bg-surface); }
 /* The group here is the colour of a dark rule, so a rule takes the next step up to stay seen. */
@@ -205,6 +216,7 @@ a.sa-product-photo > img { display: block; width: 100%; height: 100%; object-fit
 
 /* ── Forms: white wells on the silver, big words, room between the groups ── */
 [data-theme^="minimal"] .sa-form-break { display: block; height: 0; margin: 0; border: 0; }
+[data-theme^="minimal"] .app-panelHost .sa-form-more-toggle { font-size: var(--t-15); line-height: var(--l-22); }
 /* Two long labels share no phone's width: stacked, each well stays under its own word. */
 @media (max-width: 480px) { [data-theme^="minimal"] .sa-form-pair { grid-template-columns: minmax(0, 1fr); } }
 [data-theme^="minimal"] .app-panelHost .sa-field { gap: var(--space-2); }

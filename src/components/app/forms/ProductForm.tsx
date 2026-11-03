@@ -7,6 +7,7 @@ import { fmtQty } from "@/lib/format";
 import { productPhotoUrl, removeProductPhoto, uploadProductPhoto } from "@/lib/product-photos";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
+import { MoreFields } from "./MoreFields";
 import { UNIT_OPTIONS, supplierOptions } from "./options";
 import { PhotoField } from "./PhotoField";
 import { REQUIRED, friendlyDeleteError, parseNum, submitOnEnter, useForm } from "./useForm";
@@ -15,6 +16,17 @@ type Field = "name" | "sku" | "barcode" | "minQty" | "qty" | "price";
 
 /** Up to ten digits and two decimals, like the column. A plain parse would read a thousands comma as a decimal. */
 const PRICE_RE = /^\d{1,10}([.,]\d{1,2})?$/;
+
+/** The house series for a product saved with no code: P- and four digits, one past the highest in use. */
+const AUTO_SKU_RE = /^P-(\d{4})$/i;
+function nextSku(products: readonly { sku: string }[]): string {
+  let top = 0;
+  for (const p of products) {
+    const m = AUTO_SKU_RE.exec(p.sku);
+    if (m) top = Math.max(top, Number(m[1]));
+  }
+  return `P-${String(top + 1).padStart(4, "0")}`;
+}
 
 /** The file is only a leftover by now, so it never fails what already landed. */
 const discardPhoto = (path: string) => void removeProductPhoto(path).catch(() => undefined);
@@ -84,14 +96,13 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
 
   const submit = () => {
     const trimmedName = name.trim();
-    const trimmedSku = sku.trim().toUpperCase();
+    const trimmedSku = sku.trim().toUpperCase() || nextSku(state.products);
     const trimmedBarcode = barcode.trim();
     const min = parseNum(minQty);
     const initial = parseNum(qty);
     const errors: Partial<Record<Field, string>> = {};
     if (!trimmedName) errors.name = REQUIRED;
-    if (!trimmedSku) errors.sku = REQUIRED;
-    else if (state.products.some((p) => p.sku.toUpperCase() === trimmedSku && p.id !== editing?.id)) errors.sku = "מק\"ט קיים";
+    if (state.products.some((p) => p.sku.toUpperCase() === trimmedSku && p.id !== editing?.id)) errors.sku = "מק\"ט קיים";
     if (trimmedBarcode && state.products.some((p) => p.barcode === trimmedBarcode && p.id !== editing?.id)) errors.barcode = "ברקוד קיים";
     if (minQty.trim() !== "" && (!Number.isFinite(min) || min < 0)) errors.minQty = "מספר לא תקין (0 ומעלה)";
     if (!editing && (!Number.isFinite(initial) || initial < 0)) errors.qty = "כמות לא תקינה (0 ומעלה)";
@@ -149,6 +160,8 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
   };
 
   const missing = mode === "edit" && !editing;
+  // The fold opens on its own when a saved product has something in it, or when a barcode error would otherwise stay hidden.
+  const hasMore = !!editing && (!!editing.barcode || !!editing.location || !!editing.description || !!editing.notes || !editing.in_catalog);
 
   return (
     <>
@@ -187,17 +200,66 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
               error={form.errors.name}
               autoComplete="off"
             />
+            <Input
+              label={'מק"ט'}
+              optional
+              mono
+              value={sku}
+              onChange={(e) => { setSku(e.target.value.toUpperCase()); form.clearField("sku"); }}
+              error={form.errors.sku}
+              hint={form.errors.sku ? undefined : 'ריק = מק"ט אוטומטי'}
+              autoComplete="off"
+              spellCheck={false}
+            />
             <div className="sa-form-pair grid grid-cols-2 gap-[var(--space-4)]">
-              <Input
-                label={'מק"ט'}
-                required
-                mono
-                value={sku}
-                onChange={(e) => { setSku(e.target.value.toUpperCase()); form.clearField("sku"); }}
-                error={form.errors.sku}
-                autoComplete="off"
-                spellCheck={false}
-              />
+              {!editing ? (
+                <Input
+                  label="כמות התחלתית"
+                  mono
+                  inputMode="decimal"
+                  value={qty}
+                  onChange={(e) => { setQty(e.target.value); form.clearField("qty"); }}
+                  error={form.errors.qty}
+                  hint={form.errors.qty || !seedRequest ? undefined : `לפני ההוצאה; בשמירה ירדו ${fmtQty(seedRequest.qty)}`}
+                />
+              ) : null}
+              <Select label="יחידה" options={unitOptions} value={unit} onChange={setUnit} searchable={false} block />
+            </div>
+            <Input
+              label="מינימום"
+              mono
+              inputMode="decimal"
+              value={minQty}
+              onChange={(e) => { setMinQty(e.target.value); form.clearField("minQty"); }}
+              error={form.errors.minQty}
+              hint={form.errors.minQty ? undefined : "0 = בלי התראה"}
+            />
+            <Input
+              label="מחיר"
+              optional
+              mono
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => { setPrice(e.target.value); form.clearField("price"); }}
+              error={form.errors.price}
+              end={<span className="sa-hint px-[var(--space-1)]">₪</span>}
+            />
+            <Select label="ספק ראשי" options={supOpts} value={supplierId} onChange={setSupplierId} allLabel="ללא ספק" block />
+            <Input label="קטגוריה" optional list={listId} value={category} onChange={(e) => setCategory(e.target.value)} autoComplete="off" />
+            <datalist id={listId}>
+              {categories.map((c) => <option key={c} value={c} />)}
+            </datalist>
+            <PhotoField
+              label="תמונה"
+              optional
+              addLabel="הוספת תמונה"
+              src={photoSrc}
+              fileName={photo?.file.name}
+              disabled={form.busy}
+              onPick={(file) => setPhoto({ file, url: URL.createObjectURL(file) })}
+              onRemove={() => { setPhoto(null); markDirty(); }}
+            />
+            <MoreFields defaultOpen={hasMore || !!form.errors.barcode}>
               <Input
                 label="ברקוד"
                 optional
@@ -210,43 +272,16 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
                 autoComplete="off"
                 spellCheck={false}
               />
-            </div>
-            <Input label="קטגוריה" optional list={listId} value={category} onChange={(e) => setCategory(e.target.value)} autoComplete="off" />
-            <datalist id={listId}>
-              {categories.map((c) => <option key={c} value={c} />)}
-            </datalist>
-            <hr className="sa-form-break" />
-            <div className="grid grid-cols-2 gap-[var(--space-4)]">
-              <Select label="יחידה" options={unitOptions} value={unit} onChange={setUnit} searchable={false} block />
+              <Input label="מיקום" optional placeholder="מדף / אזור" value={location} onChange={(e) => setLocation(e.target.value)} />
               <Input
-                label="מינימום"
-                mono
-                inputMode="decimal"
-                value={minQty}
-                onChange={(e) => { setMinQty(e.target.value); form.clearField("minQty"); }}
-                error={form.errors.minQty}
-                hint={form.errors.minQty ? undefined : "0 = בלי התראה"}
+                label="תיאור"
+                optional
+                multiline
+                hint="מוצג ללקוחות בקטלוג"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
-            </div>
-            {!editing ? (
-              <Input
-                label="כמות התחלתית"
-                mono
-                inputMode="decimal"
-                value={qty}
-                onChange={(e) => { setQty(e.target.value); form.clearField("qty"); }}
-                error={form.errors.qty}
-                hint={form.errors.qty || !seedRequest ? undefined : `לפני ההוצאה; בשמירה ירדו ${fmtQty(seedRequest.qty)}`}
-                end={unit ? <span className="sa-hint px-[var(--space-1)]">{unit}</span> : undefined}
-              />
-            ) : null}
-            <hr className="sa-form-break" />
-            <Input label="מיקום" optional placeholder="מדף / אזור" value={location} onChange={(e) => setLocation(e.target.value)} />
-            <Select label="ספק ראשי" options={supOpts} value={supplierId} onChange={setSupplierId} allLabel="ללא ספק" block />
-            <Input label="הערות" optional multiline value={notes} onChange={(e) => setNotes(e.target.value)} onKeyDown={submitOnEnter} />
-
-            <section className="mt-[var(--space-3)] flex flex-col gap-[var(--space-5)]" aria-labelledby="product-catalog-title">
-              <h3 id="product-catalog-title" className="sa-section-title">קטלוג</h3>
+              <Input label="הערות" optional multiline value={notes} onChange={(e) => setNotes(e.target.value)} onKeyDown={submitOnEnter} />
               <div className="sa-field">
                 <label className="sa-switch flex cursor-pointer items-center gap-[var(--space-2)]">
                   {/* Filled like the primary button: ink in the classic style, the green in the minimal one. */}
@@ -259,35 +294,7 @@ export function ProductForm({ ctx, mode }: { ctx: ActionContext; mode: "new" | "
                   <span>מוצג בקטלוג</span>
                 </label>
               </div>
-              <Input
-                label="מחיר"
-                optional
-                mono
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => { setPrice(e.target.value); form.clearField("price"); }}
-                error={form.errors.price}
-                end={<span className="sa-hint px-[var(--space-1)]">₪</span>}
-              />
-              <Input
-                label="תיאור"
-                optional
-                multiline
-                hint="מוצג ללקוחות בקטלוג"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-              <PhotoField
-                label="תמונה"
-                optional
-                addLabel="הוספת תמונה"
-                src={photoSrc}
-                fileName={photo?.file.name}
-                disabled={form.busy}
-                onPick={(file) => setPhoto({ file, url: URL.createObjectURL(file) })}
-                onRemove={() => { setPhoto(null); markDirty(); }}
-              />
-            </section>
+            </MoreFields>
           </>
         )}
       </FormPanel>

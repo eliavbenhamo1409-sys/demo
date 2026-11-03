@@ -25,7 +25,7 @@
 .mh-wh-head[hidden] { display: none; }
 .mh-wh-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 
-/* Three figures that lead the screen, each a name over its number. Pointing at one asks the model where; pressing it opens its list. */
+/* Three figures that lead the screen, each a name over its number. Pointing at one asks the model where; the first brings the list to its head, the second leads to its page. */
 .mh-wh-figures { display: flex; align-items: flex-end; justify-content: space-between; gap: 0 20px; margin: 18px 0 0; }
 .mh-wh-figure {
   display: flex;
@@ -346,3 +346,7 @@
   .mh-wh, [data-theme^="merhav"] .mh-world :is(.m3d-corner, .m3d-ruler), [data-theme^="merhav"] .m3d-label { transition: none; }
   [data-theme^="merhav"] :is(.m3d-card, .m3d-results, .m3d-labels, .m3d-corner, .m3d-ruler) { animation: none; }
 }
+
+/* A figure that leads to its page is a link; one that only points is a plain figure. */
+.mh-wh-figure { text-decoration: none; }
+.mh-wh-figure.is-still { cursor: default; }

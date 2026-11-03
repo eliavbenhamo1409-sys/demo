@@ -77,7 +77,7 @@ const LATER = "later";
 const NO_DAY = "none";
 const isDay = (key: string) => key !== LATE && key !== NO_DAY;
 
-/** The lens on what the shelf can't keep: one more tab, in the URL as ?filter=short. */
+/** What the shelf can't keep stands first in the open list, as a group of its own. */
 const SHORT = "short";
 
 /** How far into a day the list must have gone before the carriage moves on, and how long a jump keeps the carriage still. */
@@ -123,6 +123,23 @@ function groupByDay(rows: readonly OrderRow[], today: string): DayGroup[] {
   return [...groups.values()];
 }
 
+/** The list's own order: what the shelf can't keep stands first as one group, and the days follow without it. The horizon keeps every order on its day. */
+function shortFirst(groups: readonly DayGroup[]): DayGroup[] {
+  const head: DayGroup = { key: SHORT, rows: [], worth: 0, unpriced: 0 };
+  const rest: DayGroup[] = [];
+  for (const group of groups) {
+    const kept: DayGroup = { key: group.key, rows: [], worth: 0, unpriced: 0 };
+    for (const row of group.rows) {
+      const into = row.short.length > 0 ? head : kept;
+      into.rows.push(row);
+      if (row.total === null) into.unpriced += 1;
+      else into.worth += row.total;
+    }
+    if (kept.rows.length > 0) rest.push(kept);
+  }
+  return head.rows.length > 0 ? [head, ...rest] : rest;
+}
+
 interface Slot {
   key: string;
   /** The real day, on a slot that stands for one. */
@@ -156,6 +173,7 @@ function horizonOf(groups: readonly DayGroup[], today: string): Slot[] {
 }
 
 function dayTitle(key: string, today: string): ReactNode {
+  if (key === SHORT) return <span className="mh-tone-short">חסר במלאי</span>;
   if (key === LATE) return <span className="mh-tone-warn">באיחור</span>;
   if (key === NO_DAY) return "ללא מועד מסירה";
   const word = key === today ? "היום" : key === addDays(today, 1) ? "מחר" : null;
@@ -303,13 +321,16 @@ interface RowProps {
   hot: boolean;
   onReach: (row: OrderRow | null, target?: HTMLElement) => void;
   onOpen: (row: OrderRow) => void;
+  /** The row stands outside its day, so it says the day itself. */
+  dayless?: boolean;
 }
 
-const OrderItem = memo(function OrderItem({ row, today, selected, hot, onReach, onOpen }: RowProps): ReactElement {
+const OrderItem = memo(function OrderItem({ row, today, selected, hot, onReach, onOpen, dayless = false }: RowProps): ReactElement {
   const { order: o, lines, lead, total, short, racks, agentName } = row;
   const open = o.status === "open";
   const missing = short.length > 0;
   const late = open && o.promised_on !== null && o.promised_on < today;
+  const when = open && o.promised_on && (dayless || late) ? <span className={late ? "mh-tone-warn" : undefined}>{fmtPromised(o.promised_on)} · </span> : null;
   const gap = short.length === 1 && lead ? `חסר ${fmtQty(-available(lead))} ${lead.unit}` : `חסר ב-${fmtQty(short.length)} שורות`;
   return (
     <li>
@@ -325,7 +346,7 @@ const OrderItem = memo(function OrderItem({ row, today, selected, hot, onReach, 
         <span className="mh-row-main">
           <span className="mh-row-title" title={o.customer}>{o.customer}</span>
           <span className="mh-row-sub">
-            {late && o.promised_on ? <span className="mh-tone-warn">{fmtPromised(o.promised_on)} · </span> : null}
+            {when}
             הזמנה <span className="ltr">{o.number}</span>{agentName ? ` · ${agentName}` : ""}
           </span>
         </span>
@@ -429,16 +450,14 @@ function OrdersInner(): ReactElement {
   const params = useSearchParams();
   const { spotObjects, setPageRoutes, aimProduct, itemsOf, objects, listen } = useTwin();
 
-  // The active tab lives in the URL (?status=delivered|cancelled); what the shelf can't keep is a lens on the open ones.
+  // The active tab lives in the URL (?status=delivered|cancelled).
   const status = toStatus(params.get("status"));
-  const shortLens = status === "open" && params.get("filter") === SHORT;
   const setTab = useCallback(
     (next: string) => {
       const sp = new URLSearchParams(params.toString());
       sp.delete("status");
       sp.delete("filter");
-      if (next === SHORT) sp.set("filter", SHORT);
-      else if (next !== "open") sp.set("status", toStatus(next));
+      if (next !== "open") sp.set("status", toStatus(next));
       const qs = sp.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
@@ -453,26 +472,23 @@ function OrdersInner(): ReactElement {
   /* ───────── orders ───────── */
   const baseOrders = useMemo(() => (agentId ? state.orders.filter((o) => o.agent_id === agentId) : state.orders), [state.orders, agentId]);
 
-  const isShortOrder = useCallback((o: Order) => linesOf(o.id).some((l) => isShort(product(l.product_id))), [linesOf, product]);
-
   const counts = useMemo(() => {
     const byStatus: Record<Status, number> = { open: 0, delivered: 0, cancelled: 0 };
     for (const o of baseOrders) byStatus[o.status] += 1;
-    return { ...byStatus, short: baseOrders.filter((o) => o.status === "open" && isShortOrder(o)).length };
-  }, [baseOrders, isShortOrder]);
+    return byStatus;
+  }, [baseOrders]);
 
   const q = normalizeName(query);
   const orders = useMemo(() => {
     const digits = phoneDigits(q);
     const found = baseOrders.filter((o) => {
       if (o.status !== status) return false;
-      if (shortLens && !isShortOrder(o)) return false;
       if (!q) return true;
       return normalizeName(o.customer).includes(q) || String(o.number).includes(q) || (digits !== "" && digitsOf(o.customer_phone ?? "").includes(digits));
     });
     // What still has to go out is read by the date promised to the customer, nearest first.
     return status === "open" ? found.sort(byPromise) : found;
-  }, [baseOrders, status, shortLens, isShortOrder, q]);
+  }, [baseOrders, status, q]);
 
   const tabTotal = useMemo(() => state.orders.filter((o) => o.status === status).length, [state.orders, status]);
 
@@ -499,6 +515,7 @@ function OrdersInner(): ReactElement {
   const open = status === "open";
   const groups = useMemo(() => (open ? groupByDay(rows, today) : []), [open, rows, today]);
   const slots = useMemo(() => (groups.length > 0 ? horizonOf(groups, today) : []), [groups, today]);
+  const listGroups = useMemo(() => shortFirst(groups), [groups]);
 
   const worth = useMemo(() => rows.reduce((sum, r) => sum + (r.total ?? 0), 0), [rows]);
   const unpriced = useMemo(() => rows.filter((r) => r.total === null).length, [rows]);
@@ -622,19 +639,16 @@ function OrdersInner(): ReactElement {
   const openRow = useCallback((row: OrderRow) => openOrder(row.order.id), [openOrder]);
 
   /* ───────── header ───────── */
-  const tab = (value: string, count: number, word: string, tone?: string) => ({
+  const tab = (value: string, count: number, word: string) => ({
     value,
     label: (
       <>
-        <span className={cx("mh-ord-tab-n ltr", tone)}>{fmtQty(count)}</span>
+        <span className="mh-ord-tab-n ltr">{fmtQty(count)}</span>
         {word}
       </>
     ),
   });
-  const tabs = [
-    ...TABS.map((t) => tab(t.value, counts[t.value], t.label)),
-    ...(counts.short > 0 || shortLens ? [tab(SHORT, counts.short, "חסר", "mh-tone-short")] : []),
-  ];
+  const tabs = TABS.map((t) => tab(t.value, counts[t.value], t.label));
 
   const empty =
     state.orders.length === 0 ? (
@@ -642,11 +656,11 @@ function OrdersInner(): ReactElement {
     ) : q ? (
       <EmptyState title="לא נמצאו הזמנות" hint={<>עבור „{query.trim()}”</>} />
     ) : (
-      <EmptyState title={shortLens ? "כל ההזמנות מכוסות" : TABS.find((t) => t.value === status)?.empty} hint={agentId ? "אפשר להסיר את הסינון" : undefined} />
+      <EmptyState title={TABS.find((t) => t.value === status)?.empty} hint={agentId ? "אפשר להסיר את הסינון" : undefined} />
     );
 
-  const item = (row: OrderRow) => (
-    <OrderItem key={row.order.id} row={row} today={today} selected={row.order.id === selectedId} hot={Boolean(hot?.has(row.order.id))} onReach={reach} onOpen={openRow} />
+  const item = (row: OrderRow, dayless = false) => (
+    <OrderItem key={row.order.id} row={row} today={today} selected={row.order.id === selectedId} hot={Boolean(hot?.has(row.order.id))} onReach={reach} onOpen={openRow} dayless={dayless} />
   );
 
   return (
@@ -668,7 +682,7 @@ function OrdersInner(): ReactElement {
       />
 
       <Toolbar
-        tabs={<Tabs tabs={tabs} value={shortLens ? SHORT : status} onChange={setTab} />}
+        tabs={<Tabs tabs={tabs} value={status} onChange={setTab} />}
         filters={<Select options={agentOptions} value={agentId} onChange={setAgentId} allLabel="כל הסוכנים" placeholder="סוכן" />}
         query={query}
         onQuery={setQuery}
@@ -692,8 +706,8 @@ function OrdersInner(): ReactElement {
 
       <RackTags tags={tags} />
 
-      <div ref={listRef} className="mh-ord-list" role="tabpanel" aria-label={shortLens ? "חסר" : TABS.find((t) => t.value === status)?.label}>
-        {groups.map((group) => (
+      <div ref={listRef} className="mh-ord-list" role="tabpanel" aria-label={TABS.find((t) => t.value === status)?.label}>
+        {listGroups.map((group) => (
           <section key={group.key} data-day={group.key} className="mh-ord-day" aria-labelledby={`mh-ord-day-${group.key}`}>
             <header className="mh-ord-dayhead">
               <div className="mh-ord-daytitle">
@@ -705,10 +719,10 @@ function OrdersInner(): ReactElement {
                 {group.unpriced > 0 ? ` · ${fmtQty(group.unpriced)} ללא מחיר` : null}
               </span>
             </header>
-            <ul className="mh-rows">{group.rows.map(item)}</ul>
+            <ul className="mh-rows">{group.rows.map((row) => item(row, group.key === SHORT))}</ul>
           </section>
         ))}
-        {!open && rows.length > 0 ? <ul className="mh-rows">{rows.map(item)}</ul> : null}
+        {!open && rows.length > 0 ? <ul className="mh-rows">{rows.map((row) => item(row))}</ul> : null}
         {rows.length === 0 ? empty : null}
         {rows.length > 0 && rows.length < tabTotal ? <p className="mh-ord-showing"><Showing shown={rows.length} total={tabTotal} /></p> : null}
       </div>

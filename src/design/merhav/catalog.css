@@ -1,13 +1,12 @@
-/* קטלוג: a patch bay. Our names on one side, theirs on the other, and the lines between them are the page. */
+/* ספקים: who brings what, and what they call it. One table of suppliers; a row opens to its names. What a receipt brought in and nobody settled waits at the top. */
 
 .mh-cat {
   padding: 34px var(--mh-gutter) 72px;
   min-width: 0;
-  /* One set of columns for the whole bay. The wires take what a wider window adds, so a name never drifts from its supplier. */
-  --bay-wire: clamp(140px, calc(45% - 340px), 420px);
-  --bay-cols: minmax(0, 1fr) var(--bay-wire) minmax(0, 1.5fr);
-  --bay-name: minmax(0, 1fr) 150px 112px;
   --wire: color-mix(in srgb, var(--text-primary) 52%, transparent);
+  /* One set of columns for the head and every row: the supplier, who to call, the phone, two counts, the fold. */
+  --sup-cols: minmax(0, 1.5fr) minmax(0, 1fr) 150px 92px 92px 32px;
+  --sup-name-cols: minmax(0, 1.2fr) minmax(0, 1fr) 200px 32px;
 }
 
 .mh-cat-head { display: flex; align-items: flex-start; gap: 16px 40px; }
@@ -16,7 +15,7 @@
 .mh-cat-tools { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-block-start: var(--mh-title-key); }
 .mh-cat-tools .sa-search { flex: 0 1 460px; margin-inline-end: 8px; }
 
-/* ── The open ports ── */
+/* ── The open ports: names from delivery notes that still need a decision ── */
 .mh-cat-opens { margin-top: 26px; }
 .mh-cat-opens .mh-col-head h2 { display: flex; align-items: baseline; gap: 10px; }
 .mh-cat-opens-n { font-size: 30px; font-weight: 300; letter-spacing: -0.02em; }
@@ -71,188 +70,38 @@
   to { max-height: 0; min-height: 0; opacity: 0; border-bottom-color: transparent; }
 }
 
-/* ── The panel ── */
-/* It folds away when a search starts, because the answer is a list. The room in the gutters keeps the carriage in view. */
-.mh-cat-fold { display: grid; grid-template-rows: 1fr; margin-inline: calc(var(--mh-gutter) * -1); padding-inline: var(--mh-gutter); transition: grid-template-rows var(--dur-plate) var(--spring-plate), opacity var(--dur-2) var(--ease); }
-.mh-cat-fold > * { min-height: 0; overflow: hidden; margin-inline: calc(var(--mh-gutter) * -1); padding-inline: var(--mh-gutter); }
-.mh-cat-fold.is-folded { grid-template-rows: 0fr; opacity: 0; }
-.mh-cat-panel { padding-top: 34px; --panel-side: clamp(170px, 17%, 250px); }
-/* Each name of a column stands over its column: the numbers are the two inside columns, beside the lines. */
-.mh-cat-panel-head { display: grid; grid-template-columns: var(--panel-side) minmax(0, 1fr) var(--panel-side); padding-bottom: 8px; border-bottom: 1px solid var(--border-strong); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
-.mh-cat-panel-head span { padding-inline-end: 14px; text-align: end; }
-.mh-cat-panel-head span:last-child { grid-column: 3; padding-inline: 14px 0; text-align: start; }
-.mh-cat-panel-body { display: grid; grid-template-columns: var(--panel-side) minmax(0, 1fr) var(--panel-side); margin-top: 8px; }
-.mh-cat-panel-side { position: relative; min-width: 0; }
-.mh-cat-panel-field { min-width: 0; }
-.mh-cat-panel-field svg { display: block; overflow: visible; }
-.mh-cat-panel-label {
-  position: absolute;
-  inset-inline: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: calc(var(--line) - 4px);
-  margin-top: calc(var(--line) / -2 + 2px);
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--t-14);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity var(--dur-1) var(--ease);
-}
-.mh-cat-panel-side:first-child .mh-cat-panel-label { justify-content: flex-end; padding-inline-end: 14px; }
-.mh-cat-panel-side:last-child .mh-cat-panel-label { padding-inline-start: 14px; }
-.mh-cat-panel-side:last-child .mh-cat-panel-n { order: -1; }
-.mh-cat-panel-word { overflow: hidden; text-overflow: ellipsis; }
-.mh-cat-panel-n { min-width: 2ch; font-weight: 300; font-size: min(21px, calc(var(--line) * 0.68)); line-height: 1; letter-spacing: -0.02em; }
-.mh-cat-panel-label.is-far { opacity: 0.3; }
-.mh-cat-panel-n.is-share { color: var(--accent-text); }
-.mh-cat-panel-label.is-on { font-weight: 600; opacity: 1; }
-/* The same carriage as the rail, in the gutter of the group you stand on. */
-.mh-cat-panel-label::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 3px;
-  height: 22px;
-  margin-top: -11px;
-  background: var(--accent);
-  transform: scaleY(0);
-  transition: transform var(--dur-press) var(--spring-press);
-}
-.mh-cat-panel-side:first-child .mh-cat-panel-label::before { inset-inline-start: calc(var(--mh-gutter) * -1); }
-.mh-cat-panel-side:last-child .mh-cat-panel-label::before { inset-inline-end: calc(var(--mh-gutter) * -1); }
-.mh-cat-panel-label.is-on::before { transform: scaleY(1); }
-.mh-cat-panel-label:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-/* The wires run across once when the panel arrives. */
-.mh-cat-trunk { fill: none; stroke: var(--text-primary); stroke-opacity: var(--weight); stroke-width: 1; stroke-dasharray: 1; stroke-dashoffset: 1; animation: mh-draw var(--dur-plate) var(--spring-plate) forwards; transition: stroke var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease); }
-.mh-cat-trunk.is-far { opacity: 0.12; }
-.mh-cat-trunk.is-lit { stroke: var(--accent); stroke-opacity: 1; stroke-width: 1.5; }
-.mh-cat-panel .mh-cat-jack.is-far { opacity: 0.2; }
-.mh-cat-trunk-grip { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; cursor: pointer; }
-/* A name seated in the row above: its line answers here, once. */
-.mh-cat-trace { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: -1; animation: mh-draw 420ms var(--ease) 180ms forwards, mh-cat-wire-settle 500ms var(--ease) 1.2s forwards; }
-
-/* ── The bay ── */
-.mh-cat-bay { margin-top: 26px; }
-.mh-cat-bay-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: var(--bay-cols);
-  align-items: center;
-  height: 36px;
-  background: var(--bg-surface);
-  box-shadow: 0 1px 0 var(--border-strong);
-  font-size: var(--t-13);
-  color: var(--text-tertiary);
-}
-.mh-cat-bay-head-names { display: grid; grid-template-columns: var(--bay-name); padding-inline-start: 14px; align-items: center; }
-.mh-cat-bay-held { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.mh-cat-bay-held b { font-weight: 500; color: var(--text-primary); }
-.mh-cat-bay-clear { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; cursor: pointer; }
-
-/* A section is the panel's group: its head holds the place while the list passes under it, and folds it away. */
-.mh-cat-section-head {
-  position: sticky;
-  top: 36px;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* ── The suppliers: one table, and a row opens to its names ── */
+.mh-sup { margin-top: 26px; }
+.mh-sup-head, .mh-sup-row { display: grid; grid-template-columns: var(--sup-cols); align-items: center; }
+.mh-sup-head { height: 36px; box-shadow: 0 1px 0 var(--border-strong); font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-sup-head > span, .mh-sup-cell { min-width: 0; padding-inline-end: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-sup-item { position: relative; }
+.mh-sup-row {
   width: 100%;
-  height: 40px;
-  margin-top: 10px;
-  padding: 0;
+  min-height: var(--row);
+  padding: 8px 0;
   border: 0;
-  background: var(--bg-surface);
-  box-shadow: 0 1px 0 var(--border-subtle);
-  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  background: none;
+  color: inherit;
   font: inherit;
+  text-align: start;
   cursor: pointer;
 }
-.mh-cat-section:first-of-type .mh-cat-section-head { margin-top: 0; }
-.mh-cat-section-word { font-size: var(--t-15); font-weight: 600; }
-.mh-cat-section-note { font-size: var(--t-13); color: var(--text-tertiary); }
-.mh-cat-section-head svg { margin-inline-start: auto; color: var(--text-quiet); stroke-width: 1.5; }
-.mh-cat-section-head:hover .mh-cat-section-word { color: var(--accent-text); }
-.mh-cat-section-head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-/* Reaches into both gutters: offscreen bands skip their paint, and the carriage stands in the gutter. */
-.mh-cat-band {
-  position: relative;
-  display: grid;
-  grid-template-columns: var(--bay-cols);
-  margin-inline: calc(var(--mh-gutter) * -1);
-  padding-inline: var(--mh-gutter);
-  content-visibility: auto;
-  contain-intrinsic-size: auto var(--row);
-}
-[data-theme="merhav-dark"] .mh-cat-band .sa-thumb { filter: brightness(0.82); }
-.mh-cat-band-product { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: var(--row); padding-inline-end: 14px; align-self: start; }
-.mh-cat-band-name { display: block; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
-.mh-cat-band-name:hover { color: var(--accent-text); }
-.mh-cat-band-code { display: flex; gap: 10px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
-.mh-cat-band-add { padding: 0; border: 0; background: none; color: var(--text-tertiary); font: inherit; cursor: pointer; }
-.mh-cat-band-add:hover { color: var(--accent-text); }
-/* Each is one line of text, and a pointer still needs 24 pixels: the reach grows away from the other, and the lines stay where they are. */
-.mh-cat-band-name { padding-top: 2px; margin-top: -2px; }
-.mh-cat-band-add { padding-bottom: 6px; margin-bottom: -6px; }
-.mh-cat-band-wire { position: relative; min-width: 0; }
-.mh-cat-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.mh-cat-wire { fill: none; stroke: var(--wire); stroke-width: 1; transition: opacity var(--dur-1) var(--ease); }
-.mh-cat-wire-lit { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: 1; visibility: hidden; }
-/* A wire that just appeared draws itself once and settles into the rest. */
-.is-fresh .mh-cat-wire-lit { visibility: visible; animation: mh-draw 320ms var(--ease) forwards, mh-cat-wire-settle 500ms var(--ease) 1s forwards; }
-@keyframes mh-cat-wire-settle { to { opacity: 0; } }
-.mh-cat-jack { fill: var(--text-primary); }
-.mh-cat-jack.is-open { fill: var(--bg-surface); stroke: var(--warning-text); stroke-width: 1.25; }
-.mh-cat-band-names { min-width: 0; }
-/* A product with no names yet: one open jack on our side, and pressing it starts a wire. */
-.mh-cat-band.is-free .mh-cat-band-wire { --reach: 100%; --port: var(--border-control); }
-.mh-cat-band.is-free .mh-cat-port { top: calc(var(--row) / 2); }
-.mh-cat-band-none { display: flex; align-items: center; min-height: var(--row); padding-inline-start: 14px; color: var(--text-tertiary); font-size: var(--t-14); }
-.mh-cat-name { position: relative; display: grid; grid-template-columns: var(--bay-name); align-items: start; min-height: var(--row); padding-inline-start: 14px; }
-.mh-cat-port-mark { position: absolute; top: calc(var(--row) / 2); inset-inline-start: 0; width: 0; height: 0; }
-.mh-cat-name-open { display: flex; flex-direction: column; justify-content: center; min-height: var(--row); min-width: 0; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; text-align: start; cursor: pointer; }
-.mh-cat-name-text { font-size: var(--t-15); line-height: var(--l-21); overflow-wrap: anywhere; }
-.mh-cat-name-open:hover .mh-cat-name-text { color: var(--accent-text); }
-.mh-cat-name-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
-.mh-cat-name-sup { min-height: var(--row); padding: 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: var(--t-14); text-align: start; cursor: pointer; }
-.mh-cat-name-sup:hover { color: var(--accent-text); }
-.mh-cat-name-end { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: var(--row); }
-.mh-cat-name-tool { flex: none; opacity: 0; }
-/* Two keys share a narrow column, and neither may be squeezed under a pointer's reach. */
-.mh-cat-name-tool:not(.sa-btn-icon) { padding-inline: 6px; }
-.mh-cat-name-tool.sa-btn-icon { width: 24px; }
-.mh-cat-name-end .sa-btn-link { min-height: 24px; }
-.mh-cat-name:hover .mh-cat-name-tool, .mh-cat-name:focus-within .mh-cat-name-tool { opacity: 1; }
-.mh-cat-name.is-form { display: block; padding-block: 10px; }
-/* The form's menus reach past the band, so it stops skipping its paint while one is open. */
-.mh-cat-band:has(.is-form) { content-visibility: visible; z-index: 3; }
-@media (hover: none) { .mh-cat-name-tool { opacity: 1; } }
-
-/* Pointing lights a whole path and the other wires recede, with a breath of delay so that crossing the list stays still.
-   The words stay readable: the pointer rests here while the list is being read. */
-.mh-cat-band > *, .mh-cat-name { transition: opacity var(--dur-1) var(--ease); }
-.mh-cat-wires { transition: opacity var(--dur-2) var(--ease); }
-.mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) .mh-cat-wires { opacity: 0.22; transition-delay: 120ms; }
-.mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) > :not(.mh-cat-band-wire) { opacity: 0.66; transition-delay: 120ms; }
-.mh-cat-band[data-on="name"] .mh-cat-name:not([data-on]) { opacity: 0.66; }
-.mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) { opacity: 0.3; }
-.mh-cat-band[data-on] .mh-cat-wire-lit { visibility: visible; animation: mh-draw 260ms var(--ease) forwards; }
-.mh-cat-band[data-on="band"] .mh-cat-wire-lit { stroke-dashoffset: -1; }
-.mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) .mh-cat-wire-lit { visibility: hidden; }
-.mh-cat-band[data-on="band"] .mh-cat-jack:not(.is-open), .mh-cat-band[data-on="name"] g[data-on] .mh-cat-jack:not(.is-open), .mh-cat-band[data-on] > .mh-cat-band-wire > svg > .mh-cat-jack { fill: var(--accent); }
-/* The same carriage as the rail, in the gutter of the band you are on. */
-.mh-cat-band::before {
+.mh-sup-row > .mh-row-main { padding-inline-end: 14px; }
+.mh-sup-name { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-sup-row:hover .mh-sup-name { color: var(--accent-text); }
+.mh-sup-cell { font-size: var(--t-14); color: var(--text-secondary); }
+.mh-sup-cell.is-num { font-size: var(--t-15); color: var(--text-primary); }
+.mh-sup-row > svg { justify-self: end; color: var(--text-quiet); stroke-width: 1.5; transition: transform var(--dur-press) var(--spring-press); }
+.mh-sup-item.is-open > .mh-sup-row > svg { transform: rotate(180deg); color: var(--text-primary); }
+.mh-sup-item.is-open > .mh-sup-row { border-bottom-color: transparent; }
+.mh-sup-row:focus-visible, .mh-sup-name-row:focus-visible { outline: none; border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+/* The same carriage as the rail, in the gutter of the open row. */
+.mh-sup-item::before {
   content: "";
   position: absolute;
-  inset-inline-start: 0;
+  inset-inline-start: calc(var(--mh-gutter) * -1);
   top: calc(var(--row) / 2 - 12px);
   width: 3px;
   height: 24px;
@@ -260,44 +109,52 @@
   transform: scaleY(0);
   transition: transform var(--dur-press) var(--spring-press);
 }
-.mh-cat-band[data-on]::before { transform: scaleY(1); }
+.mh-sup-item.is-open::before { transform: scaleY(1); }
 
-.mh-cat-band-name:focus-visible, .mh-cat-band-add:focus-visible, .mh-cat-name-open:focus-visible, .mh-cat-name-sup:focus-visible, .mh-cat-bay-clear:focus-visible { outline: none; border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+/* A supplier's names: a smaller table set in from the edge, its keys at the foot. */
+.mh-sup-names { margin-inline-start: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--border-subtle); animation: mh-fade var(--dur-2) var(--ease) both; }
+.mh-sup-names-head { display: grid; grid-template-columns: var(--sup-name-cols); align-items: center; height: 32px; font-size: var(--t-13); color: var(--text-tertiary); box-shadow: 0 1px 0 var(--border-subtle); }
+.mh-sup-names-head > span { padding-inline-end: 14px; }
+.mh-sup-name-row {
+  display: grid;
+  grid-template-columns: var(--sup-name-cols);
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.mh-sup-name-row:last-of-type { border-bottom: 0; }
+.mh-sup-name-row > * { min-width: 0; padding-inline-end: 14px; }
+.mh-sup-name-row > svg { justify-self: end; padding: 0; color: var(--text-quiet); stroke-width: 1.5; }
+.mh-sup-ours { display: flex; align-items: center; gap: 12px; }
+.mh-sup-their { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; overflow-wrap: anywhere; }
+.mh-sup-name-row:hover .mh-sup-their { color: var(--accent-text); }
+.mh-sup-none { margin: 0; padding: 14px 0 4px; font-size: var(--t-14); color: var(--text-tertiary); }
+.mh-sup-keys { display: flex; gap: 8px; padding-top: 14px; }
 
 .mh-cat-foot { margin: 16px 0 0; font-size: var(--t-13); color: var(--text-tertiary); }
 
-/* A smaller window: the supplier stands under its name and the names keep their room. */
+/* Less room: who to call steps aside first, then the phone; the counts stay. */
 @media (max-width: 1239px) {
-  .mh-cat { --bay-name: minmax(0, 1fr) 96px; --bay-wire: clamp(72px, 12%, 140px); }
-  .mh-cat-bay-head-names > :nth-child(2) { display: none; }
-  .mh-cat-name-open { grid-column: 1; min-height: 0; padding-block: 8px 0; }
-  .mh-cat-name-sup { grid-column: 1; grid-row: 2; min-height: 0; padding-block-end: 8px; font-size: var(--t-13); line-height: var(--l-18); }
-  .mh-cat-name-end { grid-column: 2; grid-row: 1 / span 2; }
+  .mh-cat { --sup-cols: minmax(0, 1.5fr) 150px 92px 92px 32px; --sup-name-cols: minmax(0, 1.2fr) minmax(0, 1fr) 32px; }
+  .mh-sup-head > :nth-child(2), .mh-sup-row > :nth-child(2) { display: none; }
+  .mh-sup-names-head > :nth-child(3), .mh-sup-name-row > :nth-child(3) { display: none; }
   .mh-cat-open-tools .sa-btn { padding-inline: 8px; }
 }
 
-/* No room for a channel: the product stands over its names, and one spine carries the wires down the edge. */
 @media (max-width: 1019px) {
-  .mh-cat { --bay-cols: minmax(0, 1fr); }
+  .mh-cat { --sup-cols: minmax(0, 1fr) 92px 92px 32px; }
   .mh-cat-head { flex-wrap: wrap; }
   .mh-cat-tools { flex: 1 1 100%; margin-block-start: 0; }
   .mh-cat-tools .sa-search { flex: 1 1 auto; margin-inline-end: 0; }
-  .mh-cat-bay-head { display: none; }
-  /* What narrows the list always shows, with its way out. */
-  .mh-cat-bay-head.is-held { display: flex; justify-content: space-between; gap: 12px; }
-  .mh-cat-bay-head.is-held > span:nth-child(2), .mh-cat-bay-head-names > span { display: none; }
-  .mh-cat-bay-head-names { display: block; padding: 0; flex: none; }
-  .mh-cat-bay { margin-top: 14px; }
-  .mh-cat-section-head { top: 0; }
-  .mh-cat-bay-head.is-held ~ .mh-cat-section .mh-cat-section-head { top: 36px; }
-  .mh-cat-band { display: block; padding-block: 6px; }
-  .mh-cat-band-product { padding-inline-end: 0; }
-  .mh-cat-band:not(.is-free) .mh-cat-band-wire { display: none; }
-  .mh-cat-band.is-free .mh-cat-band-wire { position: absolute; inset-inline-end: var(--mh-gutter); top: 6px; width: 36px; height: var(--row); --reach: 50%; }
-  .mh-cat-band-names { margin-inline-start: 21px; border-inline-start: 1px solid var(--wire); }
-  .mh-cat-band.is-free .mh-cat-band-names { border-inline-start: 0; }
-  .mh-cat-name { padding-inline-start: 16px; }
-  .mh-cat-name::before { content: ""; position: absolute; inset-inline-start: 0; top: 24px; width: 10px; height: 1px; background: var(--wire); }
+  .mh-sup-head > :nth-child(3), .mh-sup-row > :nth-child(3) { display: none; }
   .mh-cat-open { grid-template-columns: 36px minmax(0, 1fr); gap: 4px 0; padding-block: 12px; }
   .mh-cat-open-wire { grid-column: 1; grid-row: 1; height: 36px; min-height: 0; --reach: 50%; }
   .mh-cat-open.is-seated .mh-cat-open-wire { --reach: 50%; }
@@ -306,45 +163,30 @@
   .mh-cat-open-socket { grid-column: 1 / -1; grid-row: 2; padding-inline-end: 0; }
 }
 
-/* A phone: the search and the words on the rows do the panel's work. */
+/* A phone: the supplier and how many names, and a name stands over its product. */
 @media (max-width: 639px) {
-  .mh-cat-fold { display: none; }
+  .mh-cat { --sup-cols: minmax(0, 1fr) 72px 32px; --sup-name-cols: minmax(0, 1fr) 32px; }
   .mh-cat-tools { flex-wrap: wrap; }
   .mh-cat-tools .sa-search { flex: 1 1 100%; }
   .mh-cat-tools .sa-btn { flex: 1 1 0; }
   .mh-cat-opens .mh-col-head { flex-wrap: wrap; }
   .mh-cat-open-tools { flex: 1 1 100%; }
+  .mh-sup-head > :nth-child(4), .mh-sup-row > :nth-child(4) { display: none; }
+  .mh-sup-names { margin-inline-start: 0; }
+  .mh-sup-names-head { display: none; }
+  .mh-sup-name-row { grid-template-columns: var(--sup-name-cols); row-gap: 4px; }
+  .mh-sup-name-row > :nth-child(2) { grid-column: 1; }
+  .mh-sup-name-row > svg { grid-column: 2; grid-row: 1 / span 2; }
 }
 
-/* A finger: every key gets its 44 pixels. The tools are always there, so a name takes the whole width over them. */
+/* A finger: every key gets its 44 pixels. */
 @media (hover: none) {
   .mh-cat-port { width: 44px; height: 44px; margin-block-start: -22px; margin-inline-end: -22px; }
-  .mh-cat-section-head { height: 44px; }
-  .mh-cat-bay-head { height: 44px; }
-  .mh-cat-bay-clear { min-width: 44px; min-height: 44px; }
-  .mh-cat-band-code { align-items: center; margin-block: -6px; }
-  .mh-cat-band-add { min-width: 44px; min-height: 44px; }
-  /* The key under the name holds its own 44, so the name reaches up into the air over it. */
-  .mh-cat-band-name { position: relative; }
-  .mh-cat-band-name::after { content: ""; position: absolute; inset: -22px 0 0; }
-  .mh-cat-name-open { min-height: 44px; }
-  .mh-cat-name-tool.sa-btn-icon { width: 44px; }
-}
-@media (hover: none) and (min-width: 1020px) {
-  .mh-cat-section-head { top: 44px; }
-}
-@media (hover: none) and (min-width: 1240px) {
-  .mh-cat { --bay-name: minmax(0, 1fr) 150px 134px; }
-}
-@media (hover: none) and (max-width: 1239px) {
-  .mh-cat-bay-head.is-held ~ .mh-cat-section .mh-cat-section-head { top: 44px; }
-  .mh-cat-name { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; }
-  .mh-cat-name-open { grid-column: 1 / -1; grid-row: 1; }
-  .mh-cat-name-sup { grid-column: 1; grid-row: 2; min-height: 44px; min-width: 0; padding-block: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mh-cat-name-end { grid-column: 2; grid-row: 2; min-height: 44px; }
+  .mh-sup-row, .mh-sup-name-row { min-height: 60px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mh-cat-trunk, .mh-cat-trace, .mh-cat-open.is-seating, .is-fresh .mh-cat-wire-lit, .mh-cat-band[data-on] .mh-cat-wire-lit { animation-duration: 0s; animation-delay: 0s; }
-  .mh-cat-fold, .mh-cat-open-line, .mh-cat-port { transition: none; }
+  .mh-cat-open.is-seating { animation-duration: 0s; animation-delay: 0s; }
+  .mh-cat-open-line, .mh-cat-port, .mh-sup-row > svg, .mh-sup-item::before { transition: none; }
+  .mh-sup-names { animation: none; }
 }

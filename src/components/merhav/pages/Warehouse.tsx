@@ -8,33 +8,29 @@
 
 import { Suspense, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type ReactElement, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
-import { CountRail } from "@/components/map3d/CountRail";
 import { labelViews } from "@/components/map3d/label-views";
 import { Labels, type LabelView } from "@/components/map3d/Labels";
 import { EditBar, LayoutPanel, useLayoutEditor } from "@/components/map3d/LayoutEditor";
 import { MapSearch } from "@/components/map3d/MapSearch";
 import { ObjectCard } from "@/components/map3d/ObjectCard";
-import { OrdersRail } from "@/components/map3d/OrdersRail";
-import { TodayOnly } from "@/components/map3d/parts";
-import { MovesRail, StatusRail } from "@/components/map3d/StatusRail";
+import { StatusRail } from "@/components/map3d/StatusRail";
 import { TimeRuler } from "@/components/map3d/TimeRuler";
 import { useCoarsePointer, useFullscreen, useNarrow } from "@/components/map3d/use-device";
 import { useMovementHistory } from "@/components/map3d/use-history";
-import { ValueRail } from "@/components/map3d/ValueRail";
 import type { MapView } from "@/components/map3d/view";
 import { ViewSwitch } from "@/components/map3d/ViewSwitch";
 import { STATE_NUM } from "@/components/map3d/words";
 import { worthOf } from "@/components/map3d/worth";
 import "@/components/map3d/map3d.css";
 import "@/components/map3d/map3d-aluminium.css";
-import { Button, cx, Notice, Tabs } from "@/components/ui";
+import { Button, cx, Notice } from "@/components/ui";
 import { fmtDateTime, fmtQty } from "@/lib/format";
 import { DISPATCH_ZONE, levelY } from "@/lib/map3d/layout";
 import { blockAt, buildMapModel, emptySpot } from "@/lib/map3d/model";
 import { placeKey, resolvePlace } from "@/lib/map3d/place";
-import { routeBetween } from "@/lib/map3d/route";
 import { useShelves } from "@/lib/map3d/shelves";
 import { buildTrail, qtyAt, TRAIL_WINDOW, type PastQty } from "@/lib/map3d/trail";
 import type { Insets, LabelAnchor, MapEngine, MapObject, MapObjectKind, MapRoute, PickHit, ViewMode } from "@/lib/map3d/types";
@@ -45,10 +41,8 @@ import { useTwin } from "../twin/Twin";
 import { aimOf, litRows, pointOf, productAim, ROW, type Aim, type LensData } from "../warehouse/lens";
 import { Reach } from "../warehouse/Reach";
 
-type RailTab = "status" | "orders" | "moves" | "count" | "value";
-
-const TAB_LABEL: Record<RailTab, string> = { status: "מלאי", orders: "הזמנות", moves: "תנועות", count: "ספירה", value: "שווי" };
-const TAB_VALUES = Object.keys(TAB_LABEL) as RailTab[];
+/** The figures over the list. Pointing at one asks the model where. */
+type Lens = "needing" | "orders" | "value";
 
 const LEAVE_WORD: Record<MapObjectKind, string> = {
   rack: "יציאה מהמתקן",
@@ -59,8 +53,6 @@ const LEAVE_WORD: Record<MapObjectKind, string> = {
 
 const CLOCK_MS = 60_000;
 const MARK_MARGIN = 0.45;
-/** How many places keep their price on the model. */
-const WORTH_TAGS = 5;
 /** An unknown quantity draws as an empty shelf, so this one word stays on the model at any date. */
 const PAST_UNKNOWN = "לא ידוע";
 const FAULT_WORD = "תקלה";
@@ -176,9 +168,7 @@ function WarehouseInner(): ReactElement {
   const stage = useMemo(() => ({ current: world }), [world]);
   const fullscreen = useFullscreen(stage);
 
-  const [tab, setTab] = useState<RailTab>("status");
   const [selected, setSelected] = useState<PickHit | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
   const [chosenView, setChosenView] = useState<ViewMode | null>(null);
   const [at, setAt] = useState<number | null>(null);
   const [hover, setHover] = useState<PickHit | null>(null);
@@ -200,7 +190,7 @@ function WarehouseInner(): ReactElement {
   const [trailStart] = useState(() => Date.now() - TRAIL_WINDOW);
   const [clock, setClock] = useState(() => Date.now());
   const recent = useMovementHistory(trailStart, true);
-  const ledger = useMovementHistory(null, tab === "count" || selected !== null);
+  const ledger = useMovementHistory(null, selected !== null);
 
   useEffect(() => {
     const id = setInterval(() => setClock(Date.now()), CLOCK_MS);
@@ -287,39 +277,11 @@ function WarehouseInner(): ReactElement {
   );
 
   /* ───────── what the engine draws ───────── */
-  const orderPlaces = useMemo(() => {
-    if (tab !== "orders" || !orderId) return null;
-    const ids = new Set<string>();
-    for (const line of linesOf(orderId)) {
-      const place = placeOf(line.product_id);
-      if (place) ids.add(place);
-    }
-    return ids;
-  }, [tab, orderId, linesOf, placeOf]);
-
-  const routes = useMemo<MapRoute[]>(
-    () =>
-      [...(orderPlaces ?? [])]
-        .map((id): MapRoute => ({ points: routeBetween(objects, id, DISPATCH_ZONE), tone: "ink" }))
-        .filter((route) => route.points.length > 1),
-    [orderPlaces, objects],
-  );
-
-  const valueLens = tab === "value" && at === null && !targetId;
-
-  const footprints = useMemo(() => {
-    if (!valueLens) return null;
-    const top = worth.places[0]?.value ?? 1;
-    return worth.places.map((p) => ({ objectId: p.object.id, strength: p.value / top }));
-  }, [valueLens, worth.places]);
-
   const emphasis = useMemo(() => {
     if (editing) return null;
     if (pointed) return new Set(pointed.ids);
-    if (targetId) return new Set([targetId]);
-    if (orderPlaces) return new Set([...orderPlaces, DISPATCH_ZONE]);
-    return valueLens ? new Set(worth.places.map((p) => p.object.id)) : null;
-  }, [editing, pointed, targetId, orderPlaces, valueLens, worth.places]);
+    return targetId ? new Set([targetId]) : null;
+  }, [editing, pointed, targetId]);
 
   // What the rule on the map follows: a whole block of a product, however it was reached. A row under the pointer borrows it.
   const shown = pointed ? pointed.hit : selected;
@@ -392,14 +354,10 @@ function WarehouseInner(): ReactElement {
   // A list that ended under the pointer may leave its line behind.
   useEffect(() => aimProduct(null), [aimProduct]);
 
-  useEffect(() => {
-    engine?.setFootprints(footprints);
-  }, [engine, footprints]);
-
   // One line on the floor at the front of what needs a hand, so the map answers "where" before anything is read.
   // Never a box around it: a red border is the alarm this product does not sound.
   const marks = useMemo<MapRoute[]>(() => {
-    if (tab !== "status" || at !== null || editing || targetId) return [];
+    if (at !== null || editing || targetId) return [];
     const lines: MapRoute[] = [];
     for (const { object: o, worst } of model.byObject.values()) {
       if (worst === "ok") continue;
@@ -408,12 +366,12 @@ function WarehouseInner(): ReactElement {
       lines.push({ points: [[left, front], [right, front]], tone: worst === "low" ? "warn" : "out" });
     }
     return lines;
-  }, [tab, at, editing, targetId, model]);
+  }, [at, editing, targetId, model]);
 
-  // Null would hand the floor back to Twin's own marks, which don't know this page's tabs.
+  // Null would hand the floor back to Twin's own marks, which don't know this page's date.
   useEffect(() => {
-    setPageRoutes([...routes, ...marks]);
-  }, [routes, marks, setPageRoutes]);
+    setPageRoutes(marks);
+  }, [marks, setPageRoutes]);
 
   const fly = useEffectEvent((id: string | null) => {
     if (viewMode === "walk" || left.current) return;
@@ -507,7 +465,6 @@ function WarehouseInner(): ReactElement {
     if (editing) editor.setEditId(null);
     else if (selected) setSelected(null);
     else if (viewMode === "walk") setChosenView("orbit");
-    else setOrderId(null);
   });
 
   useEffect(() => {
@@ -541,16 +498,15 @@ function WarehouseInner(): ReactElement {
 
   const closeView = selectedObject?.kind === "rack" && viewMode !== "top" && viewMode !== "walk" ? selectedObject : null;
   const labels = useMemo(() => {
-    const views = labelViews({ objects, model, past: past?.stock ?? null, money: valueLens, faults: faultObjects, open: closeView, shelf: hover ?? pointed?.hit ?? null });
-    if (!past && !valueLens) return closeView ? stackedTags(views, closeView) : oneTagEach(views, faultObjects);
-    // Thirty figures on stems would hide what they stand on. The rest wait for a pointer, and the rail lists them all.
-    const largest = new Set(valueLens ? worth.places.slice(0, WORTH_TAGS).map((place) => place.object.id) : []);
+    const views = labelViews({ objects, model, past: past?.stock ?? null, money: false, faults: faultObjects, open: closeView, shelf: hover ?? pointed?.hit ?? null });
+    if (!past) return closeView ? stackedTags(views, closeView) : oneTagEach(views, faultObjects);
+    // Thirty figures on stems would hide what they stand on. They wait for a pointer, and the rail lists them all.
     const calm = (view: LabelView): LabelView => {
-      if (!view.text || largest.has(view.id)) return view;
+      if (!view.text) return view;
       return view.text === PAST_UNKNOWN ? { ...view, quiet: true } : { ...view, quiet: true, more: view.text, text: undefined };
     };
     return views.map(calm);
-  }, [objects, model, past, valueLens, faultObjects, closeView, hover, pointed, worth.places]);
+  }, [objects, model, past, faultObjects, closeView, hover, pointed]);
 
   // Labels writes the engine's anchors itself. Through this they go by Twin, beside the point the line ends at.
   const [tagAnchors, setTagAnchors] = useState<readonly LabelAnchor[]>([]);
@@ -662,14 +618,12 @@ function WarehouseInner(): ReactElement {
   // A new list starts at its head, before a card scrolls to the shelf it was opened on.
   useLayoutEffect(() => {
     railRef.current?.scrollTo({ top: 0 });
-  }, [targetId, tab]);
+  }, [targetId]);
 
   const map = useMemo<MapView>(
     () => ({ objects, model, trail, now, recent: recent.rows, ledger, placeOf, select, selectProduct }),
     [objects, model, trail, now, recent.rows, ledger, placeOf, select, selectProduct],
   );
-
-  const toToday = () => setAt(null);
 
   // A menu that opens at the foot of the rail comes into view whole.
   const showMenu = (e: FocusEvent<HTMLElement>) => {
@@ -679,19 +633,7 @@ function WarehouseInner(): ReactElement {
   const rail = () => {
     if (editing) return <LayoutPanel editor={editor} model={model} />;
     if (selectedObject) return <ObjectCard map={map} object={selectedObject} hit={selected} past={past?.stock ?? null} onShelf={setSelected} onBack={() => setSelected(null)} />;
-    if (tab === "status") return <StatusRail map={map} past={past?.stock ?? null} at={at} />;
-    if (tab === "moves") return <MovesRail map={map} at={at} />;
-    if (at !== null) return <TodayOnly onToday={toToday} />;
-    if (tab === "orders") return <OrdersRail map={map} orderId={orderId} onOrder={setOrderId} />;
-    return tab === "count" ? <CountRail map={map} /> : <ValueRail map={map} worth={worth} />;
-  };
-
-  const onTab = (value: string) => {
-    const next = TAB_VALUES.find((t) => t === value);
-    if (!next) return;
-    setTab(next);
-    setSelected(null);
-    peekRow(null);
+    return <StatusRail map={map} past={past?.stock ?? null} at={at} />;
   };
 
   const onSearchPick = (product: Product) => {
@@ -712,11 +654,8 @@ function WarehouseInner(): ReactElement {
     else setChosenView("orbit");
   };
 
-  // No count on the tab: the figure over it already says how many.
-  const tabs = TAB_VALUES.map((value) => ({ value, label: TAB_LABEL[value] }));
-
   const placeCount = new Set(model.slots.map((slot) => slot.objectId)).size;
-  const sub = at !== null ? "מצב המלאי ב-" : <><span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>;
+  const sub = at !== null ? "מצב המלאי ב-" : <>איפה כל דבר עומד · <span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>;
 
   // The same rows the rail lists under דורש טיפול, so the figure and the list can't disagree.
   const needing = useMemo(() => {
@@ -725,14 +664,21 @@ function WarehouseInner(): ReactElement {
     return { count: states.filter((s) => s !== "ok").length + faults, danger: faults > 0 || states.some((s) => s === "out" || s === "short") };
   }, [state.products, state.faults]);
 
-  // A figure is a lens too: pointing at it asks the model where, pressing it opens its list.
-  const figureIds = (value: RailTab): readonly string[] => {
+  // A figure is a lens too: pointing at it asks the model where.
+  const figureIds = (value: Lens): readonly string[] => {
     if (value === "orders") return [...new Set(openOrders.flatMap((o) => linesOf(o.id).flatMap((l) => itemsOf(l.product_id).map((item) => item.objectId)))), DISPATCH_ZONE];
     if (value === "value") return worth.places.map((p) => p.object.id);
     return [...[...model.byObject.values()].filter((stock) => stock.worst !== "ok").map((stock) => stock.object.id), ...faultObjects];
   };
 
-  const pointFigure = (value: RailTab | null) => setPeek(value ? { ids: figureIds(value), hit: null, row: null } : null);
+  const pointFigure = (value: Lens | null) => setPeek(value ? { ids: figureIds(value), hit: null, row: null } : null);
+
+  // The list stands worst first, so what needs a hand is at its head.
+  const toNeeding = () => {
+    setSelected(null);
+    railRef.current?.scrollTo({ top: 0 });
+    railRef.current?.focus({ preventScroll: true });
+  };
 
   return (
     <div className="mh-wh" data-walk={walking || undefined} inert={walking}>
@@ -748,18 +694,18 @@ function WarehouseInner(): ReactElement {
 
         {at === null && !editing ? (
           <div className="mh-wh-figures">
-            <button type="button" className="mh-wh-figure" onClick={() => onTab("status")} onPointerEnter={() => pointFigure("status")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("status")} onBlur={() => pointFigure(null)}>
+            <button type="button" className="mh-wh-figure" onClick={toNeeding} onPointerEnter={() => pointFigure("needing")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("needing")} onBlur={() => pointFigure(null)}>
               <span className="mh-label">{needing.count === 0 ? "הכול תקין" : "דורשים טיפול"}</span>
               <Figure className={cx(needing.count === 0 ? "mh-tone-ok" : needing.danger ? "mh-tone-out" : "mh-tone-warn")} text={fmtQty(needing.count)} />
             </button>
-            <button type="button" className="mh-wh-figure" onClick={() => onTab("orders")} onPointerEnter={() => pointFigure("orders")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("orders")} onBlur={() => pointFigure(null)}>
+            <Link href="/orders" className="mh-wh-figure" onPointerEnter={() => pointFigure("orders")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("orders")} onBlur={() => pointFigure(null)}>
               <span className="mh-label">הזמנות פתוחות</span>
               <Figure text={fmtQty(stats.openOrders)} />
-            </button>
-            <button type="button" className="mh-wh-figure" onClick={() => onTab("value")} onPointerEnter={() => pointFigure("value")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("value")} onBlur={() => pointFigure(null)}>
+            </Link>
+            <div className="mh-wh-figure is-still" onPointerEnter={() => pointFigure("value")} onPointerLeave={() => pointFigure(null)}>
               <span className="mh-label">{worth.unpriced > 0 ? `במחירון, ${fmtQty(worth.unpriced)} ללא מחיר` : "שווי במחירון"}</span>
               <Figure sign="₪" text={fmtQty(Math.round(worth.total))} />
-            </button>
+            </div>
           </div>
         ) : null}
 
@@ -767,14 +713,13 @@ function WarehouseInner(): ReactElement {
         {at !== null ? <Figure className="mh-wh-when" text={fmtDateTime(new Date(at).toISOString())} /> : null}
       </header>
 
-      {editing ? <EditBar editor={editor} /> : selectedObject ? null : <Tabs variant="line" tabs={tabs} value={tab} onChange={onTab} />}
+      {editing ? <EditBar editor={editor} /> : null}
 
       <section
         ref={railRef}
         className="m3d-rail"
         tabIndex={-1}
-        role={selectedObject || editing ? undefined : "tabpanel"}
-        aria-label={selectedObject || editing ? "פרטי המחסן" : TAB_LABEL[tab]}
+        aria-label={selectedObject || editing ? "פרטי המחסן" : "המלאי לפי מקום"}
         onFocus={onRailFocus}
         onBlur={() => peekRow(null)}
         onKeyDown={onRailKey}

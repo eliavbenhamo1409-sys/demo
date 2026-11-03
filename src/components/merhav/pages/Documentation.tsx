@@ -124,16 +124,9 @@ function DocumentationInner(): ReactElement {
       doc: d,
       title: d.kind === "in" ? supplier(d.supplier_id)?.name ?? "ספק שנמחק" : d.customer ?? "לקוח לא צוין",
     }));
-    const faults: Entry[] = state.faults.map((f) => ({
-      key: `fault:${f.id}`,
-      kind: "fault",
-      at: f.created_at,
-      workerId: f.reported_by,
-      fault: f,
-      title: f.description,
-    }));
-    return [...docs, ...faults].sort((a, b) => b.at.localeCompare(a.at));
-  }, [state.documents, state.faults, supplier]);
+    // Faults have their own page, with their photos; the archive keeps the receipts.
+    return docs.sort((a, b) => b.at.localeCompare(a.at));
+  }, [state.documents, supplier]);
 
   const counts = useMemo(() => {
     const out: Record<Kind, number> = { in: 0, out: 0, fault: 0 };
@@ -164,15 +157,13 @@ function DocumentationInner(): ReactElement {
     { key: "all", word: entries.length === 1 ? "רשומה" : "רשומות", count: entries.length },
     { key: "in", word: "קבלות הכנסה", count: counts.in },
     { key: "out", word: "קבלות הוצאה", count: counts.out },
-    { key: "fault", word: "תקלות", count: counts.fault },
   ];
 
   let empty: ReactNode = null;
   if (q || workerId) empty = <EmptyState title="לא נמצא תיעוד" hint="אפשר להסיר את הסינון" />;
   else if (tab === "in") empty = <EmptyState title="אין קבלות הכנסה" hint="קבלה שעובד מצלם בקליטה תופיע כאן" />;
   else if (tab === "out") empty = <EmptyState title="אין קבלות הוצאה" hint="קבלה שעובד מצלם בהוצאה תופיע כאן" />;
-  else if (tab === "fault") empty = <EmptyState title="אין תקלות" />;
-  else empty = <EmptyState title="אין תיעוד" hint="קבלות מהטלפון ודיווחי תקלות יופיעו כאן" />;
+  else empty = <EmptyState title="אין תיעוד" hint="קבלות מהטלפון יופיעו כאן" />;
 
   return (
     <div className="mh-docs">
