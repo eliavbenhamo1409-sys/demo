@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { available, useData, type AttentionEntry } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
-import { Activity, AttentionBoard, FigureLine, OpenOrders, RunningOut, runwayFigure, runwayMeta, type CheckTone, type Figure, type Lane, type LaneRow } from "@/components/app/Snapshot";
+import { Activity, AttentionBoard, FigureLine, OpenOrders, RunningOut, runwayFigure, runwayMeta, Section, type CheckTone, type Figure, type Lane, type LaneRow } from "@/components/app/Snapshot";
 import { Notice, PageHead } from "@/components/ui";
 import { daysUntil, fmtAge, fmtCompact, fmtName, fmtQty, fmtToday } from "@/lib/format";
 import { useDismissedAlerts } from "@/lib/dismissed-alerts";
@@ -87,6 +87,7 @@ function OwnerOverview() {
         count: faults.length,
         tone: "bad",
         calm: "אין תקלות פתוחות",
+        ask: "לטפל, ולסגור עם תיעוד",
         href: "/faults",
         more: "כל התקלות",
         rows: faults.map((f) => {
@@ -106,6 +107,7 @@ function OwnerOverview() {
         count: pending.length,
         tone: "warn",
         calm: "אין מה לאשר",
+        ask: "לאשר או לדחות",
         more: `עוד ${fmtQty(pending.length - 3)}`,
         rows: pending.map((a) => ({ key: a.id, title: a.title, meta: a.meta.join(" · "), word: a.kind === "mapping" ? "שם ספק" : a.label, onOpen: () => openPending(a) })),
       },
@@ -115,6 +117,7 @@ function OwnerOverview() {
         count: stock.length,
         tone: stockTone,
         calm: "המלאי מעל המינימום",
+        ask: "להזמין מהספק",
         href: stats.low > 0 ? "/inventory?filter=low" : "/inventory?filter=out",
         more: "כל החוסרים",
         rows: stock.map(stockRow),
@@ -174,26 +177,32 @@ function OwnerOverview() {
     },
   ];
 
+  const quiet = lanes.every((l) => l.count === 0);
+
   return (
     <div className="sa-page ov-page">
       <PageHead title="סקירה" sub={fmtToday()} />
 
-      <AttentionBoard lanes={lanes} />
+      <Section label={quiet ? "הכל תקין" : "מחכה לך"} ask={quiet ? "אין מה לטפל עכשיו" : "כל שורה נפתחת בלחיצה, ומה שטופל יורד מכאן"}>
+        <AttentionBoard lanes={lanes} />
+      </Section>
 
-      <FigureLine figures={figures} />
+      <Section label="המספרים" ask="רק לדעת · כל מספר פותח את הפירוט שלו">
+        <FigureLine figures={figures} />
+        {monthFailed ? (
+          <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
+            הסכומים מחושבים רק לפי מה שנטען
+          </Notice>
+        ) : null}
+      </Section>
 
-      {monthFailed ? (
-        <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
-          הסכומים מחושבים רק לפי מה שנטען
-        </Notice>
-      ) : null}
-
-      <div className="ov-split">
-        <Activity rows={state.movements.slice(0, RECENT)} today={stats.movementsToday} isLoading={isLoading} />
-        <OpenOrders shown={OPEN_ORDERS} isLoading={isLoading} />
-      </div>
-
-      <RunningOut rows={soon.filter((r) => r.state === "ok")} shown={RUNNING_OUT} isLoading={isLoading || monthLoading} />
+      <Section label="מה קורה במחסן" ask="לעקוב, לא לטפל · מה שדורש אותך כבר למעלה">
+        <div className="ov-split">
+          <Activity rows={state.movements.slice(0, RECENT)} today={stats.movementsToday} isLoading={isLoading} />
+          <OpenOrders shown={OPEN_ORDERS} isLoading={isLoading} />
+        </div>
+        <RunningOut rows={soon.filter((r) => r.state === "ok")} shown={RUNNING_OUT} isLoading={isLoading || monthLoading} />
+      </Section>
     </div>
   );
 }

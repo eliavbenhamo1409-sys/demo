@@ -396,7 +396,7 @@ export function MapPage() {
     at !== null ? (
       <>מצב המלאי ב-<span className="sa-num">{fmtDateTime(new Date(at).toISOString())}</span></>
     ) : (
-      <><span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>
+      <>איפה כל דבר עומד · <span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>
     );
 
   // The same rows the rail lists under דורש טיפול, so the figure and the list can't disagree.

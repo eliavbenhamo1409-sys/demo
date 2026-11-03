@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * מיפוי קטלוג — product first. Every product has one name in the factory;
+ * ספקים (until 2026-11-03 מיפוי קטלוג) — product first. Every product has one name in the factory;
  * each row lists what every supplier calls it. Pending names from delivery
  * notes sit in an inbox at the top until someone says which product they are.
  */
@@ -218,8 +218,8 @@ export default function SuppliersPage() {
   return (
     <div className="sa-page sa-dict-page">
       <PageHead
-        title="מיפוי קטלוג"
-        sub={<Count n={state.supplierItems.length} one="שם של ספק" many="שמות של ספקים" />}
+        title="ספקים"
+        sub={<>מי מביא מה, ואיך הוא קורא לזה · <Count n={state.supplierItems.length} one="שם של ספק" many="שמות של ספקים" /></>}
         actions={
           <>
             <Button variant="secondary" icon="truck" onClick={() => openAction("suppliers")}>ספקים</Button>

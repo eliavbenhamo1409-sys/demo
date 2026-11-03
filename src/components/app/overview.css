@@ -3,10 +3,18 @@
 /* Rows and columns stand the same distance apart, so the page reads as one grid. */
 .ov-page { --gap: var(--space-5); --ov-inset: var(--inset, var(--space-5)); }
 
-/* ── The one card: three lanes, each a count and the first things in it ── */
-.ov-board > .sa-card-head { padding-bottom: 0; }
+/* ── Three chapters: a word on the desk, what the owner does there beside it, then the sheets ── */
+.ov-section { display: flex; flex-direction: column; min-width: 0; }
+.ov-section > * + * { margin-block-start: var(--gap); }
+.ov-section > .ov-section-head + * { margin-block-start: var(--space-3); }
+.ov-page > .ov-section + .ov-section { margin-block-start: var(--space-8); }
+.ov-section-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-3); margin: 0; }
+.ov-section-label { font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); }
+.ov-section-ask { font-size: var(--t-14); line-height: var(--l-20); font-weight: 400; color: var(--text-secondary); text-wrap: pretty; }
+
+/* ── The one sheet of what waits: three lanes, each a count, a verb and the first things in it ── */
 .ov-board > .sa-card-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; }
-.ov-lane { min-width: 0; display: flex; flex-direction: column; padding: var(--space-2) var(--ov-inset) var(--space-3); }
+.ov-lane { min-width: 0; display: flex; flex-direction: column; padding: var(--space-4) var(--ov-inset) var(--space-3); }
 .ov-lane + .ov-lane { border-inline-start: var(--hair) solid var(--border-subtle); }
 .ov-lane-head { display: flex; align-items: baseline; gap: 10px; }
 .ov-lane-n { font-size: 44px; line-height: 52px; font-weight: 600; letter-spacing: -0.02em; color: var(--text-primary); }
@@ -16,6 +24,7 @@
 .ov-lane-n.is-ok { color: var(--success-text); }
 .ov-lane-label { font-size: var(--t-16); line-height: var(--l-22); font-weight: 500; color: var(--text-secondary); }
 .ov-lane-calm { margin: var(--space-2) 0 0; font-size: var(--t-14); line-height: var(--l-21); font-weight: 500; color: var(--success-text); }
+.ov-lane-ask { margin: 0; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-secondary); }
 .ov-lane-rows { margin: var(--space-2) 0 0; padding: 0; list-style: none; }
 .ov-lane-rows > li { display: flex; align-items: center; border-top: var(--hair) solid var(--border-subtle); }
 /* A row with nothing to remove keeps the button's width, so the words share one edge. */

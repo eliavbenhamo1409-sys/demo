@@ -5,8 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { logOut, loginErrorMessage } from "@/lib/login/auth";
 import { daysUntil, ORDER_STATUS_LABEL } from "@/lib/format";
 import { useData } from "@/lib/store";
+import { splitTheme, useTheme } from "@/lib/theme";
 import { NavItem } from "@/components/ui/NavItem";
-import { Sidebar } from "@/components/ui/Sidebar";
+import { Sidebar, type SidebarGroup } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
 import { ActionMenu, DEFAULT_ACTIONS, type ActionItem } from "@/components/ui/ActionMenu";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -51,6 +52,13 @@ type SearchHit =
   | { kind: "order"; id: string; title: string; sub: string }
   | { kind: "supplier"; id: string; title: string; sub: string }
   | { kind: "supplier_item"; id: string; title: string; sub: string };
+
+/** The rail in the aluminium style, in the owner's three chapters: what waits for them, the warehouse itself, the people around it. */
+const NAV_GROUPS: SidebarGroup[] = [
+  { label: "מחכה לך", keys: ["overview", "faults", "closing"] },
+  { label: "המחסן", keys: ["inventory", "map", "movements"] },
+  { label: "לקוחות וספקים", keys: ["orders", "suppliers"] },
+];
 
 /* Reached from the settings dialog, not the sidebar. */
 const SETTINGS_PAGES = [
@@ -98,6 +106,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const router = useRouter();
   const mill = useMill();
   const merhavShell = useMerhavShell(useMerhav());
+  const { theme } = useTheme();
 
   /* ───────── sidebar ───────── */
   const items = useMemo(
@@ -109,7 +118,7 @@ function ShellInner({ children }: { children: ReactNode }) {
       { key: "orders", label: "הזמנות", href: "/orders", icon: "inbox" as const, count: stats.openOrders > 0 ? stats.openOrders : undefined },
       { key: "movements", label: "תנועות", href: "/movements", icon: "activity" as const },
       { key: "faults", label: "תקלות", href: "/faults", icon: "tool" as const, count: stats.openFaults > 0 ? stats.openFaults : undefined },
-      { key: "suppliers", label: "מיפוי קטלוג", href: "/suppliers", icon: "book-open" as const, count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined },
+      { key: "suppliers", label: "ספקים", href: "/suppliers", icon: "book-open" as const, count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined },
     ],
     [stats.pendingMappings, stats.openFaults, stats.openOrders],
   );
@@ -393,7 +402,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="sa-shell">
-      <Sidebar items={items} active={active} brand="ניהול מלאי" foot={foot} />
+      <Sidebar items={items} groups={splitTheme(theme).style === "minimal" ? NAV_GROUPS : undefined} active={active} brand="ניהול מלאי" foot={foot} />
       <div className="app-main">
         <TopBar
           actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} variant="secondary" icon="plus" />}

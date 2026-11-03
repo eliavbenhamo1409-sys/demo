@@ -81,6 +81,11 @@
   .sa-nav-item { height: 38px; font-size: var(--t-14); gap: 10px; }
   .sa-nav-item > svg { width: 18px; height: 18px; }
   .sa-nav-item .sa-badge { font-size: var(--t-13); }
+  /* A word over each chapter of the rail, on the icons' edge; the first stands where the rail began. */
+  .sa-nav-group { padding: 0 var(--space-3); margin: var(--space-5) 0 var(--space-1); font-size: var(--t-13); line-height: var(--l-18); font-weight: 600; color: var(--text-tertiary); }
+  .sa-nav > .sa-nav-group:first-child { margin-block-start: var(--space-2); }
+  /* A phone's row of tabs has no room for words over it. */
+  @media (max-width: 899px) { .sa-nav-group { display: none; } }
 
   /* ── Motion: short and plain. A page settles, nothing jumps ── */
   .app-content .sa-page > * { animation: sa-settle var(--dur-2) linear backwards; }

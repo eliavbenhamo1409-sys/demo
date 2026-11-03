@@ -2,7 +2,7 @@
 
 /**
  * The overview, in the order an owner asks: what needs a person now, then the figures, then what is happening.
- * One central card for what waits, open sections for the rest. Words and figures, no chart.
+ * Three chapters, each a word on the desk and what the owner does there, so no sheet has to explain itself. Words and figures, no chart.
  */
 import { useMemo, useState, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
@@ -36,6 +36,8 @@ export interface Lane {
   tone: CheckTone;
   /** Said in green when the lane is empty. */
   calm: string;
+  /** What the owner does with these rows, as a verb: the line under the count. */
+  ask: string;
   rows: LaneRow[];
   /** The page that holds them all. A lane with no page of its own opens in place. */
   href?: string;
@@ -58,6 +60,9 @@ function LaneColumn({ lane }: { lane: Lane }): ReactElement {
       {lane.count === 0 ? (
         <p className="ov-lane-calm">{lane.calm}</p>
       ) : (
+        <p className="ov-lane-ask">{lane.ask}</p>
+      )}
+      {lane.count > 0 ? (
         <ul className="ov-lane-rows">
           {rows.map((r) => (
             <li key={r.key}>
@@ -76,7 +81,7 @@ function LaneColumn({ lane }: { lane: Lane }): ReactElement {
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
       {lane.count > 0 && lane.more ? (
         lane.href ? (
           <Link href={lane.href} className="sa-btn sa-btn-link sa-btn-sm ov-lane-more">{lane.more}</Link>
@@ -88,12 +93,24 @@ function LaneColumn({ lane }: { lane: Lane }): ReactElement {
   );
 }
 
-/** The one card on the screen: how many of each thing wait on a person, and the first few of them, each a click from being dealt with. */
+/** A chapter of the page: its word on the desk, and beside it what the owner does there. */
+export function Section({ label, ask, children }: { label: string; ask: string; children: ReactNode }): ReactElement {
+  return (
+    <section className="ov-section">
+      <h2 className="ov-section-head">
+        <span className="ov-section-label">{label}</span>
+        <span className="ov-section-ask">{ask}</span>
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** The one sheet of what waits: how many of each thing wait on a person, and the first few of them, each a click from being dealt with. Its word stands on the desk above it. */
 export function AttentionBoard({ lanes }: { lanes: Lane[] }): ReactElement {
-  const quiet = lanes.every((l) => l.count === 0);
   return (
     <div id="ov-work" className="min-w-0">
-      <Card title={quiet ? "הכל תקין" : "דורש את תשומת הלב שלך"} className="ov-board">
+      <Card className="ov-board">
         {lanes.map((lane) => <LaneColumn key={lane.key} lane={lane} />)}
       </Card>
     </div>
