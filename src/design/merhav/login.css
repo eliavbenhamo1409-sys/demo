@@ -11,10 +11,27 @@
     min-height: 100dvh;
     padding: 0;
     overflow: clip;
+    isolation: isolate;
     background: var(--bg-canvas);
     /* What first-paint.css held back until this stylesheet came. */
     visibility: visible;
     animation: none;
+  }
+
+  /* The world under the door: a photograph of the model (agent/demo-render/door.js), standing where the live model will
+     stand once the door slides away. Fixed, so it never scrolls with the plate; the canvas behind it, so nothing flashes
+     while it comes. Its left edge is the near rack, so a narrow window loses the far end, which the door covers anyway. */
+  .app-login-art {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--bg-canvas) url("/login/merhav.webp") 0 42% / cover no-repeat;
+    animation: mh-world-in 900ms var(--ease) both;
+  }
+  /* A phone's door is the whole window, so there is nothing to download behind it. */
+  @media (max-width: 500px) {
+    .app-login-art { display: none; }
   }
 
   /* It slides out of the housing and stops: the one movement, and nothing waits for it. */
@@ -150,10 +167,17 @@
   }
 }
 
+html[data-theme="merhav-dark"] .app-login-art { background-image: url("/login/merhav-dark.webp"); }
+
+@keyframes mh-world-in {
+  from { opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-theme^="merhav"] .app-login-column,
   [data-theme^="merhav"] body:has(.app-login) .sys-switch,
   [data-theme^="merhav"] .app-login-step,
+  [data-theme^="merhav"] .app-login-art,
   [data-theme^="merhav"] .app-login-digit { animation: none; }
   [data-theme^="merhav"] .app-login .sa-control::after,
   [data-theme^="merhav"] .app-login-phone::after { transition: none; }
