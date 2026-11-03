@@ -1,10 +1,12 @@
 /* ניהול מלאי — order to the eye, in the default style, inside the admin's shell only. Added 2026-11-03.
    Colour and brightness stay exactly as tokens.css has them: blue, the silver desk, white sheets. The owner said so.
    This file changes only what the eye has to work for: one type scale, one row height, closer rows in the rail,
-   quiet figures with one dominant number, plain short motion. It loads with AppShell, so the worker's phone and the catalogue never see it.
-   The wrapper outranks [data-theme^="minimal"], so a rule here holds whichever stylesheet loads last. */
+   quiet figures with one dominant number, plain short motion.
+   The root layout carries AppShell's CSS to every route, so the wrapper also asks for the admin's shell on the page: the login,
+   the worker's phone and the catalogue keep their own type. :where() adds nothing to the weight, so the wrapper still outranks
+   [data-theme^="minimal"] and a rule here holds whichever stylesheet loads last. */
 
-:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]):where(:has(.sa-shell)) {
   .sa-shell {
     --sidebar: 216px;
     --topbar: 64px;
