@@ -26,7 +26,6 @@ export * from "./Toolbar";
 export * from "./Count";
 export * from "./Table";
 export * from "./Stat";
-export * from "./Attention";
 export * from "./SidePanel";
 export * from "./Fields";
 export * from "./Timeline";

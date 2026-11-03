@@ -4,14 +4,14 @@
  * Product details + movement history in a SidePanel.
  * Opened via useUi().openProduct(id, tab?); reads ui.panel of type "product".
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { available, useData, type Fault, type Movement } from "@/lib/store";
 import { useUi } from "./ui-state";
 import { StockMeter } from "./Viz";
 import { useFloorObjects } from "@/components/map3d/use-floor-objects";
 import { Badge, Button, cx, Fields, Notice, SidePanel, Spinner, Timeline, type TimelineItem } from "@/components/ui";
-import { fmtDate, fmtName, fmtPrice, fmtQty, fmtRelative, MOVEMENT_LABEL } from "@/lib/format";
+import { fmtDate, fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { placeWords, resolvePlace } from "@/lib/map3d/place";
 import { useShelves } from "@/lib/map3d/shelves";
@@ -24,14 +24,14 @@ function sameMonth(iso: string, now: Date): boolean {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
 
-/** One of the product's three numbers: a word over a big figure and its unit. */
-function Figure({ label, value, unit, tone }: { label: string; value: number; unit: string; tone?: "quiet" | "warning" | "danger" | "short" }) {
+/** One of a sheet's numbers, in `.sa-figures`: a word over a big figure and its unit. */
+export function Figure({ label, value, unit, tone }: { label: string; value: ReactNode; unit?: string; tone?: "quiet" | "warning" | "danger" | "short" }) {
   return (
     <div className={cx("sa-figure", tone && `is-${tone}`)}>
       <dt>{label}</dt>
       <dd>
-        <span className="ltr">{fmtQty(value)}</span>
-        <span className="sa-figure-unit">{unit}</span>
+        <span className="ltr">{typeof value === "number" ? fmtQty(value) : value}</span>
+        {unit ? <span className="sa-figure-unit">{unit}</span> : null}
       </dd>
     </div>
   );
@@ -47,8 +47,8 @@ export function ProductPanel() {
 }
 
 function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTab }) {
-  const { state, product, supplier, worker, agent, linesOf, fetchProductHistory, approveSupplierItem, resolveFault } = useData();
-  const { close, notify, openAction, openOrder } = useUi();
+  const { state, product, supplier, worker, agent, linesOf, fetchProductHistory, approveSupplierItem } = useData();
+  const { close, notify, openAction, openFault, openMovement, openOrder } = useUi();
   const floor = useFloorObjects();
   const { rows: shelves } = useShelves();
   const p = product(id);
@@ -150,15 +150,17 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
   const short = free < 0;
   const out = p.qty <= 0;
   const low = !short && !out && p.min_qty > 0 && free < p.min_qty;
-  const stockWord = out ? "אזל" : short ? "חסר להזמנות" : low ? "מתחת למינימום" : null;
+  const stockWord = out ? "אזל" : short ? "חסר להזמנות" : low ? "מתחת למינימום" : p.min_qty > 0 ? "תקין" : null;
   const photo = productPhotoUrl(p.image_path);
   const place = resolvePlace(p.location, floor);
   const standing = (shelves ?? []).filter((row) => row.product_id === p.id);
+  // What no shelf row covers still waits for a place. The first row is the shelf that goes out next.
+  const waiting = shelves ? Math.round((p.qty - standing.reduce((sum, row) => sum + row.qty, 0)) * 1000) / 1000 : 0;
+  const mapAt = standing[0]?.place ?? place?.objectId;
 
   // The fault behind a history entry: photo, full note and status live on the fault, not the movement.
   const faultDetail = (f: Fault) => {
     const src = faultPhotoUrl(f.photo_path);
-    const resolving = busy === `fault:${f.id}`;
     return (
       <div className="sa-timeline-detail">
         <p className="sa-timeline-note">{f.description}</p>
@@ -172,9 +174,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
           {f.status === "open" ? (
             <>
               <Badge tone="danger" dot>פתוחה</Badge>
-              <Button variant="link" size="sm" disabled={resolving} onClick={() => void run(`fault:${f.id}`, () => resolveFault(f.id), "התקלה סומנה כטופלה")}>
-                {resolving ? "סימון…" : "סימון כטופל"}
-              </Button>
+              <Button variant="link" size="sm" onClick={() => openFault(f.id)}>סגירה עם תיעוד</Button>
             </>
           ) : (
             <Badge tone="success" dot>טופלה{f.resolved_at ? ` ${fmtRelative(f.resolved_at)}` : ""}</Badge>
@@ -187,17 +187,17 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
   const productFaults = state.faults.filter((f) => f.product_id === id);
   const movementEntries = (rows ?? []).map((m) => {
     const fault = productFaults.find((f) => f.movement_id === m.id);
-    const extra = fault ? null : m.note || m.reference;
+    const extra = fault ? null : m.note || orderRef(m.reference);
     const head = extra ? `${MOVEMENT_LABEL[m.type]} · ${extra}` : MOVEMENT_LABEL[m.type];
     const item: TimelineItem = {
       id: m.id,
       type: m.type,
-      title: m.external_name ? (
-        <>
+      title: (
+        <button type="button" className="sa-attention-open" onClick={() => openMovement(m)}>
           {head}
-          <span className="sa-cell-sub sa-truncate">בתעודה: &quot;<bdi>{m.external_name}</bdi>&quot;</span>
-        </>
-      ) : head,
+          {m.external_name ? <span className="sa-cell-sub sa-truncate">בתעודה: &quot;<bdi>{m.external_name}</bdi>&quot;</span> : null}
+        </button>
+      ),
       when: fmtRelative(m.created_at),
       by: worker(m.worker_id)?.name,
       qty: m.qty,
@@ -213,6 +213,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
           const item: TimelineItem = {
             id: f.id,
             type: "fault",
+            title: <button type="button" className="sa-attention-open" onClick={() => openFault(f.id)}>{MOVEMENT_LABEL.fault}</button>,
             when: fmtRelative(f.created_at),
             by: worker(f.reported_by)?.name,
             detail: faultDetail(f),
@@ -238,21 +239,21 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
           <img className="sa-product-photo" src={photo} alt={p.name} loading="lazy" />
         ) : null
       }
-      eyebrow={<span className="sa-mono ltr">{p.sku}</span>}
+      eyebrow={<>מוצר · <span className="sa-mono ltr">{p.sku}</span></>}
       title={fmtName(p.name)}
       summary={
         <>
           <dl className="sa-figures">
-            <Figure label="במלאי" value={p.qty} unit={p.unit} tone={out && !short ? "danger" : undefined} />
-            <Figure label="משוריין" value={p.reserved} unit={p.unit} tone={p.reserved === 0 ? "quiet" : undefined} />
-            <Figure label={short ? "חסר" : "זמין"} value={Math.abs(free)} unit={p.unit} tone={short ? "short" : low ? "warning" : undefined} />
+            <Figure label="במלאי" value={p.qty} unit={fmtUnit(p.qty, p.unit)} tone={out && !short ? "danger" : undefined} />
+            <Figure label="משוריין" value={p.reserved} unit={fmtUnit(p.reserved, p.unit)} tone={p.reserved === 0 ? "quiet" : undefined} />
+            <Figure label={short ? "חסר" : "זמין"} value={Math.abs(free)} unit={fmtUnit(free, p.unit)} tone={short ? "short" : low ? "warning" : undefined} />
           </dl>
           {p.min_qty > 0 || stockWord ? (
             <div className="sa-product-level">
               {p.min_qty > 0 ? <StockMeter value={free} min={p.min_qty} tone={out || short ? "out" : low ? "low" : "ok"} /> : null}
               <p className="sa-product-level-words">
                 {p.min_qty > 0 ? <span>מינימום <span className="ltr">{fmtQty(p.min_qty)}</span></span> : null}
-                {stockWord ? <span className={`sa-product-state is-${short ? "short" : out ? "danger" : "warning"}`}>{stockWord}</span> : null}
+                {stockWord ? <span className={`sa-product-state is-${short ? "short" : out ? "danger" : low ? "warning" : "ok"}`}>{stockWord}</span> : null}
               </p>
             </div>
           ) : null}
@@ -279,6 +280,41 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
     >
       {tab === "details" ? (
         <>
+          <section className="sa-group flex flex-col gap-[var(--space-2)]" aria-labelledby="product-place-title">
+            <div className="sa-group-head">
+              <h3 id="product-place-title" className="sa-section-title">מיקום</h3>
+              {mapAt ? <Link className="sa-btn sa-btn-link sa-btn-sm" href={`/3d?at=${encodeURIComponent(mapAt)}`} onClick={close}>הצגה במפה</Link> : null}
+            </div>
+            {standing.length > 0 || waiting > 0 || p.location ? (
+              <ul className="sa-rows flex list-none flex-col divide-y divide-line-subtle">
+                {standing.map((row) => (
+                  <li key={row.place} className="sa-order-line relative flex items-center gap-[var(--space-3)] py-[var(--space-2)]">
+                    <Link className="sa-attention-open min-w-0 flex-1" href={`/3d?at=${encodeURIComponent(row.place)}`} onClick={close}>
+                      <span className="sa-truncate block">{placeWords(row.place, floor)}</span>
+                    </Link>
+                    <span className="shrink-0"><span className="sa-num">{fmtQty(row.qty)}</span> {fmtUnit(row.qty, p.unit)}</span>
+                  </li>
+                ))}
+                {standing.length === 0 && p.location ? (
+                  <li className="flex items-center gap-[var(--space-3)] py-[var(--space-2)]">
+                    <span className="sa-truncate block min-w-0 flex-1">{placeWords(p.location, floor)}</span>
+                  </li>
+                ) : null}
+                {waiting > 0 ? (
+                  <li className="sa-order-line relative flex items-center gap-[var(--space-3)] py-[var(--space-2)]">
+                    <span className="min-w-0 flex-1">
+                      <span className="sa-truncate block">ללא מיקום</span>
+                      <Button variant="link" size="sm" className="sa-row-press" onClick={() => openAction("place", { productId: p.id })}>שיבוץ</Button>
+                    </span>
+                    <span className="shrink-0"><span className="sa-num">{fmtQty(waiting)}</span> {fmtUnit(waiting, p.unit)}</span>
+                  </li>
+                ) : null}
+              </ul>
+            ) : (
+              <p className="sa-hint">אין מיקום, נקבע בקליטה</p>
+            )}
+          </section>
+
           {pendingItems.map((it) => {
             const s = supplier(it.supplier_id);
             return (
@@ -302,8 +338,8 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
                 key={f.id}
                 tone="danger"
                 title={f.description}
-                action={busy === `fault:${f.id}` ? "סימון…" : "סימון כטופל"}
-                onAction={() => void run(`fault:${f.id}`, () => resolveFault(f.id), "התקלה סומנה כטופלה")}
+                action="סגירה עם תיעוד"
+                onAction={() => openFault(f.id)}
               >
                 {[fmtRelative(f.created_at), w ? `דווח ע"י ${w.name}` : null].filter(Boolean).join(" · ")}
                 {src ? (
@@ -332,7 +368,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
                       </span>
                       <span className="sa-cell-sub">{agent(order.agent_id)?.name}</span>
                     </button>
-                    <span className="shrink-0"><span className="sa-num">{fmtQty(qty)}</span> {p.unit}</span>
+                    <span className="shrink-0"><span className="sa-num">{fmtQty(qty)}</span> {fmtUnit(qty, p.unit)}</span>
                   </li>
                 ))}
               </ul>
@@ -341,20 +377,6 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
 
           <Fields
             items={[
-              ...(standing.length > 0
-                ? standing.map((row) => ({
-                    label: "מיקום",
-                    value: (
-                      <>
-                        <Link className="sa-btn sa-btn-link" href={`/3d?at=${encodeURIComponent(row.place)}`} onClick={close}>{placeWords(row.place, floor)}</Link>
-                        {standing.length > 1 ? <> · <span className="sa-num">{fmtQty(row.qty)}</span> {p.unit}</> : null}
-                      </>
-                    ),
-                  }))
-                : [{
-                    label: "מיקום",
-                    value: place ? <Link className="sa-btn sa-btn-link" href={`/3d?at=${encodeURIComponent(place.objectId)}`} onClick={close}>{p.location}</Link> : p.location,
-                  }]),
               { label: "ספק ראשי", value: supplier(p.primary_supplier_id)?.name },
               {
                 label: "ברקוד",

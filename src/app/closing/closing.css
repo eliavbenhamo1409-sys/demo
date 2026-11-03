@@ -1,31 +1,59 @@
-/* סגירת יום. The money answers lead; what is still open sits under them. */
-.sa-stats.dc-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.dc-stats > :nth-child(-n + 2) { grid-column: span 3; }
-.dc-stats > :nth-child(n + 3) { grid-column: span 2; }
+/* סגירת יום. The state leads, the figures follow it, and every list stands on the same two columns. */
+.dc-page { --gap: var(--space-5); --ov-inset: var(--inset, var(--space-5)); }
 
-.dc-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap, var(--space-5)); align-items: start; }
-@media (min-width: 1100px) { .dc-split { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* The figures jump here, so a section lands clear of the sticky top bar. */
+.dc-block { min-width: 0; display: flex; flex-direction: column; scroll-margin-top: 88px; }
+.dc-block > .sa-card { flex: 1; }
 
-/* The tiles jump here, so the block lands clear of the sticky top bar. */
-.dc-block { min-width: 0; scroll-margin-top: 88px; }
+/* ── The day's state: one sentence and one action ── */
+.dc-page .dc-state > .sa-card-body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-5) var(--ov-inset); }
+.dc-state-text { min-width: 0; }
+.dc-state-word { margin: 0; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); }
+.dc-state-word.is-ok { color: var(--success-text); }
+.dc-state-word.is-warn { color: var(--warning-text); }
+.dc-state-line { margin: 2px 0 0; font-size: var(--t-14); line-height: var(--l-21); color: var(--text-tertiary); }
+/* A worker can write a paragraph, and the row in the list carries the rest of it. */
+.dc-state-next { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; }
+.dc-state-note { margin: var(--space-2) 0 0; font-size: var(--t-14); line-height: var(--l-21); color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.dc-state-actions { flex-shrink: 0; display: flex; align-items: center; gap: var(--space-2); }
+.dc-state-wait { width: 32%; margin-block: 24px; }
 
-.dc-fig { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: end; }
-.dc-fig-n { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.dc-fig-word { font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.dc-fig-word.is-short { color: var(--short); }
-.dc-fig-word.is-out { color: var(--danger-text); }
-.dc-fig-word.is-low, .dc-flag { color: var(--warning-text); }
-.dc-flag { font-weight: 500; }
-/* A worry with nothing wrong answers in a green word. */
-.dc-calm { color: var(--success-text); }
+/* ── The figures: the money stays quiet, what is open draws the eye ── */
+/* Mill has no inset of its own, and a note that says what is wrong wraps rather than being cut. */
+.dc-page .ov-figures { --ov-inset: max(var(--inset, var(--space-5)), var(--space-4)); }
+.dc-page .ov-figure-note { white-space: normal; text-wrap: pretty; }
+.dc-page .ov-figure-note .is-warn { white-space: nowrap; }
+.dc-quiet { color: var(--text-tertiary); }
+.dc-warn { color: var(--warning-text); }
+.dc-ok { color: var(--success-text); }
+@media (hover: hover) { .ov-figure:hover :is(.dc-quiet, .dc-warn, .dc-ok) { color: inherit; } }
 
-.dc-note { margin: 0; padding: var(--space-3) var(--inset, var(--space-4)); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+/* ── The lists: two columns on one sheet, filled row by row, so neighbours share a height and עוד only adds at the foot ── */
+@media (min-width: 1100px) {
+  .dc-page .dc-pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--gap); background: var(--bg-surface); }
+  .dc-page .dc-pairs > .sa-attention-item:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+  .dc-page .dc-pairs > .sa-attention-item:nth-last-child(2):nth-child(odd)::after { display: none; }
+  /* Row beside row: a long name ends where the line does, and the press opens the rest. A phone has no neighbour, so it keeps two lines. */
+  [data-theme^="minimal"] .dc-page .sa-attention-item:not(.dc-static) .sa-attention-title { -webkit-line-clamp: 1; }
+}
+.dc-flag { color: var(--warning-text); font-weight: 500; }
+/* A log line is all there is of it, so it wraps. */
+.dc-page .ov-list .sa-attention-meta > .dc-whole { flex-shrink: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+/* It opens nothing, so it answers no pointer. The shared hover carries a heavy selector, hence the weight here. */
+@media (hover: hover) { :root .dc-page .dc-block .sa-attention-item.dc-static:hover { background: var(--bg-surface); } }
+/* Nothing to list takes a line, not a sheet of its own. */
+.dc-page .dc-block .sa-empty { padding-block: var(--space-3) var(--space-6); }
 
-/* A phone gives each answer its own row, and the day buttons their own line under the title. */
+/* ── Closing with something open ── */
+.dc-ask { display: flex; flex-direction: column; gap: var(--space-3); }
+.dc-ask-open { margin: 0; }
+
+/* A phone gives the day buttons their own line under the title, and the state's buttons the whole width, the main one first. */
 @media (max-width: 600px) {
-  .sa-stats.dc-stats { grid-template-columns: minmax(0, 1fr); }
-  .dc-stats > :nth-child(n) { grid-column: auto; }
   [data-theme^="minimal"] .dc-page > .sa-pagehead { grid-template: "title" 44px "sub" var(--l-22) "actions" auto / minmax(0, 1fr); }
   [data-theme^="minimal"] .dc-page .sa-pagehead-actions { margin-block-start: var(--space-3); }
   [data-theme^="minimal"] .dc-page .sa-pagehead-actions > .sa-btn { flex: 1; }
+  .dc-page .dc-state > .sa-card-body { flex-direction: column; align-items: stretch; gap: var(--space-4); }
+  .dc-state-actions { flex-direction: column-reverse; align-items: stretch; }
+  .dc-state-next { -webkit-line-clamp: 2; }
 }

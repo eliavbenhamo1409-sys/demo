@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button, Fields, Modal, Notice, Select } from "@/components/ui";
 import { useData } from "@/lib/store";
-import { fmtRelative } from "@/lib/format";
+import { fmtRelative, fmtUnit } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
 import { productOptions } from "./options";
@@ -119,7 +119,7 @@ export function MapSupplierItemForm({ ctx }: { ctx: ActionContext }) {
                 <span className="sa-error" role="alert">{form.errors.product}</span>
               ) : target ? (
                 <span className="sa-hint">
-                  <span className="sa-mono ltr">{target.sku}</span> · במלאי {target.qty} {target.unit}
+                  <span className="sa-mono ltr">{target.sku}</span> · במלאי {target.qty} {fmtUnit(target.qty, target.unit)}
                 </span>
               ) : (
                 <span className="sa-hint">יזוהה אוטומטית בפעם הבאה</span>

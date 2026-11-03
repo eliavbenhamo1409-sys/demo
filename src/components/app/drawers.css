@@ -1,5 +1,5 @@
-/* What floats over the page: the product and order drawers, the action forms, the actions menu and the settings dialog.
-   Base rules for the two blocks the classic style also shows, then the aluminium style, scoped to [data-theme^="minimal"].
+/* What floats over the page: the product, order, fault and movement drawers, the action forms, the actions menu and the settings dialog.
+   Base rules for what the classic style also shows, then the aluminium style, scoped to [data-theme^="minimal"].
 
    In the aluminium style a drawer is a silver sheet holding white groups, the way Settings does on an iPhone,
    so depth stays white on silver and no box is drawn. A field is a white well on the silver.
@@ -24,12 +24,49 @@
 .sa-product-level-words { display: flex; justify-content: space-between; gap: var(--space-3); margin: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
 .sa-product-state { margin-inline-start: auto; font-weight: 600; }
 
+/* The state under a drawer's title is a word in colour, never a pill. */
+.sa-state { font-weight: 500; }
+.sa-state.is-ok { color: var(--success-text); }
+.sa-state.is-warn { color: var(--warning-text); }
+.sa-state.is-bad { color: var(--danger-text); }
+.sa-state.is-short { color: var(--short); }
+
+/* The other styles keep an order's total at the foot of its lines, and say nothing of a product that is fine. */
+.sa-panel-heading > .sa-order-sum.sa-figures, .sa-product-state.is-ok { display: none; }
+
+/* A group's title, and the one thing it offers at the far end of the same line. */
+.sa-group-head { position: relative; }
+.sa-group-head .sa-btn { position: absolute; inset-block-start: 0; inset-inline-end: 0; height: auto; padding: 0; }
+
+/* A fault's photo opens at full size, so here the frame is a link around the picture. It clips, or a phone's tall photo would set the frame's height. */
+a.sa-product-photo { overflow: hidden; }
+a.sa-product-photo > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* Closing a fault: the note and the button that needs it stay in view together. */
+.sa-close-fault { flex: 1; flex-direction: column; min-width: 0; }
+.sa-close-fault .sa-field { flex: none; }
+
+/* The small word stays the sign, and the whole row is what a finger hits. */
+.sa-row-press::after { content: ""; position: absolute; inset: 0; }
+
+/* A history row opens what it tells of; what sits under it keeps its own press. */
+.sa-timeline-detail { position: relative; z-index: 1; }
+/* A receipt says who and what at its head, so the crop keeps the top of the page. */
+.sa-story .sa-fault-photo img { object-position: top; }
+/* A drawer's story is steps, not stock, so no step wears a movement's icon. */
+.app-panelHost .sa-story .sa-timeline-item .sa-timeline-icon { display: none; }
+
+/* A row of faults opens its fault; the photo, the product and the row's button keep their own press. */
+.sa-fault-row :is(a.sa-fault-thumb, .sa-fault-product, .sa-fault-actions) { position: relative; z-index: 1; }
+@media (hover: hover) { .sa-fault-row:hover { background: var(--bg-hover, var(--bg-canvas)); } }
+
 /* A break between a form's groups: the classic style keeps its plain stack. */
 .sa-form-break { display: none; }
 
 /* ── The sheet ─────────────────────────────────────────────── */
 [data-theme="minimal"] .app-panelHost { --sheet: var(--bg-canvas); --group: var(--bg-surface); }
-[data-theme="minimal-dark"] .app-panelHost { --sheet: var(--bg-surface); --group: var(--bg-hover); }
+/* The group here is the colour of a dark rule, so a rule takes the next step up to stay seen. */
+[data-theme="minimal-dark"] .app-panelHost { --sheet: var(--bg-surface); --group: var(--bg-hover); --border-subtle: var(--border-base); }
 /* The 3D floor turns the canvas white, so the sheet takes the next silver to keep white on silver. */
 [data-theme="minimal"]:has(.m3d-stage) .app-panelHost { --sheet: var(--bg-hover); }
 /* Corners nest: the sheet's radius less the gap. Round corners, where a browser has no squircle, read tighter, so they stop higher. */
@@ -59,6 +96,8 @@
 [data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn { height: var(--control-lg); padding-inline: var(--space-4); font-size: var(--t-15); }
 [data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn svg { width: 18px; height: 18px; }
 [data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn-primary { flex: 1; }
+/* Stacked under a note, a growing button would collapse. */
+.app-panelHost .sa-panel-foot .sa-close-fault .sa-btn { flex: none; }
 [data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-btn-ghost { background: var(--bg-fill); color: var(--text-primary); }
 [data-theme^="minimal"] .app-panelHost .sa-panel-foot .sa-order-cancel { color: var(--danger-text); }
 /* The dark's foot is lifted, and a quiet fill on it leaves the red just short of reading size. */
@@ -108,6 +147,11 @@
 [data-theme^="minimal"] .app-panelHost :is(.sa-group, .sa-timeline, .sa-dict-suppliers-list) { overflow: hidden; }
 [data-theme^="minimal"] .app-panelHost .sa-group { gap: 0; padding-top: var(--space-4); }
 [data-theme^="minimal"] .app-panelHost .sa-group > .sa-section-title { padding-inline: var(--group-inset); }
+[data-theme^="minimal"] .app-panelHost .sa-group:not(:has(.sa-section-title)) { padding-top: 0; }
+[data-theme^="minimal"] .app-panelHost .sa-group-head { padding-inline: var(--group-inset); }
+[data-theme^="minimal"] .app-panelHost .sa-group-head .sa-btn { inset-inline-end: var(--group-inset); height: var(--l-24); }
+/* The note's word, what is typed in it and the groups above all start on one edge. */
+[data-theme^="minimal"] .app-panelHost .sa-close-fault .sa-label { padding-inline: var(--group-inset); }
 [data-theme^="minimal"] .app-panelHost .sa-group > .sa-hint { margin: 0; padding: var(--space-1) var(--group-inset) var(--space-4); }
 [data-theme^="minimal"] .app-panelHost .sa-rows > li { position: relative; min-height: 68px; padding: var(--space-3) var(--group-inset); border: 0; font-size: var(--t-15); line-height: var(--l-22); }
 [data-theme^="minimal"] .app-panelHost .sa-rows > li:not(:last-child)::after { content: ""; position: absolute; inset-inline: var(--group-inset) 0; bottom: 0; height: var(--hair); background: var(--border-subtle); pointer-events: none; }
@@ -147,6 +191,12 @@
 [data-theme^="minimal"] .app-panelHost .sa-timeline-title { font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; }
 [data-theme^="minimal"] .app-panelHost .sa-timeline-qty { font-size: var(--t-15); line-height: var(--l-22); }
 [data-theme^="minimal"] .app-panelHost .sa-timeline-detail { padding-inline-start: calc(20px + var(--space-3)); }
+
+/* Inside a group the history is the group's rows: no second sheet, and the rule starts at the text. */
+[data-theme^="minimal"] .app-panelHost .sa-group > .sa-story { background: none; border-radius: 0; box-shadow: none; }
+[data-theme^="minimal"] .app-panelHost .sa-story .sa-timeline-item:not(:last-child)::after { inset-inline-start: var(--group-inset); }
+[data-theme^="minimal"] .app-panelHost .sa-story .sa-timeline-detail { padding-inline-start: 0; }
+[data-theme^="minimal"] .app-panelHost .sa-timeline-title .sa-btn-link { height: auto; padding: 0; font-size: inherit; line-height: inherit; font-weight: inherit; }
 
 /* The suppliers list is one white group too. */
 [data-theme^="minimal"] .app-panelHost.app-panelHost .sa-dict-suppliers .sa-panel-body { padding-inline: var(--sheet-gap); }
@@ -226,6 +276,91 @@
 [data-theme^="minimal"] .sa-actionmenu .sa-menu-item > svg { width: 20px; height: 20px; stroke-width: 1.5; }
 [data-theme^="minimal"] .sa-actionmenu .sa-menu-item.ends-group { margin-bottom: 9px; }
 [data-theme^="minimal"] .sa-actionmenu .sa-menu-item.ends-group::after { content: ""; position: absolute; inset-inline: var(--space-3); bottom: -5px; height: var(--hair); background: var(--border-base); }
+
+/* ── One drawer language, in the default style ─────────────────
+   A product, an order, a fault and a movement read the same way down the sheet: what it is, its state, its figures,
+   what is wrong, the facts, the history, one button at the foot. The type is the overview's, so a row in a drawer
+   reads like a row on the page. The wrapper outranks the rules above, which the third style keeps. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  .app-panelHost { --figure-line: 36px; }
+
+  /* The head */
+  .app-panelHost .sa-panel-title { font-weight: 600; letter-spacing: 0; }
+  .app-panelHost .sa-sheet.is-long .sa-panel-title { font-size: var(--t-17); line-height: var(--l-24); text-wrap: pretty; }
+  .app-panelHost .sa-panel-sub { font-size: var(--t-15); line-height: var(--l-22); }
+  .sa-sheet .sa-panel-sub .sa-order-late { font-weight: 500; }
+  .sa-order-status { font-weight: 500; }
+  .sa-order-status.is-open { color: var(--text-primary); }
+
+  /* A warning's title carries its colour, so its text can start on the same edge as every group's. */
+  .sa-sheet .sa-notice > :is(.sa-dot-danger, .sa-dot-warning) { display: none; }
+  .sa-sheet .sa-panel-body > .sa-notice { background: var(--group); }
+  /* What is short reads the same here as in the line above it and on the overview: the one loud mark. */
+  .sa-sheet .sa-panel-body > .sa-notice-short .sa-notice-title { color: var(--short); }
+
+  /* The figures: the overview's strip, a rule between them, each column on the same edge in every drawer */
+  .sa-figures { gap: 0; }
+  /* One figure alone may be long, an order's total in the millions, so it takes the line. */
+  .sa-figures:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+  .sa-figure { padding-inline: var(--space-3); }
+  .sa-figure:first-child { padding-inline-start: 0; }
+  .sa-figure + .sa-figure { border-inline-start: var(--hair) solid var(--border-subtle); }
+  .sa-figure dt { font-size: var(--t-14); line-height: var(--l-20); }
+  .sa-figure dd { font-weight: 600; letter-spacing: -0.01em; }
+  .sa-figure .sa-signed { font-weight: inherit; }
+  .sa-panel-heading > .sa-order-sum.sa-figures { display: grid; }
+  .app-panelHost .sa-rows > .sa-order-total { display: none; }
+  .app-panelHost .sa-rows > li:has(+ .sa-order-total)::after { display: none; }
+
+  /* The product says what the others say, where they say it: its code over its name, then its state and minimum in one line.
+     The photo gives way, so the first group is in view; on a short window more of it does. A fault's photo is its evidence, so it gives less. */
+  .app-panelHost .sa-panel-heading > .sa-product-photo { aspect-ratio: 5 / 2; }
+  .app-panelHost .sa-panel-heading > a.sa-product-photo { aspect-ratio: 2 / 1; }
+  @media (max-height: 760px) { .app-panelHost .sa-panel-heading > :is(img, a).sa-product-photo { aspect-ratio: 4 / 1; } }
+  .sa-product .sa-panel-eyebrow { order: 0; margin-block: 0 2px; }
+  .sa-product .sa-product-level { display: contents; }
+  .sa-product .sa-product-level-words { order: 1; flex-direction: row-reverse; justify-content: flex-end; gap: 0; margin: var(--space-1) var(--space-2) 0; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-secondary); }
+  .sa-product .sa-product-level-words > :first-child:not(.sa-product-state)::before { content: " · "; white-space: pre; }
+  .sa-product .sa-product-state { display: inline; margin: 0; font-weight: 500; }
+  .sa-product .sa-product-state.is-ok { color: var(--success-text); }
+  .sa-product .sa-panel-heading > .sa-figures { order: 2; }
+  .sa-product .sa-meter { order: 3; flex: none; width: auto; margin: var(--space-4) var(--space-2) 0; }
+
+  /* Groups and rows */
+  .app-panelHost .sa-section-title { font-size: var(--t-16); line-height: var(--l-24); font-weight: 600; }
+  .app-panelHost .sa-rows > li { min-height: var(--row); padding-block: var(--space-2); }
+  .app-panelHost .sa-rows .sa-truncate { font-weight: 500; }
+  .app-panelHost .sa-rows .sa-thumb { width: 36px; height: 36px; }
+  .app-panelHost .sa-rows > li:has(> .sa-thumb)::after { inset-inline-start: calc(var(--group-inset) + 36px + var(--space-3)); }
+  .app-panelHost .sa-rows > li > .shrink-0 { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+  .app-panelHost .sa-rows .sa-num { font-size: var(--t-16); line-height: var(--l-22); color: var(--text-primary); }
+  /* An order mixes units, so the unit keeps a column of its own and the quantities and sums share one edge. */
+  .app-panelHost .sa-order-figure { display: grid; grid-template-columns: auto 3.4em; column-gap: var(--space-1); justify-items: end; align-items: baseline; }
+  .app-panelHost .sa-order-figure > .block { display: contents; }
+  .app-panelHost .sa-order-figure .sa-order-unit { justify-self: start; }
+  .app-panelHost .sa-order-figure .sa-cell-sub { grid-column: 1; }
+  .app-panelHost .sa-rows .sa-btn-link { height: auto; padding: 0; font-size: var(--t-13); line-height: var(--l-18); }
+  .app-panelHost .sa-fields > div { min-height: 48px; }
+
+  /* The history */
+  .app-panelHost .sa-timeline-title { font-weight: 500; }
+  .app-panelHost .sa-story .sa-timeline-body { min-height: 0; }
+  /* The frame holds its height, so a receipt on its way isn't a stray line and nothing under it moves when it lands. */
+  .app-panelHost .sa-story .sa-fault-photo { height: 180px; }
+  .app-panelHost .sa-story .sa-fault-photo img { height: 100%; max-height: none; }
+  .app-panelHost .sa-timeline-qty { font-size: var(--t-16); line-height: var(--l-22); }
+  .app-panelHost .sa-timeline-title .sa-attention-open .sa-cell-sub { font-weight: 400; }
+  .app-panelHost .sa-timeline-status .sa-badge-dot { display: none; }
+  @media (hover: hover) { .app-panelHost .sa-timeline-item:has(.sa-attention-open):hover { background: var(--bg-hover); } }
+
+  /* Closing a fault */
+  .sa-close-fault { gap: var(--space-2); }
+  .app-panelHost .sa-close-fault .sa-textarea { min-height: 76px; padding-block: 12px; resize: none; background: var(--sheet); box-shadow: none; }
+
+  /* Forms and questions stop at the same weight */
+  .app-panelHost .sa-qtyfield .sa-input.sa-input-mono { font-weight: 600; letter-spacing: -0.01em; }
+  .sa-modal .sa-modal-title { font-weight: 600; }
+}
 
 @supports (corner-shape: squircle) {
   [data-theme^="minimal"] :is(.app-panelHost :is(.sa-group, .sa-fields, .sa-timeline, .sa-dict-suppliers-list, .sa-product-photo, .sa-panel-heading), .sa-settings-group, .sa-switch, .sa-qtyfield .sa-qty button) { corner-shape: squircle; }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { SIGNED_OUT_ATTR } from "@/lib/login/boot";
 import { supabase } from "@/lib/supabase/client";
 import { LoginScreen } from "./LoginScreen";
 
@@ -20,6 +21,11 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement | 
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // The boot script's mark only bridges the wait for this answer; it must not follow anyone to the worker or the catalogue.
+  useEffect(() => {
+    if (status !== "unknown") document.documentElement.removeAttribute(SIGNED_OUT_ATTR);
+  }, [status]);
 
   if (/^\/(worker|catalog)(\/|$)/.test(pathname)) return <>{children}</>;
   if (status === "unknown") return null;

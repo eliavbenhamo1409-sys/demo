@@ -10,11 +10,13 @@ The scripts ran in this order through the Supabase MCP, each as one transaction.
 | Script | What it does |
 | --- | --- |
 | `01_catalog.sql` | Workers, suppliers and 184 new products. A family gives a product its category, description and alloy note. |
-| `02_year.sql` | Orders day by day, then the ledger built backwards from today's shelf, so every balance lands exactly on `products.qty`. Sales and stock are scaled to their targets inside the script. |
-| `03_shelves.sql` | Puts every unit on a shelf and sets `movements.place` and `orders.promised_on`. Clear `shelf_stock` first. |
-| `04_paper_and_floor.sql` | Receipts, supplier names, faults, item requests and the owner's exit passes. |
-| `05_day_closings.sql` | Freezes every day of the year, with the stock of that night rebuilt from the ledger. |
-| `06_trucks_before_orders.sql` | Moves a delivery ahead of the orders that needed it, so no running balance dips under zero inside a day. |
+| `02_catalog_fixes.sql` | Corrects prices, trade words, notes and supplier ranges after an outside review, and backdates the agents. |
+| `03_orders.sql` | Orders day by day, by trade. A system trade takes a whole set of a series in the proportions it is built in; the rest take a basket of its materials. Sales are scaled to their target inside the script. |
+| `04_ledger.sql` | Goods out from the orders, then the ledger built backwards from today's shelf, so every balance lands exactly on `products.qty`. Each supplier has its own rhythm and its own run of note numbers. |
+| `05_shelves.sql` | Puts every unit on a shelf and sets `movements.place`. Clear `shelf_stock` first. |
+| `06_paper_and_floor.sql` | Exit passes, receipts, supplier names, faults and item requests. |
+| `07_trucks_before_orders.sql` | Moves a delivery ahead of the orders that needed it, so no running balance dips under zero inside a day. |
+| `08_day_closings.sql` | Freezes every day of the year, with the stock of that night rebuilt from the ledger. |
 | `receipts.mjs` | Draws one photographed paper per document and uploads it to the path its row names. Needs `playwright-core`. Anon can add to the bucket but not replace, so a redraw needs a new `storage_path`. |
 
 Generated rows carry an id prefix, which is how they are taken out and rebuilt: `de1` movements, `de2` orders, `de3` order

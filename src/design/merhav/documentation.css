@@ -1,7 +1,7 @@
 /* תיעוד: a kept archive. Sheets lie on the plate under their day, the photograph is the content, one quiet line names it. */
 
 .mh-docs {
-  --mh-docs-top: 72px;
+  --mh-docs-top: 56px;
   --mh-docs-leaf: clamp(140px, 9.4vw, 200px);
   padding: 34px var(--mh-gutter) 72px;
   min-width: 0;
@@ -31,6 +31,8 @@
 
 .mh-docs-body { display: grid; grid-template-columns: minmax(0, 1fr); }
 .mh-docs-body.has-scale { grid-template-columns: minmax(0, 1fr) 96px; column-gap: clamp(20px, 2.4vw, 44px); }
+.mh-docs-body.has-scale > .mh-docs-wall { grid-area: 1 / 1; }
+.mh-docs-body.has-scale > .mh-docs-scale { grid-area: 1 / 2; }
 
 /* One day: its date stands at the edge of the plate and rides down beside its sheets. Off screen a day costs nothing. */
 .mh-docs-day {
@@ -38,8 +40,8 @@
   grid-template-columns: clamp(80px, 7vw, 128px) minmax(0, 1fr);
   gap: 0 clamp(14px, 1.6vw, 32px);
   padding-block: 26px 38px;
-  padding-inline-end: 48px;
-  margin-inline-end: -48px;
+  padding-inline-end: var(--mh-gutter);
+  margin-inline-end: calc(var(--mh-gutter) * -1);
   border-top: 1px solid var(--border-base);
   scroll-margin-top: var(--mh-docs-top);
   content-visibility: auto;
@@ -54,7 +56,6 @@
   margin-top: -1px;
 }
 .mh-docs-wall.is-sparse .mh-docs-day { padding-inline-end: 0; margin-inline-end: 0; border-top: 1px solid var(--border-base); }
-.mh-docs-wall.is-sparse .mh-docs-leaves { grid-template-columns: repeat(auto-fill, var(--mh-docs-leaf)); }
 .mh-docs-wall.is-sparse .mh-docs-day.is-wide { grid-column: span 2; }
 .mh-docs-wall.is-sparse .mh-docs-more { grid-column: 1 / -1; }
 
@@ -94,6 +95,7 @@
   text-align: start;
   cursor: pointer;
   outline: none;
+  scroll-margin-block: calc(var(--mh-docs-top) + 16px) 16px;
 }
 .mh-docs-paper {
   position: relative;
@@ -163,13 +165,13 @@
   border-radius: var(--radius-sm);
 }
 .mh-docs-scale:focus-visible { box-shadow: var(--focus-ring); }
-.mh-docs-rule { position: absolute; inset: 10px 0; box-shadow: -1px 0 0 var(--bg-surface), inset 1px 0 0 var(--border-base); }
+.mh-docs-rule { position: absolute; inset: 10px 0; box-shadow: inset 1px 0 0 var(--border-base); }
 .mh-docs-tick {
   position: absolute;
   left: 0;
-  width: calc(5px + var(--reach) * 22px);
+  width: calc(4px + var(--reach) * 16px);
   height: 1px;
-  background: var(--border-control);
+  background: var(--border-strong);
   pointer-events: none;
 }
 .mh-docs-monthmark {
@@ -211,7 +213,10 @@ html[data-theme^="merhav"] {
   width: var(--mh-docs-reader);
   display: block;
   animation: none;
+  transition: width var(--dur-move) var(--spring-move);
 }
+.mh-docs-reader.is-bare { --mh-docs-reader: var(--mh-docs-side); }
+.mh-docs-reader.is-bare::before { display: none; }
 /* Focus rests on the dialog so the arrows and Tab start here. It is no control, so it wears no ring. */
 [data-theme^="merhav"] .app-panelHost.mh-docs-reader:focus-visible { outline: none; box-shadow: none; }
 
@@ -276,18 +281,6 @@ html[data-theme^="merhav"] {
   height: auto;
   border-radius: inherit;
 }
-.mh-docs-held.is-note {
-  width: min(100%, 460px);
-  aspect-ratio: 3 / 4;
-  padding: 28px;
-  overflow: auto;
-  overflow-wrap: anywhere;
-  background: var(--bg-raised);
-  font-size: 20px;
-  line-height: 1.5;
-  font-weight: 300;
-  cursor: auto;
-}
 .mh-docs-wait { display: block; width: 60%; }
 
 .mh-docs-held.is-next { --turn: -16px; animation: mh-docs-turn var(--dur-2) var(--ease) both; }
@@ -324,7 +317,8 @@ html[data-theme^="merhav"] {
 .mh-docs-lines .mh-row-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-size: var(--t-14); line-height: var(--l-20); }
 .mh-docs-qty { display: inline-flex; align-items: baseline; gap: 5px; flex: none; font-size: var(--t-16); }
 .mh-docs-qty small { font-size: var(--t-13); color: var(--text-tertiary); }
-.mh-docs-kept { margin: 0; max-width: 150px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.mh-docs-record .sa-panel-foot > div:has(.mh-docs-kept) { flex: 1 0 100%; }
+.mh-docs-kept { margin: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
 
 /* The bar takes two lines before the sheets run out of room. */
 @media (max-width: 1230px) {
@@ -365,7 +359,7 @@ html[data-theme^="merhav"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mh-docs-paper, .mh-docs-carriage { transition: none; }
+  .mh-docs-paper, .mh-docs-carriage, [data-theme^="merhav"] .app-panelHost.mh-docs-reader { transition: none; }
   .mh-docs-side, .mh-docs-reader::before, .mh-docs-held.is-next, .mh-docs-held.is-prev, .mh-docs-held.is-lifting, .mh-docs-held.is-landing,
   .mh-docs-reader[data-closing] .mh-docs-side, .mh-docs-reader[data-closing]::before { animation: none; }
 }

@@ -11,7 +11,8 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
 import { createPortal } from "react-dom";
-import { joinTheme, splitTheme, THEME_MODES, THEME_STYLES, useTheme } from "@/lib/theme";
+import { loadMerhav } from "@/components/merhav/use-merhav";
+import { joinTheme, splitTheme, THEME_MODES, THEME_STYLES, useTheme, type ThemeStyle } from "@/lib/theme";
 import { Button } from "./Button";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
@@ -63,6 +64,12 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
   const dialogRef = useRef<HTMLDivElement>(null);
   const uid = useId();
   const titleId = `sa-settings-${uid}-title`;
+
+  // Merhav's code comes first, so the old style stands until the new one can take over, with nothing blank between.
+  const chooseStyle = (next: ThemeStyle) => {
+    if (next === "merhav") void loadMerhav().then(() => setTheme(joinTheme(next, mode)), () => undefined);
+    else setTheme(joinTheme(next, mode));
+  };
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -119,8 +126,8 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
         </div>
         <div className="sa-modal-body">
           <div className="sa-settings-group">
-            {/* Merhav is the admin's alone, and only the admin passes pages. */}
-            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => s.id !== "merhav")} value={style} onChange={(s) => setTheme(joinTheme(s, mode))} />
+            {/* Merhav is the admin's alone, and only the admin passes pages. Anyone else sees it as the default style, so that is what is marked. */}
+            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => s.id !== "merhav")} value={pages || style !== "merhav" ? style : "minimal"} onChange={chooseStyle} />
             <Choice label="מראה" options={THEME_MODES} value={mode} onChange={(m) => setTheme(joinTheme(style, m))} />
           </div>
           {pages?.length ? (

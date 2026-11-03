@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, Count, cx, Fields, Icon } from "@/components/ui";
-import { fmtName, fmtPrice, fmtQty, fmtRelative, isToday } from "@/lib/format";
+import { fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, isToday } from "@/lib/format";
 import { DISPATCH_ZONE, RECEIVING_ZONE } from "@/lib/map3d/layout";
 import { coverOf, countOf, lastOutOf } from "@/lib/map3d/metrics";
 import { blockAt, shelfLines, type ObjectStock, type ShelfBlock } from "@/lib/map3d/model";
@@ -181,7 +181,7 @@ function ShelfLine({ map, block, open, onToggle }: { map: MapView; block: ShelfB
         <span className="m3d-line-name" role="cell">{fmtName(p.name)}</span>
         <span className="m3d-num" role="cell">
           <span className="m3d-line-qty">{fmtQty(qty)}</span>
-          <span className="m3d-line-unit">{p.unit}</span>
+          <span className="m3d-line-unit">{fmtUnit(qty, p.unit)}</span>
         </span>
         <span className={cx("m3d-num m3d-line-percent", STATE_NUM[state])} role="cell">{word ?? (share === null ? "—" : percentText(share))}</span>
         <Icon name="chevron-down" size={14} className="m3d-shelf-chevron" />
@@ -294,24 +294,12 @@ function ItemFacts({ map, block }: { map: MapView; block: ShelfBlock }) {
 }
 
 function FaultRow({ fault }: { fault: Fault }) {
-  const { worker, resolveFault } = useData();
-  const { notify } = useUi();
-  const [busy, setBusy] = useState(false);
+  const { worker } = useData();
+  const { openFault } = useUi();
   const by = worker(fault.reported_by)?.name;
 
-  const resolve = async () => {
-    setBusy(true);
-    try {
-      await resolveFault(fault.id);
-      notify({ tone: "success", title: "התקלה סומנה כטופלה" });
-    } catch (e) {
-      notify({ tone: "danger", title: "סימון התקלה נכשל", text: e instanceof Error ? e.message : undefined });
-      setBusy(false);
-    }
-  };
-
   return (
-    <RailRow end={<Button variant="link" size="sm" disabled={busy} onClick={() => void resolve()}>{busy ? "סימון…" : "סימון כטופל"}</Button>}>
+    <RailRow end={<Button variant="link" size="sm" onClick={() => openFault(fault.id)}>סגירה עם תיעוד</Button>}>
       <span className="block">{fault.description}</span>
       <span className="sa-cell-sub">{[fmtRelative(fault.created_at), by ? `דווח ע"י ${by}` : null].filter(Boolean).join(" · ")}</span>
     </RailRow>

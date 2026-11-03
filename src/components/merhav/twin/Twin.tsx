@@ -9,7 +9,7 @@
  * at a product or a place and the model answers. What a page leaves on, it clears on the way out.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import type { LabelFlash } from "@/components/map3d/Labels";
 import { useMapEngine } from "@/components/map3d/use-engine";
@@ -21,6 +21,7 @@ import { shelfAnchor } from "@/lib/map3d/layout";
 import type { Insets, LabelAnchor, MapEngine, MapEngineEvents, MapObject, MapRoute, PickHit, StockSlot } from "@/lib/map3d/types";
 import { useLayout, type Layout } from "@/lib/map3d/use-layout";
 import { isTempId, useData } from "@/lib/store";
+import { useTagRoom } from "./use-tag-room";
 
 /** Where the door stands on a page. open: tucked into the rail, the model has the stage. dock: the model keeps a third.
  *  side: a narrow rail of content beside a full model. closed: the door covers the model. */
@@ -49,6 +50,10 @@ export interface Twin {
   spotObjects: (ids: readonly string[] | null, hit?: PickHit | null) => void;
   /** The same for a product, wherever it stands. */
   spotProduct: (productId: string | null) => void;
+  /** Stands over what the page left on, whatever the page does meanwhile: the product in a drawer, the row the search is on. Null gives the page back. */
+  spotOver: (what: { product: string } | { ids: readonly string[] } | null) => void;
+  /** Takes the camera somewhere and keeps it there through a new window size. Null: the whole floor. */
+  holdCamera: (target: CameraTarget) => void;
   /** Takes the model's clicks and hovers for this page. Returns the way to give them back. */
   listen: (handlers: Handlers) => () => void;
   /** A page draws its own lines and marks, and null hands the floor back. */
@@ -64,7 +69,6 @@ export interface Twin {
   aimEl: HTMLElement | null;
   /** Where the line leaves the plate. */
   aimFrom: { current: { x: number; y: number } | null };
-  aimed: string | null;
 }
 
 const TwinContext = createContext<Twin | null>(null);
@@ -75,16 +79,48 @@ export function useTwin(): Twin {
   return twin;
 }
 
+// Apart from the rest, so a row under the pointer redraws one line and not every page that reads the model.
+const AimedContext = createContext<string | null>(null);
+
+/** The product the line runs to. */
+export const useAimed = (): string | null => useContext(AimedContext);
+
+/** The dock is narrow, so the whole L has to fit from further back than the 3D page ever needs. */
+const REACH = 640;
+
+/**
+ * How wide the stage must be, for each pixel of its height, to hold the whole L from REACH. On a narrower door the L
+ * keeps this width and its far wing, the machines, slides under the plate: the racks stay in view, both ends aren't
+ * cropped, and a flight lands where it aimed instead of snapping to the camera's limit.
+ */
+const FITS = 0.46;
+
 /** One line on the floor at the front of what needs a hand: where, before anything is read. Never a box. */
 const MARK_MARGIN = 0.45;
 
 const NO_ITEMS: readonly MapItem[] = [];
 
+/** What is lit on the model. */
+interface Spot {
+  ids: readonly string[] | null;
+  hit: PickHit | null;
+}
+
+const NO_SPOT: Spot = { ids: null, hit: null };
+
+/** Where the camera is asked to stand. */
+type CameraTarget = Parameters<MapEngine["flyTo"]>[0];
+
 /** Created on the first page that shows the model, then kept: leaving this mounted is what makes a page turn seamless. */
 function EngineHost({ host, events, onChange }: { host: RefObject<HTMLDivElement | null>; events: Required<MapEngineEvents>; onChange: (engine: MapEngine | null, failed: boolean) => void }): ReactElement {
-  const { engine, failed } = useMapEngine(host, events);
+  const { engine, failed } = useMapEngine(host, events, REACH);
   useEffect(() => onChange(engine, failed), [engine, failed, onChange]);
-  return <div ref={host} className="mh-twin" role="img" aria-label="מודל המחסן" />;
+  return (
+    <>
+      <div ref={host} className="mh-twin" role={failed ? undefined : "img"} aria-label={failed ? undefined : "מודל המחסן"} />
+      {failed ? <p className="mh-twin-failed">המפה לא זמינה בדפדפן הזה</p> : null}
+    </>
+  );
 }
 
 interface ProviderProps {
@@ -105,6 +141,7 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
   const [engine, setEngine] = useState<MapEngine | null>(null);
   const [failed, setFailed] = useState(false);
   const handlers = useRef<Handlers | null>(null);
+  useTagRoom(world);
 
   // The model is built the first time it would be seen.
   const [started, setStarted] = useState(door !== "closed");
@@ -171,24 +208,52 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
   }, [engine, pageRoutes, marks]);
 
   /* ───────── pointing at things ───────── */
-  const spotObjects = useCallback(
-    (ids: readonly string[] | null, hit: PickHit | null = null) => {
+  // Read from here, so these keep one identity: a page's cleanup hangs on them, and a ledger that reloads under a
+  // resting pointer must not count as leaving.
+  const ledger = useRef({ itemsOf, objects });
+  useLayoutEffect(() => {
+    ledger.current = { itemsOf, objects };
+  }, [itemsOf, objects]);
+
+  const spotOf = useCallback((productId: string): Spot => {
+    const items = ledger.current.itemsOf(productId);
+    const first = items[0];
+    return { ids: items.length > 0 ? items.map((item) => item.objectId) : null, hit: first ? { objectId: first.objectId, level: first.level, side: first.side } : null };
+  }, []);
+
+  const resting = useRef(NO_SPOT);
+  const over = useRef<Spot | null>(null);
+
+  const paint = useCallback(
+    ({ ids, hit }: Spot) => {
       engine?.setEmphasis(ids && ids.length > 0 ? new Set(ids) : null);
       engine?.setSelection(hit);
     },
     [engine],
   );
 
+  const spotObjects = useCallback(
+    (ids: readonly string[] | null, hit: PickHit | null = null) => {
+      resting.current = { ids, hit };
+      if (!over.current) paint(resting.current);
+    },
+    [paint],
+  );
+
   const spotProduct = useCallback(
     (productId: string | null) => {
-      const items = productId ? itemsOf(productId) : NO_ITEMS;
-      const first = items[0];
-      spotObjects(
-        items.length > 0 ? items.map((item) => item.objectId) : null,
-        first ? { objectId: first.objectId, level: first.level, side: first.side } : null,
-      );
+      const { ids, hit } = productId ? spotOf(productId) : NO_SPOT;
+      spotObjects(ids, hit);
     },
-    [itemsOf, spotObjects],
+    [spotOf, spotObjects],
+  );
+
+  const spotOver = useCallback<Twin["spotOver"]>(
+    (what) => {
+      over.current = what && ("product" in what ? spotOf(what.product) : { ids: what.ids, hit: null });
+      paint(over.current ?? resting.current);
+    },
+    [paint, spotOf],
   );
 
   const listen = useCallback((next: Handlers) => {
@@ -223,8 +288,8 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
 
   const aimProduct = useCallback(
     (productId: string | null, from?: { x: number; y: number }) => {
-      const item = productId ? itemsOf(productId)[0] : undefined;
-      const object = item ? objects.find((o) => o.id === item.objectId) : undefined;
+      const item = productId ? ledger.current.itemsOf(productId)[0] : undefined;
+      const object = item ? ledger.current.objects.find((o) => o.id === item.objectId) : undefined;
       if (!item || !object) {
         aimPoint.current = null;
         setAimed(null);
@@ -236,7 +301,7 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
       setAimed(productId);
       writeAnchors();
     },
-    [itemsOf, objects, writeAnchors],
+    [writeAnchors],
   );
 
   const events = useMemo<Required<MapEngineEvents>>(
@@ -259,6 +324,9 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
 
   /* ───────── the door decides what is left of the stage ───────── */
   const gauge = useRef<HTMLElement>(null);
+  const held = useRef<CameraTarget>(null);
+  const fit = useRef<() => void>(null);
+
   useEffect(() => {
     if (!engine || !world) return;
     const widthOf = (token: string) => {
@@ -270,35 +338,67 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
     const place = () => {
       const free = world.clientWidth;
       if (free === 0) return;
+      const target = held.current;
       const insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
-      if (door === "open") {
-        insets.right = widthOf("--mh-hero-right");
+      // What the door may take of the whole floor and still leave the L its width.
+      const leaving = (inset: number, bleed = 0) => Math.max(Math.min(inset, free + bleed - world.clientHeight * FITS), 0);
+      // A drawer on the bare stage stands where the figures did, and what is held has to clear it.
+      if (door === "open" && target) insets.right = widthOf("--panel");
+      else if (door === "open") {
+        const bleed = widthOf("--mh-hero-bleed");
+        insets.right = leaving(widthOf("--mh-hero-right"), bleed);
         insets.bottom = widthOf("--mh-hero-bottom");
-        insets.left = -widthOf("--mh-hero-bleed");
-      } else if (door === "dock") insets.right = free - widthOf("--mh-dock");
-      else if (door === "side") insets.right = widthOf("--mh-side");
+        insets.left = -bleed;
+      } else if (door === "dock") {
+        const inset = free - widthOf("--mh-dock");
+        insets.right = target ? inset : leaving(inset);
+      } else if (door === "side") insets.right = leaving(widthOf("--mh-side"));
       engine.setInsets(insets);
-      engine.flyTo(null);
+      engine.flyTo(target);
       if (document.visibilityState === "hidden") engine.renderNow();
     };
+    const onResize = () => {
+      // The event comes before the engine's own observer, and the camera fits to the size the engine knows.
+      engine.renderNow();
+      place();
+    };
+    fit.current = place;
     place();
-    window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
+    window.addEventListener("resize", onResize);
+    return () => {
+      fit.current = null;
+      window.removeEventListener("resize", onResize);
+    };
   }, [engine, world, door]);
 
+  const holdCamera = useCallback((target: CameraTarget) => {
+    held.current = target;
+    fit.current?.();
+  }, []);
+
   const twin = useMemo<Twin>(
-    () => ({ engine, failed, layout, objects, model, flashes, world, placeOf, itemsOf, spotObjects, spotProduct, listen, setPageRoutes, setPastSlots, home, aimProduct, setAnchors, aimEl, aimFrom, aimed }),
-    [engine, failed, layout, objects, model, flashes, world, placeOf, itemsOf, spotObjects, spotProduct, listen, home, aimProduct, setAnchors, aimEl, aimed],
+    () => ({ engine, failed, layout, objects, model, flashes, world, placeOf, itemsOf, spotObjects, spotProduct, spotOver, holdCamera, listen, setPageRoutes, setPastSlots, home, aimProduct, setAnchors, aimEl, aimFrom }),
+    [engine, failed, layout, objects, model, flashes, world, placeOf, itemsOf, spotObjects, spotProduct, spotOver, holdCamera, listen, home, aimProduct, setAnchors, aimEl],
   );
 
-  const worldNode = (
-    <div ref={setWorld} className="mh-world">
-      {started ? <EngineHost host={host} events={events} onChange={onChange} /> : null}
-      <div className="mh-world-light" aria-hidden="true" />
-      <i ref={gauge} className="mh-gauge" aria-hidden="true" />
-      <i ref={setAimEl} className="mh-aim" aria-hidden="true" />
-    </div>
+  const worldNode = useMemo(
+    () => (
+      <div ref={setWorld} className="mh-world" role="region" aria-label="המחסן">
+        {started ? <EngineHost host={host} events={events} onChange={onChange} /> : null}
+        <div className="mh-world-light" aria-hidden="true" />
+        <i ref={gauge} className="mh-gauge" aria-hidden="true" />
+        <i ref={setAimEl} className="mh-aim" aria-hidden="true" />
+      </div>
+    ),
+    [started, events, onChange],
   );
 
-  return <TwinContext.Provider value={twin}>{children(worldNode)}</TwinContext.Provider>;
+  // What changes in here is news for those who read it, not a reason to render the whole shell again.
+  const tree = useMemo(() => children(worldNode), [children, worldNode]);
+
+  return (
+    <TwinContext.Provider value={twin}>
+      <AimedContext.Provider value={aimed}>{tree}</AimedContext.Provider>
+    </TwinContext.Provider>
+  );
 }

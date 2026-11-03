@@ -7,7 +7,8 @@
  */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, Notice } from "@/components/ui";
@@ -39,6 +40,11 @@ function DayStrip({ onHover, onOpen }: { onHover: (m: Movement | null) => void; 
   }, []);
   const place = (at: number) => ((at - start) / 86_400_000) * 100;
   const [hover, setHover] = useState<Movement | null>(null);
+  // A tick says what it is only here, so the keyboard reaches it the way the pointer does.
+  const point = (m: Movement | null) => {
+    setHover(m);
+    onHover(m);
+  };
 
   return (
     <div className="mh-day">
@@ -53,14 +59,10 @@ function DayStrip({ onHover, onOpen }: { onHover: (m: Movement | null) => void; 
               className={`mh-tick is-${m.type}`}
               style={{ left: `${place(Date.parse(m.created_at))}%` }}
               aria-label={`${MOVEMENT_LABEL[m.type]} ${fmtQty(m.qty)} ${p?.name ?? ""}, ${fmtTime(m.created_at)}`}
-              onPointerEnter={() => {
-                setHover(m);
-                onHover(m);
-              }}
-              onPointerLeave={() => {
-                setHover(null);
-                onHover(null);
-              }}
+              onPointerEnter={() => point(m)}
+              onPointerLeave={() => point(null)}
+              onFocus={() => point(m)}
+              onBlur={() => point(null)}
               onClick={() => onOpen(m)}
             />
           );
@@ -106,11 +108,11 @@ function runwayWord(r: Runway): { word: string; tone: string } {
 /* ───────── the page ───────── */
 
 export function Overview(): ReactElement {
-  const { state, stats, attention, product, linesOf, resolveFault } = useData();
-  const { openAction, openProduct, openOrder, notify } = useUi();
+  const { state, stats, attention, product, linesOf } = useData();
+  const { openAction, openProduct, openOrder, openFault } = useUi();
   const { dismissed, dismiss } = useDismissedAlerts();
   const { spotProduct, spotObjects, itemsOf } = useTwin();
-  const [busyFault, setBusyFault] = useState<string | null>(null);
+  const router = useRouter();
 
   const since = useMemo(() => midnight(1 - PACE_DAYS), []);
   const { rows: month, failed: monthFailed, retry: retryMonth } = useMovementsInRange(since, null);
@@ -146,28 +148,14 @@ export function Overview(): ReactElement {
   const toRefill = soon.filter((r) => r.state === "out" || r.state === "low").length;
 
   /* ───────── what waits on a person ───────── */
-  const onResolve = useCallback(
-    async (entry: AttentionEntry) => {
-      if (!entry.faultId || busyFault) return;
-      setBusyFault(entry.faultId);
-      try {
-        await resolveFault(entry.faultId);
-        notify({ tone: "success", title: "התקלה סומנה כטופלה", text: entry.title });
-      } catch (e) {
-        notify({ tone: "danger", title: "סימון התקלה נכשל", text: e instanceof Error ? e.message : undefined });
-      } finally {
-        setBusyFault(null);
-      }
-    },
-    [resolveFault, notify, busyFault],
-  );
-
   const work = useMemo(() => attention.filter((a) => !isStock(a)), [attention]);
 
   const openEntry = (a: AttentionEntry) => {
     if (a.kind === "request") openAction("review-item-request", { requestId: a.requestId });
     else if (a.kind === "mapping") openAction("map-supplier-item", { supplierItemId: a.supplierItemId });
     else if (a.productId) openProduct(a.productId);
+    // A fault on a machine has no product to open, and its place is on תקלות.
+    else router.push("/faults");
   };
 
   /* ───────── the model answers what you point at ───────── */
@@ -188,6 +176,22 @@ export function Overview(): ReactElement {
 
   useEffect(() => () => spotObjects(null), [spotObjects]);
 
+  // The figures stand on the world, so when the page leaves they stay there a moment and the door closes over them.
+  useLayoutEffect(() => {
+    const figures = stage.current;
+    return () => {
+      const world = document.querySelector(".mh-world");
+      // Under a drawer they were already gone, and a clone would bring them back.
+      if (!figures || !world || window.scrollY > 0 || document.querySelector(".app-panelHost") || window.matchMedia("(max-width: 899px), (prefers-reduced-motion: reduce)").matches) return;
+      const ghost = figures.cloneNode(true) as HTMLElement;
+      ghost.classList.add("mh-ghost");
+      ghost.setAttribute("aria-hidden", "true");
+      ghost.inert = true;
+      ghost.addEventListener("animationend", () => ghost.remove());
+      world.append(ghost);
+    };
+  }, []);
+
   // As the sheet rises the model sinks a little and the figures make way, so nothing is ever read through something else.
   useEffect(() => {
     const app = document.querySelector<HTMLElement>(".mh-app");
@@ -202,6 +206,7 @@ export function Overview(): ReactElement {
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
       app.style.removeProperty("--lift");
+      if (app.style.length === 0) app.removeAttribute("style");
     };
   }, []);
 
@@ -214,6 +219,7 @@ export function Overview(): ReactElement {
 
   return (
     <div className="mh-ov">
+      <h1 className="sa-sr">סקירה</h1>
       <section ref={stage} className="mh-ov-stage" aria-label="תמונת מצב">
         <div className="mh-ov-figures">
           <p className="mh-ov-date">{fmtToday()}</p>
@@ -225,19 +231,21 @@ export function Overview(): ReactElement {
           </div>
 
           <div className="mh-ov-held">
-            <div className="mh-ov-bar" dir="ltr" role="img" aria-label={`${fmtPrice(Math.round(worth.free))} זמין, ${fmtPrice(Math.round(worth.held))} משוריין`}>
-              <i style={{ width: `${100 - heldShare}%` }} />
-              <b style={{ width: `${heldShare}%` }} />
-            </div>
+            {worth.total > 0 ? (
+              <div className="mh-ov-bar" dir="ltr" role="img" aria-label={`${fmtPrice(Math.round(worth.free))} זמין, ${fmtPrice(Math.round(worth.held))} משוריין`}>
+                <i style={{ width: `${100 - heldShare}%` }} />
+                <b style={{ width: `${heldShare}%` }} />
+              </div>
+            ) : null}
             <dl>
               <div><dt>זמין</dt><dd className="ltr">₪{whole(worth.free)}</dd></div>
               <div><dt>משוריין</dt><dd className="ltr">₪{whole(worth.held)}</dd></div>
             </dl>
           </div>
 
-          <Link href="/orders" className="mh-ov-cover">
+          <Link href={promises.uncovered > 0 ? "/orders?filter=short" : "/orders"} className="mh-ov-cover">
             <span className="mh-label">הזמנות מכוסות</span>
-            <Figure className={cx("mh-ov-cover-n", promises.open === 0 ? "" : promises.uncovered > 0 ? "mh-tone-short" : "mh-tone-ok")} text={`${covered}%`} />
+            <Figure className={cx("mh-ov-cover-n", promises.open === 0 ? "" : promises.uncovered > 0 ? "mh-tone-short" : "mh-tone-ok")} text={promises.open === 0 ? "—" : `${covered}%`} />
             <span className="mh-ov-note">
               {promises.open === 0 ? "אין הזמנות פתוחות" : promises.uncovered > 0 ? `חסר מלאי ל-${fmtQty(promises.uncovered)} מתוך ${fmtQty(promises.open)}` : `${fmtQty(promises.open)} פתוחות, הכל על המדף`}
               {promises.late > 0 ? <span className="mh-tone-warn"> · {promises.late === 1 ? "אחת באיחור" : `${fmtQty(promises.late)} באיחור`}</span> : null}
@@ -248,11 +256,11 @@ export function Overview(): ReactElement {
 
         <div className="mh-ov-floor">
           <div className="mh-ov-bottom">
-            <dl className="mh-ov-answers">
-              <Link href="/faults"><dt>תקלות</dt><dd className={stats.openFaults > 0 ? "mh-tone-out" : "mh-tone-ok"}>{stats.openFaults > 0 ? `${fmtQty(stats.openFaults)} פתוחות` : "אין פתוחות"}</dd></Link>
-              <Link href="/suppliers"><dt>אישורים</dt><dd className={pending > 0 ? "mh-tone-warn" : "mh-tone-ok"}>{pending > 0 ? `${fmtQty(pending)} ממתינים` : "אין ממתינים"}</dd></Link>
-              <Link href={stats.low > 0 ? "/inventory?filter=low" : stats.out > 0 ? "/inventory?filter=out" : "/inventory"}><dt>מלאי</dt><dd className={toRefill > 0 ? "mh-tone-warn" : "mh-tone-ok"}>{toRefill > 0 ? `${fmtQty(toRefill)} להשלמה` : "אין מה להשלים"}</dd></Link>
-            </dl>
+            <div className="mh-ov-answers">
+              <Link href="/faults"><span>תקלות</span> <b className={stats.openFaults > 0 ? "mh-tone-out" : "mh-tone-ok"}>{stats.openFaults > 0 ? `${fmtQty(stats.openFaults)} פתוחות` : "אין פתוחות"}</b></Link>
+              <Link href="/suppliers"><span>אישורים</span> <b className={pending > 0 ? "mh-tone-warn" : "mh-tone-ok"}>{pending > 0 ? `${fmtQty(pending)} ממתינים` : "אין ממתינים"}</b></Link>
+              <Link href={stats.low > 0 ? "/inventory?filter=low" : stats.out > 0 ? "/inventory?filter=out" : "/inventory"}><span>מלאי</span> <b className={toRefill > 0 ? "mh-tone-warn" : "mh-tone-ok"}>{toRefill > 0 ? `${fmtQty(toRefill)} להשלמה` : "אין מה להשלים"}</b></Link>
+            </div>
             <dl className="mh-ov-week">
             <div>
               <dt>יצא השבוע</dt>
@@ -286,7 +294,7 @@ export function Overview(): ReactElement {
               {work.map((a) => {
                 const photo = a.kind === "fault" ? faultPhotoUrl(a.photoPath) : null;
                 return (
-                  <li key={a.id} onPointerEnter={() => onSpot(a.productId)} onPointerLeave={() => onSpot(null)}>
+                  <li key={a.id} onPointerEnter={() => onSpot(a.productId)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(a.productId)} onBlur={() => onSpot(null)}>
                     <button type="button" className="mh-row" onClick={() => openEntry(a)}>
                       {photo ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -296,9 +304,9 @@ export function Overview(): ReactElement {
                         <span className="mh-row-title">{a.title}</span>
                         <span className="mh-row-sub">{a.meta.join(" · ")}</span>
                       </span>
-                      <span className={cx("mh-row-word", a.severity === "danger" ? "mh-tone-out" : "mh-tone-warn")}>{a.label}</span>
+                      <span className={cx("mh-row-word", a.kind === "short" ? "mh-tone-short" : a.severity === "danger" ? "mh-tone-out" : "mh-tone-warn")}>{a.label}</span>
                     </button>
-                    {a.faultId ? <Button variant="ghost" size="sm" disabled={busyFault === a.faultId} onClick={() => void onResolve(a)}>סימון כטופל</Button> : null}
+                    {a.faultId ? <Button variant="ghost" size="sm" aria-label={`סגירה עם תיעוד: ${a.title}`} onClick={() => openFault(a.faultId ?? "")}>סגירה עם תיעוד</Button> : null}
                   </li>
                 );
               })}
@@ -313,7 +321,7 @@ export function Overview(): ReactElement {
                 const { word, tone } = runwayWord(r);
                 const removable = r.state === "out" || r.state === "low";
                 return (
-                  <li key={r.product.id} onPointerEnter={() => onSpot(r.product.id)} onPointerLeave={() => onSpot(null)}>
+                  <li key={r.product.id} onPointerEnter={() => onSpot(r.product.id)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(r.product.id)} onBlur={() => onSpot(null)}>
                     <button type="button" className="mh-row" onClick={() => openProduct(r.product.id)}>
                       <ProductThumb product={r.product} />
                       <span className="mh-row-main">
@@ -322,7 +330,7 @@ export function Overview(): ReactElement {
                       </span>
                       <span className={cx("mh-row-word", tone)}>{word}</span>
                     </button>
-                    {removable ? <Button variant="ghost" size="sm" iconOnly icon="x" title="הסרה מהרשימה" onClick={() => dismiss(`${r.state}:${r.product.id}`, r.free)} /> : null}
+                    {removable ? <Button variant="ghost" size="sm" iconOnly icon="x" title="הסרה מהרשימה" aria-label={`הסרה מהרשימה: ${fmtName(r.product.name)}`} onClick={() => dismiss(`${r.state}:${r.product.id}`, r.free)} /> : null}
                   </li>
                 );
               })}
@@ -342,7 +350,7 @@ export function Overview(): ReactElement {
                 });
                 const spots = lines.flatMap((l) => itemsOf(l.product_id).map((item) => item.objectId));
                 return (
-                  <li key={o.id} onPointerEnter={() => spotObjects(spots)} onPointerLeave={() => spotObjects(null)}>
+                  <li key={o.id} onPointerEnter={() => spotObjects(spots)} onPointerLeave={() => spotObjects(null)} onFocus={() => spotObjects(spots)} onBlur={() => spotObjects(null)}>
                     <button type="button" className="mh-row" onClick={() => openOrder(o.id)}>
                       <ProductThumb product={first} />
                       <span className="mh-row-main">
@@ -370,14 +378,17 @@ export function Overview(): ReactElement {
             {recent.map((m) => {
               const p = product(m.product_id);
               return (
-                <li key={m.id} onPointerEnter={() => onSpot(m.product_id)} onPointerLeave={() => onSpot(null)}>
+                <li key={m.id} onPointerEnter={() => onSpot(m.product_id)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(m.product_id)} onBlur={() => onSpot(null)}>
                   <button type="button" className="mh-row" onClick={() => openProduct(m.product_id, "history")}>
                     <ProductThumb product={p} />
                     <span className="mh-row-main">
                       <span className="mh-row-title">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
                       <span className="mh-row-sub">{MOVEMENT_LABEL[m.type]} · {fmtWhen(m.created_at)}</span>
                     </span>
-                    <span className={cx("mh-row-fig ltr", m.type === "in" ? "mh-tone-in" : m.type === "out" ? "mh-tone-out" : undefined)}>{fmtSigned(m.qty, m.type)}</span>
+                    <span className="mh-row-fig">
+                      <span className={cx("ltr", m.type === "in" ? "mh-tone-in" : m.type === "out" ? "mh-tone-out" : undefined)}>{fmtSigned(m.qty, m.type)}</span>
+                      <small>{p?.unit}</small>
+                    </span>
                   </button>
                 </li>
               );

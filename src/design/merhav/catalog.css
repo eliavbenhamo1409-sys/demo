@@ -3,27 +3,28 @@
 .mh-cat {
   padding: 34px var(--mh-gutter) 72px;
   min-width: 0;
-  /* One set of columns for the whole page, so our side and their side stay one straight axis from top to bottom. */
-  --bay-wire: clamp(120px, 15%, 260px);
+  /* One set of columns for the whole bay. The wires take what a wider window adds, so a name never drifts from its supplier. */
+  --bay-wire: clamp(140px, calc(45% - 340px), 420px);
   --bay-cols: minmax(0, 1fr) var(--bay-wire) minmax(0, 1.5fr);
   --bay-name: minmax(0, 1fr) 150px 112px;
   --wire: color-mix(in srgb, var(--text-primary) 52%, transparent);
 }
 
-.mh-cat-head { display: flex; align-items: center; gap: 16px 40px; }
+.mh-cat-head { display: flex; align-items: flex-start; gap: 16px 40px; }
 .mh-cat-title { flex: none; }
 .mh-cat-title .sa-page-sub { margin: 4px 0 0; }
-.mh-cat-tools { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.mh-cat-tools { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-block-start: var(--mh-title-key); }
 .mh-cat-tools .sa-search { flex: 0 1 460px; margin-inline-end: 8px; }
 
 /* ── The open ports ── */
 .mh-cat-opens { margin-top: 26px; }
 .mh-cat-opens .mh-col-head h2 { display: flex; align-items: baseline; gap: 10px; }
-.mh-cat-opens-n { font-size: 30px; line-height: 1; font-weight: 300; letter-spacing: -0.02em; }
+.mh-cat-opens-n { font-size: 30px; font-weight: 300; letter-spacing: -0.02em; }
 .mh-cat-opens-more { height: 44px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; font-size: var(--t-14); cursor: pointer; }
 .mh-cat-opens-more:hover { text-decoration: underline; text-underline-offset: 3px; }
 .mh-cat-opens-more:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.mh-cat-open { display: grid; grid-template-columns: var(--bay-cols); align-items: center; min-height: var(--row); border-bottom: 1px solid var(--border-subtle); }
+/* Here the decision is on our side, so our side gets the room: a guess is checked by reading all of it. */
+.mh-cat-open { display: grid; grid-template-columns: minmax(0, 1.14fr) clamp(84px, 9%, 200px) minmax(0, 1fr); align-items: center; min-height: var(--row); border-bottom: 1px solid var(--border-subtle); }
 .mh-cat-open-socket { display: flex; align-items: center; gap: 8px; min-width: 0; padding-inline-end: 14px; }
 .mh-cat-open-socket .sa-select { flex: 1 1 auto; min-width: 0; }
 .mh-cat-open-socket .sa-select-trigger { background: transparent; box-shadow: inset 0 -1px 0 var(--border-strong); border-radius: 0; padding-inline-start: 0; }
@@ -32,22 +33,23 @@
 .mh-cat-open-socket .sa-select-value:not(.is-placeholder) { font-weight: 500; color: var(--text-primary); }
 .mh-cat-open-wire { position: relative; height: 100%; min-height: var(--row); --reach: 62%; }
 .mh-cat-open.is-seated .mh-cat-open-wire { --reach: 100%; }
-.mh-cat-open-line { position: absolute; left: 0; top: 50%; width: var(--reach); height: 1px; background: var(--wire); transition: width var(--dur-move) var(--spring-move); }
+.mh-cat-open-line { position: absolute; inset-inline-end: 0; top: 50%; width: var(--reach); height: 1px; background: var(--wire); transition: width var(--dur-move) var(--spring-move); }
 .mh-cat-port {
   position: absolute;
-  left: var(--reach);
+  inset-inline-end: var(--reach);
   top: 50%;
   width: 36px;
   height: 36px;
-  margin: -18px 0 0 -18px;
+  margin-block-start: -18px;
+  margin-inline-end: -18px;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
   border-radius: 50%;
-  transition: left var(--dur-move) var(--spring-move);
+  transition: inset-inline-end var(--dur-move) var(--spring-move);
 }
-.mh-cat-port i { display: block; width: 9px; height: 9px; margin: auto; border-radius: 50%; background: var(--bg-surface); box-shadow: inset 0 0 0 1.25px var(--warning-text); transition: transform var(--dur-press) var(--spring-press); }
+.mh-cat-port i { display: block; width: 9px; height: 9px; margin: auto; border-radius: 50%; background: var(--bg-surface); box-shadow: inset 0 0 0 1.25px var(--port, var(--warning-text)); transition: transform var(--dur-press) var(--spring-press); }
 .mh-cat-port:hover i { transform: scale(1.3); }
 .mh-cat-port:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .mh-cat-open-name { display: flex; align-items: center; gap: 12px; min-width: 0; padding-inline-start: 14px; }
@@ -57,6 +59,8 @@
 .mh-cat-open .sa-btn-primary { flex: none; background: none; color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent); }
 .mh-cat-open .sa-btn-primary:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); }
 .mh-cat-open .sa-btn-secondary { flex: none; }
+/* Nothing to approve yet, so no key: its place is kept and the field doesn't jump when a product is chosen. */
+.mh-cat-open-socket .sa-btn:disabled:not([aria-busy="true"]) { visibility: hidden; }
 
 /* The wire seats, then its row closes: the mapping is one movement. */
 .mh-cat-open.is-seating { pointer-events: none; overflow: hidden; animation: mh-cat-open-close 280ms var(--ease) 180ms both; }
@@ -73,7 +77,10 @@
 .mh-cat-fold > * { min-height: 0; overflow: hidden; margin-inline: calc(var(--mh-gutter) * -1); padding-inline: var(--mh-gutter); }
 .mh-cat-fold.is-folded { grid-template-rows: 0fr; opacity: 0; }
 .mh-cat-panel { padding-top: 34px; --panel-side: clamp(170px, 17%, 250px); }
-.mh-cat-panel-head { display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-strong); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+/* Each name of a column stands over its column: the numbers are the two inside columns, beside the lines. */
+.mh-cat-panel-head { display: grid; grid-template-columns: var(--panel-side) minmax(0, 1fr) var(--panel-side); padding-bottom: 8px; border-bottom: 1px solid var(--border-strong); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.mh-cat-panel-head span { padding-inline-end: 14px; text-align: end; }
+.mh-cat-panel-head span:last-child { grid-column: 3; padding-inline: 14px 0; text-align: start; }
 .mh-cat-panel-body { display: grid; grid-template-columns: var(--panel-side) minmax(0, 1fr) var(--panel-side); margin-top: 8px; }
 .mh-cat-panel-side { position: relative; min-width: 0; }
 .mh-cat-panel-field { min-width: 0; }
@@ -84,8 +91,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 28px;
-  margin-top: -14px;
+  height: calc(var(--line) - 4px);
+  margin-top: calc(var(--line) / -2 + 2px);
   padding: 0;
   border: 0;
   background: none;
@@ -100,10 +107,10 @@
 .mh-cat-panel-side:last-child .mh-cat-panel-label { padding-inline-start: 14px; }
 .mh-cat-panel-side:last-child .mh-cat-panel-n { order: -1; }
 .mh-cat-panel-word { overflow: hidden; text-overflow: ellipsis; }
-.mh-cat-panel-n { font-weight: 300; font-size: var(--t-15); letter-spacing: -0.01em; }
+.mh-cat-panel-n { min-width: 2ch; font-weight: 300; font-size: min(21px, calc(var(--line) * 0.68)); line-height: 1; letter-spacing: -0.02em; }
 .mh-cat-panel-label.is-far { opacity: 0.3; }
-.mh-cat-panel-n.is-share { color: var(--accent-text); font-weight: 400; }
-.mh-cat-panel-label.is-on { font-weight: 600; }
+.mh-cat-panel-n.is-share { color: var(--accent-text); }
+.mh-cat-panel-label.is-on { font-weight: 600; opacity: 1; }
 /* The same carriage as the rail, in the gutter of the group you stand on. */
 .mh-cat-panel-label::before {
   content: "";
@@ -121,7 +128,7 @@
 .mh-cat-panel-label.is-on::before { transform: scaleY(1); }
 .mh-cat-panel-label:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 /* The wires run across once when the panel arrives. */
-.mh-cat-trunk { fill: none; stroke: var(--text-primary); stroke-opacity: var(--weight); stroke-width: 1; stroke-dasharray: 1; animation: mh-draw var(--dur-plate) var(--spring-plate) both; transition: stroke var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease); }
+.mh-cat-trunk { fill: none; stroke: var(--text-primary); stroke-opacity: var(--weight); stroke-width: 1; stroke-dasharray: 1; stroke-dashoffset: 1; animation: mh-draw var(--dur-plate) var(--spring-plate) forwards; transition: stroke var(--dur-1) var(--ease), opacity var(--dur-1) var(--ease); }
 .mh-cat-trunk.is-far { opacity: 0.12; }
 .mh-cat-trunk.is-lit { stroke: var(--accent); stroke-opacity: 1; stroke-width: 1.5; }
 .mh-cat-panel .mh-cat-jack.is-far { opacity: 0.2; }
@@ -145,7 +152,35 @@
   color: var(--text-tertiary);
 }
 .mh-cat-bay-head-names { display: grid; grid-template-columns: var(--bay-name); padding-inline-start: 14px; align-items: center; }
-.mh-cat-bay-clear { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; cursor: pointer; }
+.mh-cat-bay-held { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mh-cat-bay-held b { font-weight: 500; color: var(--text-primary); }
+.mh-cat-bay-clear { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; cursor: pointer; }
+
+/* A section is the panel's group: its head holds the place while the list passes under it, and folds it away. */
+.mh-cat-section-head {
+  position: sticky;
+  top: 36px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 0 var(--border-subtle);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.mh-cat-section:first-of-type .mh-cat-section-head { margin-top: 0; }
+.mh-cat-section-word { font-size: var(--t-15); font-weight: 600; }
+.mh-cat-section-note { font-size: var(--t-13); color: var(--text-tertiary); }
+.mh-cat-section-head svg { margin-inline-start: auto; color: var(--text-quiet); stroke-width: 1.5; }
+.mh-cat-section-head:hover .mh-cat-section-word { color: var(--accent-text); }
+.mh-cat-section-head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 /* Reaches into both gutters: offscreen bands skip their paint, and the carriage stands in the gutter. */
 .mh-cat-band {
@@ -157,12 +192,16 @@
   content-visibility: auto;
   contain-intrinsic-size: auto var(--row);
 }
+[data-theme="merhav-dark"] .mh-cat-band .sa-thumb { filter: brightness(0.82); }
 .mh-cat-band-product { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: var(--row); padding-inline-end: 14px; align-self: start; }
 .mh-cat-band-name { display: block; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
 .mh-cat-band-name:hover { color: var(--accent-text); }
 .mh-cat-band-code { display: flex; gap: 10px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
 .mh-cat-band-add { padding: 0; border: 0; background: none; color: var(--text-tertiary); font: inherit; cursor: pointer; }
 .mh-cat-band-add:hover { color: var(--accent-text); }
+/* Each is one line of text, and a pointer still needs 24 pixels: the reach grows away from the other, and the lines stay where they are. */
+.mh-cat-band-name { padding-top: 2px; margin-top: -2px; }
+.mh-cat-band-add { padding-bottom: 6px; margin-bottom: -6px; }
 .mh-cat-band-wire { position: relative; min-width: 0; }
 .mh-cat-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .mh-cat-wire { fill: none; stroke: var(--wire); stroke-width: 1; transition: opacity var(--dur-1) var(--ease); }
@@ -173,29 +212,38 @@
 .mh-cat-jack { fill: var(--text-primary); }
 .mh-cat-jack.is-open { fill: var(--bg-surface); stroke: var(--warning-text); stroke-width: 1.25; }
 .mh-cat-band-names { min-width: 0; }
-/* A product with no names yet: one open jack, nothing plugged in. */
-.mh-cat-band.is-free .mh-cat-band-wire::after { content: ""; position: absolute; right: -4px; top: calc(var(--row) / 2 - 4px); width: 9px; height: 9px; border-radius: 50%; background: var(--bg-surface); box-shadow: inset 0 0 0 1.25px var(--border-control); }
+/* A product with no names yet: one open jack on our side, and pressing it starts a wire. */
+.mh-cat-band.is-free .mh-cat-band-wire { --reach: 100%; --port: var(--border-control); }
+.mh-cat-band.is-free .mh-cat-port { top: calc(var(--row) / 2); }
 .mh-cat-band-none { display: flex; align-items: center; min-height: var(--row); padding-inline-start: 14px; color: var(--text-tertiary); font-size: var(--t-14); }
 .mh-cat-name { position: relative; display: grid; grid-template-columns: var(--bay-name); align-items: start; min-height: var(--row); padding-inline-start: 14px; }
 .mh-cat-port-mark { position: absolute; top: calc(var(--row) / 2); inset-inline-start: 0; width: 0; height: 0; }
 .mh-cat-name-open { display: flex; flex-direction: column; justify-content: center; min-height: var(--row); min-width: 0; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; text-align: start; cursor: pointer; }
 .mh-cat-name-text { font-size: var(--t-15); line-height: var(--l-21); overflow-wrap: anywhere; }
+.mh-cat-name-open:hover .mh-cat-name-text { color: var(--accent-text); }
 .mh-cat-name-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
 .mh-cat-name-sup { min-height: var(--row); padding: 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: var(--t-14); text-align: start; cursor: pointer; }
 .mh-cat-name-sup:hover { color: var(--accent-text); }
-.mh-cat-name-end { display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-height: var(--row); }
-.mh-cat-name-tool { opacity: 0; }
+.mh-cat-name-end { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: var(--row); }
+.mh-cat-name-tool { flex: none; opacity: 0; }
+/* Two keys share a narrow column, and neither may be squeezed under a pointer's reach. */
+.mh-cat-name-tool:not(.sa-btn-icon) { padding-inline: 6px; }
+.mh-cat-name-tool.sa-btn-icon { width: 24px; }
+.mh-cat-name-end .sa-btn-link { min-height: 24px; }
 .mh-cat-name:hover .mh-cat-name-tool, .mh-cat-name:focus-within .mh-cat-name-tool { opacity: 1; }
 .mh-cat-name.is-form { display: block; padding-block: 10px; }
 /* The form's menus reach past the band, so it stops skipping its paint while one is open. */
 .mh-cat-band:has(.is-form) { content-visibility: visible; z-index: 3; }
 @media (hover: none) { .mh-cat-name-tool { opacity: 1; } }
 
-/* Pointing lights a whole path and lets the rest recede. The light runs along the wire from the end you are holding. */
-.mh-cat-band, .mh-cat-name { transition: opacity var(--dur-1) var(--ease); }
-.mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) { opacity: 0.32; }
-.mh-cat-band[data-on="name"] .mh-cat-name:not([data-on]) { opacity: 0.45; }
-.mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) { opacity: 0.4; }
+/* Pointing lights a whole path and the other wires recede, with a breath of delay so that crossing the list stays still.
+   The words stay readable: the pointer rests here while the list is being read. */
+.mh-cat-band > *, .mh-cat-name { transition: opacity var(--dur-1) var(--ease); }
+.mh-cat-wires { transition: opacity var(--dur-2) var(--ease); }
+.mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) .mh-cat-wires { opacity: 0.22; transition-delay: 120ms; }
+.mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) > :not(.mh-cat-band-wire) { opacity: 0.66; transition-delay: 120ms; }
+.mh-cat-band[data-on="name"] .mh-cat-name:not([data-on]) { opacity: 0.66; }
+.mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) { opacity: 0.3; }
 .mh-cat-band[data-on] .mh-cat-wire-lit { visibility: visible; animation: mh-draw 260ms var(--ease) forwards; }
 .mh-cat-band[data-on="band"] .mh-cat-wire-lit { stroke-dashoffset: -1; }
 .mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) .mh-cat-wire-lit { visibility: hidden; }
@@ -222,9 +270,7 @@
 @media (max-width: 1239px) {
   .mh-cat { --bay-name: minmax(0, 1fr) 96px; --bay-wire: clamp(72px, 12%, 140px); }
   .mh-cat-bay-head-names > :nth-child(2) { display: none; }
-  .mh-cat-name-open { grid-column: 1; }
-  .mh-cat-name { row-gap: 0; }
-  .mh-cat-name-open { min-height: 0; padding-block: 8px 0; }
+  .mh-cat-name-open { grid-column: 1; min-height: 0; padding-block: 8px 0; }
   .mh-cat-name-sup { grid-column: 1; grid-row: 2; min-height: 0; padding-block-end: 8px; font-size: var(--t-13); line-height: var(--l-18); }
   .mh-cat-name-end { grid-column: 2; grid-row: 1 / span 2; }
   .mh-cat-open-tools .sa-btn { padding-inline: 8px; }
@@ -234,13 +280,20 @@
 @media (max-width: 1019px) {
   .mh-cat { --bay-cols: minmax(0, 1fr); }
   .mh-cat-head { flex-wrap: wrap; }
-  .mh-cat-tools { flex: 1 1 100%; }
+  .mh-cat-tools { flex: 1 1 100%; margin-block-start: 0; }
   .mh-cat-tools .sa-search { flex: 1 1 auto; margin-inline-end: 0; }
   .mh-cat-bay-head { display: none; }
+  /* What narrows the list always shows, with its way out. */
+  .mh-cat-bay-head.is-held { display: flex; justify-content: space-between; gap: 12px; }
+  .mh-cat-bay-head.is-held > span:nth-child(2), .mh-cat-bay-head-names > span { display: none; }
+  .mh-cat-bay-head-names { display: block; padding: 0; flex: none; }
   .mh-cat-bay { margin-top: 14px; }
+  .mh-cat-section-head { top: 0; }
+  .mh-cat-bay-head.is-held ~ .mh-cat-section .mh-cat-section-head { top: 36px; }
   .mh-cat-band { display: block; padding-block: 6px; }
   .mh-cat-band-product { padding-inline-end: 0; }
-  .mh-cat-band-wire { display: none; }
+  .mh-cat-band:not(.is-free) .mh-cat-band-wire { display: none; }
+  .mh-cat-band.is-free .mh-cat-band-wire { position: absolute; inset-inline-end: var(--mh-gutter); top: 6px; width: 36px; height: var(--row); --reach: 50%; }
   .mh-cat-band-names { margin-inline-start: 21px; border-inline-start: 1px solid var(--wire); }
   .mh-cat-band.is-free .mh-cat-band-names { border-inline-start: 0; }
   .mh-cat-name { padding-inline-start: 16px; }
@@ -261,6 +314,34 @@
   .mh-cat-tools .sa-btn { flex: 1 1 0; }
   .mh-cat-opens .mh-col-head { flex-wrap: wrap; }
   .mh-cat-open-tools { flex: 1 1 100%; }
+}
+
+/* A finger: every key gets its 44 pixels. The tools are always there, so a name takes the whole width over them. */
+@media (hover: none) {
+  .mh-cat-port { width: 44px; height: 44px; margin-block-start: -22px; margin-inline-end: -22px; }
+  .mh-cat-section-head { height: 44px; }
+  .mh-cat-bay-head { height: 44px; }
+  .mh-cat-bay-clear { min-width: 44px; min-height: 44px; }
+  .mh-cat-band-code { align-items: center; margin-block: -6px; }
+  .mh-cat-band-add { min-width: 44px; min-height: 44px; }
+  /* The key under the name holds its own 44, so the name reaches up into the air over it. */
+  .mh-cat-band-name { position: relative; }
+  .mh-cat-band-name::after { content: ""; position: absolute; inset: -22px 0 0; }
+  .mh-cat-name-open { min-height: 44px; }
+  .mh-cat-name-tool.sa-btn-icon { width: 44px; }
+}
+@media (hover: none) and (min-width: 1020px) {
+  .mh-cat-section-head { top: 44px; }
+}
+@media (hover: none) and (min-width: 1240px) {
+  .mh-cat { --bay-name: minmax(0, 1fr) 150px 134px; }
+}
+@media (hover: none) and (max-width: 1239px) {
+  .mh-cat-bay-head.is-held ~ .mh-cat-section .mh-cat-section-head { top: 44px; }
+  .mh-cat-name { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; }
+  .mh-cat-name-open { grid-column: 1 / -1; grid-row: 1; }
+  .mh-cat-name-sup { grid-column: 1; grid-row: 2; min-height: 44px; min-width: 0; padding-block: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mh-cat-name-end { grid-column: 2; grid-row: 2; min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

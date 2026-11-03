@@ -3,7 +3,7 @@
 import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Button, Dot, Input, Select } from "@/components/ui";
 import { useData, type SupplierItem } from "@/lib/store";
-import { fmtQty } from "@/lib/format";
+import { fmtQty, fmtUnit } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
 import { PlaceField } from "./PlaceField";
@@ -30,7 +30,6 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
   const [externalName, setExternalName] = useState("");
   const [externalSku, setExternalSku] = useState("");
   const [workerId, setWorkerId] = useState(ctx.workerId ?? "");
-  const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -138,18 +137,17 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
         qty,
         supplierId: supplierId || null,
         workerId: workerId || null,
-        reference: reference.trim() || null,
         note: note.trim() || null,
         externalName: supplierId ? externalName.trim() || null : null,
         externalSku: supplierId ? externalSku.trim() || null : null,
         place: place || null,
       });
-      notify({ tone: "success", title: `נקלטו ${fmtQty(qty)} ${selected.unit} של ${selected.name}`, text: `מק"ט ${selected.sku}` });
+      notify({ tone: "success", title: `נקלטו ${fmtQty(qty)} ${fmtUnit(qty, selected.unit)} של ${selected.name}`, text: `מק"ט ${selected.sku}` });
       close();
     });
   };
 
-  const qtyLabel = Number.isFinite(qty) && qty > 0 ? `קליטת ${fmtQty(qty)} ${unit}`.trim() : "קליטה";
+  const qtyLabel = Number.isFinite(qty) && qty > 0 ? `קליטת ${fmtQty(qty)} ${fmtUnit(qty, unit)}`.trim() : "קליטה";
   const typedName = externalName.trim().length > 0;
 
   let resolutionLine: ReactNode = null;
@@ -273,7 +271,6 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
       {selected ? <PlaceField key={selected.id} optional product={selected} value={place} onChange={setPlace} /> : null}
       <hr className="sa-form-break" />
       <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
-      <Input label="מספר תעודה" optional mono placeholder="תעודת משלוח / הזמנה" value={reference} onChange={(e) => setReference(e.target.value)} />
       <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
     </FormPanel>
   );

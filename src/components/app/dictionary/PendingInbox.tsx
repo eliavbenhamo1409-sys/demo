@@ -53,7 +53,7 @@ function InboxRow({ item, busy, productOptions, supplierName, onApprove, onNewPr
           onChange={setChosen}
           placeholder="איזה מוצר זה?"
           searchPlaceholder='חיפוש לפי שם או מק"ט'
-          minWidth={240}
+          minWidth={200}
           disabled={locked}
         />
         <Button
@@ -72,14 +72,13 @@ function InboxRow({ item, busy, productOptions, supplierName, onApprove, onNewPr
         </Button>
         <Button
           variant="ghost"
-          icon="trash"
+          iconOnly
+          icon="x"
           aria-label={`מחיקת "${item.external_name}"`}
-          title={hint}
+          title={hint ?? "מחיקה"}
           onClick={() => onDelete(item)}
           disabled={locked}
-        >
-          מחיקה
-        </Button>
+        />
       </div>
     </div>
   );

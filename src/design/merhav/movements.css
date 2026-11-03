@@ -2,10 +2,10 @@
 
 .mh-mv { --mv-band: 102px; padding: 34px var(--mh-gutter) 72px; min-width: 0; }
 
-.mh-mv-head { display: flex; align-items: baseline; gap: 14px; min-height: 50px; margin-bottom: 18px; }
+.mh-mv-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; min-height: 50px; margin-bottom: 18px; }
 .mh-mv-head .sa-page-title { margin: 0; }
 .mh-mv-count { font-size: clamp(30px, 2.6vw, 44px); font-weight: 200; letter-spacing: -0.02em; color: var(--text-primary); }
-.mh-mv-sums { display: flex; align-items: baseline; gap: clamp(14px, 1.6vw, 28px); margin-block: 0; margin-inline: auto 0; }
+.mh-mv-sums { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px clamp(14px, 1.6vw, 28px); margin-block: 0; margin-inline: auto 0; }
 .mh-mv-sums > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 .mh-mv-sums dd { margin: 0; font-size: 20px; line-height: 26px; font-weight: 300; letter-spacing: -0.01em; }
 .mh-mv-sums dt { font-size: var(--t-13); color: var(--text-tertiary); }
@@ -18,7 +18,7 @@
 .mh-mv .app-filters .sa-select { flex: 0 0 auto; min-width: 0; max-width: 170px; }
 .mh-mv .app-filters .sa-select-trigger { height: 36px; gap: 5px; padding: 0; background: none; box-shadow: none; border-radius: 0; color: var(--text-secondary); font-size: var(--t-14); }
 .mh-mv .app-filters .sa-select-trigger:hover:not(:disabled) { background: none; box-shadow: none; color: var(--text-primary); }
-.mh-mv .app-filters .sa-select-trigger.is-open { background: none; box-shadow: inset 0 -2px 0 var(--accent); color: var(--text-primary); }
+.mh-mv .app-filters .sa-select-trigger:is(.is-open, :focus-visible) { background: none; box-shadow: inset 0 -2px 0 var(--accent); color: var(--text-primary); }
 .mh-mv .app-filters .sa-select-value.is-placeholder { color: inherit; }
 .mh-mv .app-filters .sa-select-trigger:has(.sa-select-value:not(.is-placeholder)) { color: var(--accent-text); font-weight: 500; }
 .mh-mv-rack { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; font-size: var(--t-14); font-weight: 500; cursor: pointer; }
@@ -36,11 +36,11 @@
 }
 
 /* Two sides of one line: goods in above it, goods out below it, and the carriage rides the line to where the list is. */
-.mh-wave { position: relative; container-type: inline-size; display: flex; height: 58px; cursor: pointer; touch-action: none; outline-offset: 4px; }
+.mh-wave { position: relative; container-type: inline-size; display: flex; height: 58px; cursor: pointer; touch-action: pan-y; outline-offset: 4px; }
 .mh-wave::before { content: ""; position: absolute; inset-inline: 0; top: 50%; height: 1px; background: var(--border-strong); }
 .mh-wave:focus-visible { outline: 2px solid var(--focus); }
 .mh-wave-bar { position: relative; flex: 1 1 0; min-width: 0; height: 100%; }
-.mh-wave-bar i, .mh-wave-bar b {
+.mh-wave-bar i, .mh-wave-bar u, .mh-wave-bar b {
   position: absolute;
   left: 50%;
   width: clamp(1.5px, 30%, 4px);
@@ -49,24 +49,25 @@
   translate: -50% 0;
   transition: transform var(--dur-move) var(--spring-move);
 }
-.mh-wave-bar i { top: 0; transform: scaleY(var(--in)); background: linear-gradient(to top, var(--qty-in) calc(var(--part) * 100%), var(--text-quiet) 0); }
+.mh-wave-bar i { top: 0; transform: scaleY(var(--in)); background: var(--qty-in); }
+/* Faults and corrections stand on top of what came in: they count, but they are neither in nor out. */
+.mh-wave-bar u { top: 0; transform: translateY(calc(var(--in) * -100%)) scaleY(var(--other)); background: var(--text-quiet); }
 .mh-wave-bar b { bottom: 0; transform-origin: top; transform: scaleY(var(--out)); background: var(--danger-text); }
 .mh-wave-peekline { position: absolute; top: -2px; bottom: -2px; left: calc(var(--x) * 100%); width: 1px; background: var(--text-primary); pointer-events: none; }
 .mh-wave-at {
   position: absolute;
   left: 0;
   bottom: -6px;
-  width: calc(100% / var(--n));
-  min-width: 8px;
+  width: 18px;
   height: 2px;
   background: var(--accent);
-  transform: translateX(calc(var(--x) * (100cqw / var(--n))));
+  transform: translateX(calc((var(--x) + 0.5) * (100cqw / var(--n)) - 50%));
   transition: transform var(--dur-move) var(--spring-move);
 }
 
 .mh-wave-axis { position: relative; height: 18px; margin-top: 8px; font-size: var(--t-13); line-height: 18px; color: var(--text-tertiary); }
-.mh-wave-axis > span { position: absolute; top: 0; left: calc(var(--x) * 100%); transform: translateX(calc(var(--x) * -100%)); white-space: nowrap; }
-.mh-wave-peek { color: var(--text-primary); }
+.mh-wave-axis > span { position: absolute; top: 0; left: calc(var(--x) * 100%); transform: translateX(-50%); white-space: nowrap; }
+.mh-wave-axis > .mh-wave-peek { transform: translateX(calc(var(--x) * -100%)); color: var(--text-primary); }
 .mh-wave-peek b { font-weight: 600; }
 
 /* ── The timeline: one height for every row and every day, so thousands are a sum ── */
@@ -82,7 +83,7 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  height: 54px;
+  height: var(--mv-head);
   padding-top: 18px;
   background: var(--bg-surface);
   box-shadow: 0 1px 0 var(--border-strong);
@@ -98,10 +99,10 @@
   position: absolute;
   inset-inline: 0;
   display: grid;
-  grid-template-columns: 52px 112px 40px minmax(0, 1fr) 104px;
+  grid-template-columns: 52px 112px var(--mh-thumb) minmax(0, 1fr) 104px;
   column-gap: 14px;
   align-items: center;
-  height: 66px;
+  height: var(--mv-row);
   border-bottom: 1px solid var(--border-subtle);
   cursor: pointer;
 }
@@ -139,7 +140,7 @@
 /* The plate decides, not the window. Room gives the document its own column; little room takes the photo first. */
 .mh-mv-paper { display: none; }
 @container (min-width: 860px) {
-  .mh-mv-row { grid-template-columns: 52px 112px 40px minmax(0, 1.2fr) minmax(0, 1fr) 112px; }
+  .mh-mv-row { grid-template-columns: 52px 112px var(--mh-thumb) minmax(0, 1.2fr) minmax(0, 1fr) 112px; }
   .mh-mv-inline { display: none; }
   .mh-mv-paper { display: flex; flex-direction: column; min-width: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
   .mh-mv-paper bdi { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -149,6 +150,34 @@
 @container (max-width: 600px) {
   .mh-mv-row { grid-template-columns: 48px 100px minmax(0, 1fr) 84px; column-gap: 10px; }
   .mh-mv-row .sa-thumb { display: none; }
+}
+/* A phone: the figure leads and the name takes the rest of the row, with when, where and who on one line under it. The
+   height stays the timeline's one height, so a year of rows is still a sum. */
+@container (max-width: 520px) {
+  .mh-mv-row { grid-template: "fig main main" auto "fig time where" auto / 100px auto minmax(0, 1fr); align-content: center; }
+  .mh-mv-fig { grid-area: fig; }
+  .mh-mv-n { font-size: 24px; line-height: 28px; }
+  .mh-mv-row .mh-row-main { grid-area: main; }
+  .mh-mv-row .mh-row-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: var(--t-14); line-height: var(--l-20); white-space: normal; }
+  .mh-mv-row .mh-row-sub { display: none; }
+  .mh-mv-time { grid-area: time; align-self: center; flex-direction: row; align-items: baseline; gap: 6px; font-size: var(--t-13); line-height: var(--l-18); }
+  .mh-mv-where { grid-area: where; flex-direction: row; align-items: baseline; gap: 8px; text-align: start; }
+  .mh-mv-where > :first-child { flex: none; }
+  .mh-mv-who { min-width: 0; }
+  /* No column for a spine to run down, so each row says its own time. */
+  .mh-mv-row.is-joined .mh-mv-time > span { visibility: visible; }
+  .mh-mv-row.is-joined .mh-mv-time::before { display: none; }
+  /* Four kinds of movement don't fit beside the day, so they take the line under it, inside the same head. */
+  .mh-mv-dayhead { flex-wrap: wrap; align-content: flex-start; row-gap: 0; padding-top: 6px; }
+  .mh-mv-daysum { flex-basis: 100%; gap: 10px; margin-inline-start: 0; line-height: var(--l-18); }
+}
+/* The narrowest phones: the correction is the one that waits for the page's own sums. */
+@container (max-width: 300px) {
+  .mh-mv-daysum > :nth-child(4) { display: none; }
+}
+/* החל shares the last line of the menus: a line of its own would push the list another step down a phone. */
+@media (max-width: 600px) {
+  .mh-mv .app-filters-end { flex: 0 0 auto; padding-top: 0; }
 }
 
 /* A product shot on white would be the brightest thing on a dark plate, brighter than the figure beside it. */
@@ -174,3 +203,10 @@
 .mh-mv .sa-moves[data-settle="1"] .mh-mv-list { animation: app-settle-b var(--dur-3) var(--ease); }
 
 .mh-mv .sa-empty { padding-block: 56px; }
+.mh-mv .sa-notice { margin-top: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-wave-bar i, .mh-wave-bar u, .mh-wave-bar b, .mh-wave-at, .mh-mv-row::before { transition: none; }
+  .mh-replay path { animation: none; stroke-dashoffset: 0; }
+  .mh-replay circle, .mh-replay .mh-tag-body { animation: none; }
+}

@@ -1,0 +1,13 @@
+/* All that stands before the rest of this style arrives, and the one file of it in everyone's first load: index.css is a chunk
+   only this style downloads. So every rule here needs the style's own id, and nothing here is more than the first frame needs.
+   The colours are the ones in tokens.css, read here for the phone's status bar and the page behind the shell. */
+html[data-theme="merhav"] { color-scheme: light; --bg-canvas: #e6e4dd; --bg-surface: #f7f6f2; }
+html[data-theme="merhav-dark"] { color-scheme: dark; --bg-canvas: #0d100f; --bg-surface: #151917; }
+html[data-theme^="merhav"] { background: var(--bg-surface); }
+html[data-theme^="merhav"] body { background: transparent; }
+[data-theme^="merhav"] .sys-switch { display: none; }
+
+/* The login stands outside the shell and can be there before the plate it is drawn on, so it waits: login.css lifts this.
+   If that stylesheet never comes, the form still does. */
+@keyframes mh-first-show { to { visibility: visible; } }
+[data-theme^="merhav"] .app-login { visibility: hidden; animation: mh-first-show 1ms 3s both; }

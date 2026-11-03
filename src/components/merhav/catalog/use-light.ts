@@ -19,6 +19,7 @@ interface Light {
 export function useLight(): Light {
   const lit = useRef<Element[]>([]);
   const at = useRef<string | null>(null);
+  const stop = useRef<(() => void) | null>(null);
 
   return useMemo(() => {
     const clear = (host: Element) => {
@@ -26,6 +27,16 @@ export function useLight(): Light {
       lit.current = [];
       at.current = null;
       host.removeAttribute(HOST);
+      stop.current?.();
+      stop.current = null;
+    };
+
+    // The list moving under a still pointer is not pointing at anything.
+    const release = (host: Element) => {
+      if (stop.current) return;
+      const onScroll = () => clear(host);
+      window.addEventListener("scroll", onScroll, { passive: true });
+      stop.current = () => window.removeEventListener("scroll", onScroll);
     };
 
     const mark = (el: Element | null | undefined, value: string) => {
@@ -52,6 +63,7 @@ export function useLight(): Light {
       if (!next) return;
       at.current = next;
       host.setAttribute(HOST, "");
+      release(host);
       if (word) for (const each of host.querySelectorAll(`[data-supplier="${word.getAttribute("data-sup")}"]`)) name(each);
       else if (row) name(row);
       else mark(band, "band");

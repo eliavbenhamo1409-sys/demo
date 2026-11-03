@@ -6,7 +6,6 @@
   --mh-team-c3: clamp(104px, 9.4vw, 170px);
   --mh-team-c4: clamp(104px, 8.6vw, 150px);
   --mh-team-c5: clamp(128px, 10.4vw, 176px);
-  --mh-team-c6: 96px;
   padding: 34px var(--mh-gutter) 72px;
   min-width: 0;
 }
@@ -21,7 +20,7 @@
 
 .mh-team-band {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--mh-team-c2) var(--mh-team-c3) var(--mh-team-c4) var(--mh-team-c5) var(--mh-team-c6);
+  grid-template-columns: minmax(0, 1fr) var(--mh-team-c2) var(--mh-team-c3) var(--mh-team-c4) var(--mh-team-c5);
   align-items: end;
   margin-top: 22px;
 }
@@ -69,10 +68,17 @@
 .mh-team-phone { color: inherit; text-decoration: none; white-space: nowrap; }
 .mh-team-phone:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 
-/* With less room the row itself is the way into the form, so its button steps aside before any figure does. */
+/* With less room the last column steps aside before any figure does. */
 @media (max-width: 1240px) {
-  .mh-team { --mh-team-c5: 0px; --mh-team-c6: 0px; }
-  .mh-team-band > :nth-child(5), .mh-team-table :is(th, td):nth-child(n + 5) { display: none; }
+  .mh-team { --mh-team-c5: 0px; }
+  .mh-team-band > :nth-child(5), .mh-team-table :is(th, td):nth-child(5) { display: none; }
+}
+
+/* A very large room: the week takes the width, so a name never stands a screen away from its figures. */
+@media (min-width: 2200px) {
+  .mh-team { --mh-team-day: clamp(84px, 6.4vw, 260px); --mh-team-c3: 190px; --mh-team-c4: 190px; --mh-team-c5: 220px; }
+  .mh-team-bars { height: 84px; }
+  .mh-team-bars i { width: clamp(12px, 0.7vw, 20px); }
 }
 
 /* Phones and portrait tablets: the name and what matters most. A row opens the rest. */
@@ -85,5 +91,7 @@
   .mh-team-band.is-agents > :nth-child(4), .mh-team-table.is-agents :is(th, td):nth-child(4) { display: none; }
   .mh-team-bar .sa-search { flex: 1 1 100%; margin-inline-start: 0; }
   .mh-team-band > *, .mh-team-table .sa-table :is(th, td) { padding-inline: 8px; }
+  /* A column's name takes a second line before it is cut: a figure without its name says nothing. */
+  .mh-team-table .sa-table th { padding-block: 4px; white-space: normal; }
   .mh-team-sum { font-size: 34px; }
 }

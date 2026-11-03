@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Select, type SelectOption } from "@/components/ui";
 import { useFloorObjects } from "@/components/map3d/use-floor-objects";
-import { fmtQty } from "@/lib/format";
+import { fmtQty, fmtUnit } from "@/lib/format";
 import { placeWords } from "@/lib/map3d/place";
 import { placeStock, useShelves } from "@/lib/map3d/shelves";
 import { useData } from "@/lib/store";
@@ -42,8 +42,8 @@ export function PlaceForm({ ctx }: { ctx: ActionContext }) {
 
   const sources = useMemo<SelectOption[]>(() => {
     const unit = selected?.unit ?? "";
-    const wait = standing.waiting > 0 ? [{ value: WAITING, label: `ממתין לשיבוץ · ${fmtQty(standing.waiting)} ${unit}` }] : [];
-    return [...wait, ...standing.places.map((row) => ({ value: row.place, label: `${placeWords(row.place, objects)} · ${fmtQty(row.qty)} ${unit}` }))];
+    const wait = standing.waiting > 0 ? [{ value: WAITING, label: `ממתין לשיבוץ · ${fmtQty(standing.waiting)} ${fmtUnit(standing.waiting, unit)}` }] : [];
+    return [...wait, ...standing.places.map((row) => ({ value: row.place, label: `${placeWords(row.place, objects)} · ${fmtQty(row.qty)} ${fmtUnit(row.qty, unit)}` }))];
   }, [selected, standing, objects]);
 
   // What can be placed comes first: stock with no place, then products that stand elsewhere.
@@ -72,7 +72,7 @@ export function PlaceForm({ ctx }: { ctx: ActionContext }) {
     if (Object.keys(errors).length > 0 || !selected) return;
     void form.run(async () => {
       await placeStock(productId, target, qty, source === WAITING ? null : source);
-      notify({ tone: "success", title: `${fmtQty(qty)} ${selected.unit} ב-${placeWords(target, objects)}`, text: selected.name });
+      notify({ tone: "success", title: `${fmtQty(qty)} ${fmtUnit(qty, selected.unit)} ב-${placeWords(target, objects)}`, text: selected.name });
       close();
     });
   };

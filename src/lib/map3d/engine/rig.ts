@@ -119,7 +119,7 @@ export class Rig {
     private readonly floor: Box3,
     private readonly tracker: Tracker,
     private readonly ease: Easing,
-    private readonly options: { reducedMotion: boolean; coarse: boolean },
+    private readonly options: { reducedMotion: boolean; coarse: boolean; maxDistance?: number },
     private readonly onChange: () => void,
   ) {
     const controls = new OrbitControls(this.camera, canvas);
@@ -128,7 +128,7 @@ export class Rig {
     controls.screenSpacePanning = false;
     controls.zoomToCursor = true;
     controls.minDistance = 8;
-    controls.maxDistance = 420;
+    controls.maxDistance = options.maxDistance ?? 420;
     controls.cursor.copy(floor.getCenter(new Vector3()));
     controls.maxTargetRadius = 46;
     if (options.coarse) {

@@ -23,6 +23,13 @@ html[data-theme^="merhav"] body { background: transparent; }
   transform: translateY(calc(var(--lift, 0) * -7vh));
 }
 .mh-twin canvas { outline: none; }
+/* The model arrives whole: its first frames can be a bare floor, before the racks are in. */
+@media (prefers-reduced-motion: no-preference) {
+  .mh-twin canvas { animation: mh-fade var(--dur-settle) var(--ease) both; }
+}
+/* Without WebGL the room stays empty, and it says why. מחסן says so in its own words. */
+.mh-twin-failed { position: absolute; top: 24px; left: 24px; margin: 0; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+.mh-app[data-route="map"] .mh-twin-failed { display: none; }
 
 /* Daylight from the rail's side, laid over the scene: the white stops being flat without a single effect on it. */
 .mh-world-light {
@@ -39,7 +46,8 @@ html[data-theme^="merhav"] body { background: transparent; }
     linear-gradient(to left, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.28) 100%);
 }
 
-.mh-gauge { position: absolute; visibility: hidden; height: 0; pointer-events: none; }
+/* Read in the tick it is written, so no transition: reduced motion gives every element a 0.01ms one, and the read gets the old width. */
+.mh-gauge { position: absolute; visibility: hidden; height: 0; pointer-events: none; transition-property: none; }
 
 /* ── The door: one tall plate with one long straight edge, and the shadow it throws on the model ── */
 .mh-door {
@@ -68,6 +76,8 @@ html[data-theme^="merhav"] body { background: transparent; }
 .mh-app[data-door="dock"] .mh-door { --door-x: var(--mh-dock); }
 .mh-app[data-door="side"] .mh-door { --door-x: calc(100vw - var(--mh-rail) - var(--mh-side)); }
 .mh-app[data-door="closed"] .mh-door { --door-x: 0px; }
+/* Shut, the edge lies on the window's own edge, where it would only draw a line down the page. */
+.mh-app[data-door="closed"] .mh-door::after { display: none; }
 .mh-app[data-door-held] .mh-door { transition: none; }
 .mh-app[data-door-held] { user-select: none; cursor: ew-resize; }
 
@@ -95,6 +105,8 @@ html[data-theme^="merhav"] body { background: transparent; }
 }
 .mh-door-handle:hover::after, .mh-door-handle[data-held]::after { background: repeating-linear-gradient(to bottom, var(--accent) 0 1px, transparent 1px 5px); }
 .mh-door-handle:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); }
+/* What rises from the plate can pass over the edge: the cuts must not draw on it, or take a press meant for it. */
+.mh-app:has(.mh-stage .sa-menu) .mh-door-handle { visibility: hidden; }
 
 /* ── The rail: the door's housing. The same material as the door, so a closed door and the rail read as one surface ── */
 .mh-rail {
@@ -210,7 +222,38 @@ html[data-theme^="merhav"] body { background: transparent; }
   pointer-events: none;
 }
 .mh-stage > * { pointer-events: auto; }
+/* What only holds the keyboard's place draws no ring: the next Tab lands on something that does. */
+.mh-stage:focus-visible, [data-theme^="merhav"] .app-panelHost:focus-visible { box-shadow: none; }
+
+/* The way past the rail. It waits above the window and comes in only for the keyboard. */
+.mh-skip {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 7;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.mh-skip:focus-visible { transform: none; }
 .mh-page { animation: mh-settle var(--dur-settle) var(--spring-settle) both; min-width: 0; }
+/* Same spring as the door, so the content's edge is the door's edge. */
+.mh-page[data-reveal] { animation-duration: var(--dur-plate); animation-timing-function: var(--spring-plate); animation-fill-mode: backwards; }
+.mh-page[data-reveal="start"] { animation-name: mh-reveal-start; }
+.mh-page[data-reveal="end"] { animation-name: mh-reveal-end; }
+@keyframes mh-reveal-start {
+  from { clip-path: inset(-100vh -100vw -100vh var(--reveal-start)); }
+  to { clip-path: inset(-100vh -100vw -100vh 0); }
+}
+@keyframes mh-reveal-end {
+  from { clip-path: inset(-100vh var(--reveal-end) -100vh -100vw); }
+  to { clip-path: inset(-100vh 0 -100vh -100vw); }
+}
 .mh-app[data-door="dock"] .mh-page { margin-left: var(--mh-dock); }
 .mh-app[data-door="side"] .mh-page { margin-left: calc(100vw - var(--mh-rail) - var(--mh-side)); }
 .mh-app[data-door="open"] .mh-stage > .mh-page { pointer-events: none; }
@@ -219,13 +262,11 @@ html[data-theme^="merhav"] body { background: transparent; }
 
 /* The shared page on the plate. */
 .mh-page > .sa-page { max-width: none; margin: 0; padding: 36px var(--mh-gutter) 56px; }
+/* A store that failed to load says so in the place the page's title would stand, inside the gutters. */
+.mh-page > .sa-notice { margin: 34px var(--mh-gutter) 0; }
 
-/* Waiting is one line crossing once. */
+/* Waiting is one line crossing once, in the flow of the page: fixed, it would measure against the page's own settling. */
 .mh-calibrate {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: var(--mh-rail);
   height: 1px;
   background: var(--accent);
   transform-origin: right;

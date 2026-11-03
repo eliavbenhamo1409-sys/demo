@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, EmptyState, Icon } from "@/components/ui";
-import { fmtName, fmtQty, fmtRelative } from "@/lib/format";
+import { fmtName, fmtQty, fmtRelative, fmtUnit } from "@/lib/format";
 import { available, useData } from "@/lib/store";
 import { RailRow } from "./parts";
 import type { MapView } from "./view";
@@ -54,7 +54,7 @@ export function OrdersRail({ map, orderId, onOrder }: OrdersRailProps) {
                         key={l.id}
                         lead={<ProductThumb product={p} small />}
                         onOpen={place ? () => map.select(place) : undefined}
-                        end={<><span className="sa-num">{fmtQty(l.qty)}</span> {p?.unit}</>}
+                        end={<><span className="sa-num">{fmtQty(l.qty)}</span> {fmtUnit(l.qty, p?.unit)}</>}
                       >
                         <span className="m3d-line-name">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
                         <span className="sa-cell-sub">

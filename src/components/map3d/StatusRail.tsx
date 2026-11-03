@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb, StockMeter } from "@/components/app/Viz";
 import { Button, cx, Icon, Movement, MovementQty, Select, type SelectOption } from "@/components/ui";
-import { fmtDateTime, fmtName, fmtQty, fmtRelative } from "@/lib/format";
+import { fmtDateTime, fmtName, fmtQty, fmtRelative, fmtUnit } from "@/lib/format";
 import { formatPlace, placeWords, resolvePlace } from "@/lib/map3d/place";
 import type { PastQty } from "@/lib/map3d/trail";
 import type { StockState } from "@/lib/map3d/types";
@@ -127,7 +127,7 @@ function LedgerLine({ map, line }: { map: MapView; line: Line }) {
       <span className={cx("m3d-line-place", !place && "is-none")} role="cell">{place ? <span className="ltr">{place}</span> : "—"}</span>
       <span className="m3d-num" role="cell">
         <span className="m3d-line-qty">{fmtQty(p.qty)}</span>
-        <span className="m3d-line-unit">{p.unit}</span>
+        <span className="m3d-line-unit">{fmtUnit(p.qty, p.unit)}</span>
       </span>
       <span className="m3d-line-share" role="cell">
         {share === null ? (
@@ -235,7 +235,7 @@ function Tray({ map }: { map: MapView }) {
           >
             <span className="m3d-line-name">{fmtName(p.name)}</span>
             <span className="sa-cell-sub sa-truncate">
-              <span className="ltr">{fmtQty(qty)}</span> {p.unit} · <bdi>{qty < p.qty ? `מתוך ${fmtQty(p.qty)}` : p.location || "ללא מיקום"}</bdi>
+              <span className="ltr">{fmtQty(qty)}</span> {fmtUnit(qty, p.unit)} · <bdi>{qty < p.qty ? `מתוך ${fmtQty(p.qty)}` : p.location || "ללא מיקום"}</bdi>
             </span>
             {picking === p.id ? (
               <div className="m3d-pick">

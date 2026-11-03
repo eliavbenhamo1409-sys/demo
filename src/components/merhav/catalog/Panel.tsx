@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from "react";
+import { useCoarsePointer } from "@/components/map3d/use-device";
 import { cx } from "@/components/ui";
 import { fmtQty } from "@/lib/format";
 import { panel, type Jack, type Link } from "./geometry";
@@ -36,6 +37,9 @@ type Side = keyof Lens;
 const OPEN: Lens = { category: null, supplier: null };
 const OTHER: Record<Side, Side> = { category: "supplier", supplier: "category" };
 
+/** A row a finger can press: 44 for its label and the air the row keeps between labels. */
+const FINGER_LINE = 48;
+
 /**
  * The whole catalogue as one wiring diagram: our groups on one side, the suppliers on the other, one line wherever they
  * talk. Pointing holds a group or a line for a moment, pressing holds it: the same lens either way, and the list under
@@ -45,6 +49,7 @@ export function CatalogPanel({ categories, suppliers, links, lens, onLens, trace
   const field = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [spot, setSpot] = useState<Lens | null>(null);
+  const coarse = useCoarsePointer();
 
   useLayoutEffect(() => {
     const node = field.current;
@@ -56,7 +61,7 @@ export function CatalogPanel({ categories, suppliers, links, lens, onLens, trace
     return () => watcher.disconnect();
   }, []);
 
-  const shape = useMemo(() => panel(categories.map((c) => c.key), suppliers.map((s) => s.key), links, width), [categories, suppliers, links, width]);
+  const shape = useMemo(() => panel(categories.map((c) => c.key), suppliers.map((s) => s.key), links, width, coarse ? FINGER_LINE : undefined), [categories, suppliers, links, width, coarse]);
   const catGroups = useMemo(() => new Map(categories.map((c) => [c.key, c])), [categories]);
   const supGroups = useMemo(() => new Map(suppliers.map((s) => [s.key, s])), [suppliers]);
 
@@ -79,9 +84,11 @@ export function CatalogPanel({ categories, suppliers, links, lens, onLens, trace
             key={jack.key}
             type="button"
             aria-pressed={on}
+            title={group?.label}
             className={cx("mh-cat-panel-label", on && "is-on", !talks(side, jack.key) && "is-far")}
             style={{ top: jack.y }}
             onPointerEnter={hold}
+            onPointerLeave={() => setSpot(null)}
             onFocus={hold}
             onBlur={() => setSpot(null)}
             onClick={() => onLens({ ...lens, [side]: on ? null : jack.key })}
@@ -95,12 +102,12 @@ export function CatalogPanel({ categories, suppliers, links, lens, onLens, trace
   );
 
   return (
-    <section className="mh-cat-panel" aria-label="שמות לפי קטגוריה וספק" onPointerLeave={() => setSpot(null)}>
+    <section className="mh-cat-panel" aria-label="שמות לפי קטגוריה וספק">
       <div className="mh-cat-panel-head">
         <span>קטגוריה · שמות</span>
         <span>שמות · ספק</span>
       </div>
-      <div className="mh-cat-panel-body" style={{ height: shape.height }}>
+      <div className="mh-cat-panel-body" style={{ height: shape.height, "--line": `${shape.line}px` } as CSSProperties}>
         {labels("category", shape.categories, catGroups)}
 
         <div ref={field} className="mh-cat-panel-field">

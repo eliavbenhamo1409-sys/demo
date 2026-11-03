@@ -32,19 +32,14 @@ type AgentOrders = { open: number; month: number; last: string | null };
 const NO_DAYS = [0, 0, 0, 0, 0, 0, 0];
 const none = <span className="mh-tone-quiet">—</span>;
 
+/** The newest of what a list of rows last did. */
+const latest = (rows: { last: string | null }[]) => rows.reduce<string | null>((newest, row) => (row.last && (!newest || row.last > newest) ? row.last : newest), null);
+
 /** A figure in a row: quiet at zero, so the eye goes to who did something. */
 const rowFigure = (n: number, tone?: string) => <span className={cx("mh-team-fig ltr", n === 0 ? "mh-tone-quiet" : tone)}>{fmtQty(n)}</span>;
 
-function Edit({ onClick }: { onClick: () => void }): ReactElement {
-  return (
-    <span className="sa-row-actions" onClick={(e) => e.stopPropagation()}>
-      <Button variant="ghost" size="sm" icon="edit" onClick={onClick}>עריכה</Button>
-    </span>
-  );
-}
-
 export function Team(): ReactElement {
-  const { state, stats, weekly } = useData();
+  const { state, weekly } = useData();
   const ui = useUi();
 
   const [tab, setTab] = useState<Tab>("active");
@@ -83,16 +78,6 @@ export function Team(): ReactElement {
     return map;
   }, [state.movements, state.faults, weekly]);
 
-  const team = useMemo(() => {
-    const all = [...activity.values()];
-    return {
-      week: all.reduce((n, a) => n + a.week, 0),
-      days: weekly.map((_, i) => all.reduce((n, a) => n + a.days[i], 0)),
-      faults: all.reduce((n, a) => n + a.openFaults, 0),
-      last: all.reduce<string | null>((latest, a) => (a.last && (!latest || a.last > latest) ? a.last : latest), null),
-    };
-  }, [activity, weekly]);
-
   const activeWorkers = useMemo(() => state.workers.filter((w) => w.active), [state.workers]);
   const inactiveWorkers = useMemo(() => state.workers.filter((w) => !w.active), [state.workers]);
 
@@ -107,6 +92,17 @@ export function Team(): ReactElement {
       return wb - wa || a.name.localeCompare(b.name, "he");
     });
   }, [tab, activeWorkers, inactiveWorkers, q, activity]);
+
+  // A figure over a column is the sum of the rows under it, so narrowing the list turns its wheels.
+  const team = useMemo(() => {
+    const rows = visible.flatMap((w) => activity.get(w.id) ?? []);
+    return {
+      week: rows.reduce((n, a) => n + a.week, 0),
+      days: weekly.map((_, i) => rows.reduce((n, a) => n + a.days[i], 0)),
+      faults: rows.reduce((n, a) => n + a.openFaults, 0),
+      last: latest(rows),
+    };
+  }, [visible, activity, weekly]);
 
   const edit = useCallback((w: Worker) => ui.openAction("edit-worker", { workerId: w.id }), [ui]);
 
@@ -167,9 +163,8 @@ export function Team(): ReactElement {
           return last ? fmtRelative(last) : none;
         },
       },
-      { key: "actions", title: <span className="sa-sr">פעולות</span>, width: "var(--mh-team-c6)", render: (w) => <Edit onClick={() => edit(w)} /> },
     ],
-    [activity, weekly, edit],
+    [activity, weekly],
   );
 
   const lens: { key: Tab; word: string; count: number }[] = [
@@ -209,9 +204,9 @@ export function Team(): ReactElement {
       </header>
 
       <div className="mh-team-bar">
-        <div className="mh-lens" role="tablist" aria-label="סינון הצוות">
+        <div className="mh-lens" role="group" aria-label="סינון הצוות">
           {lens.map((item) => (
-            <button key={item.key} type="button" role="tab" aria-selected={tab === item.key} className={cx("mh-lens-item", tab === item.key && "is-on")} onClick={() => setTab(item.key)}>
+            <button key={item.key} type="button" aria-pressed={tab === item.key} className={cx("mh-lens-item", tab === item.key && "is-on")} onClick={() => setTab(item.key)}>
               <span className="mh-lens-n ltr">{fmtQty(item.count)}</span>
               <span className="mh-lens-word">{item.word}</span>
             </button>
@@ -221,22 +216,24 @@ export function Team(): ReactElement {
       </div>
 
       {onAgents ? (
-        <AgentsRoster query={query} openOrders={stats.openOrders} />
+        <AgentsRoster query={query} />
       ) : (
         <>
-          <div className="mh-team-band">
-            <span className="mh-team-who">{spot ? spot.name : null}</span>
-            <span className="mh-team-bars" dir="ltr" aria-hidden="true">
-              {team.days.map((n, i) => (
-                <i key={weekly[i].day} style={{ "--h": n / top } as CSSProperties}>
-                  <b style={{ "--share": share && n > 0 ? share[i] / n : 0 } as CSSProperties} />
-                </i>
-              ))}
-            </span>
-            <Figure className="mh-team-sum" text={fmtQty(team.week)} label={`${fmtQty(team.week)} תנועות השבוע`} />
-            <Figure className={cx("mh-team-sum", team.faults > 0 && "mh-tone-out")} text={fmtQty(team.faults)} label={`${fmtQty(team.faults)} תקלות פתוחות`} />
-            <span className="mh-team-sumword">{team.last ? fmtRelative(team.last) : "—"}</span>
-          </div>
+          {visible.length > 0 ? (
+            <div className="mh-team-band">
+              <span className="mh-team-who">{spot ? spot.name : null}</span>
+              <span className="mh-team-bars" dir="ltr" aria-hidden="true">
+                {team.days.map((n, i) => (
+                  <i key={weekly[i].day} style={{ "--h": n / top } as CSSProperties}>
+                    <b style={{ "--share": share && n > 0 ? share[i] / n : 0 } as CSSProperties} />
+                  </i>
+                ))}
+              </span>
+              <Figure className="mh-team-sum" text={fmtQty(team.week)} label={`${fmtQty(team.week)} תנועות השבוע`} />
+              <Figure className={cx("mh-team-sum", team.faults > 0 && "mh-tone-out")} text={fmtQty(team.faults)} label={`${fmtQty(team.faults)} תקלות פתוחות`} />
+              <span className="mh-team-sumword">{team.last ? fmtRelative(team.last) : "—"}</span>
+            </div>
+          ) : null}
           <div onPointerOver={onRow} onPointerLeave={() => setSpot(null)} onFocus={onRow} onBlur={() => setSpot(null)}>
             <Table<Worker>
               caption="רשימת העובדים"
@@ -256,7 +253,7 @@ export function Team(): ReactElement {
 }
 
 /** Every agent, active first, with what they ordered. Inactive agents stay listed: their orders are still here. */
-function AgentsRoster({ query, openOrders }: { query: string; openOrders: number }): ReactElement {
+function AgentsRoster({ query }: { query: string }): ReactElement {
   const { state } = useData();
   const ui = useUi();
 
@@ -276,17 +273,17 @@ function AgentsRoster({ query, openOrders }: { query: string; openOrders: number
     return map;
   }, [state.orders]);
 
-  const team = useMemo(() => {
-    const all = [...orders.values()];
-    return { month: all.reduce((n, a) => n + a.month, 0), last: all.reduce<string | null>((latest, a) => (a.last && (!latest || a.last > latest) ? a.last : latest), null) };
-  }, [orders]);
-
   const q = normalizeName(query);
   const visible = useMemo(() => {
     const digits = phoneDigits(q);
     const list = q ? state.agents.filter((a) => normalizeName(a.name).includes(q) || (digits !== "" && digitsOf(a.phone ?? "").includes(digits))) : state.agents;
     return [...list].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "he"));
   }, [state.agents, q]);
+
+  const team = useMemo(() => {
+    const rows = visible.flatMap((a) => orders.get(a.id) ?? []);
+    return { open: rows.reduce((n, a) => n + a.open, 0), month: rows.reduce((n, a) => n + a.month, 0), last: latest(rows) };
+  }, [visible, orders]);
 
   const edit = useCallback((a: Agent) => ui.openAction("edit-agent", { agentId: a.id }), [ui]);
 
@@ -322,9 +319,8 @@ function AgentsRoster({ query, openOrders }: { query: string; openOrders: number
           return last ? fmtRelative(last) : none;
         },
       },
-      { key: "actions", title: <span className="sa-sr">פעולות</span>, width: "var(--mh-team-c6)", render: (a) => <Edit onClick={() => edit(a)} /> },
     ],
-    [orders, edit],
+    [orders],
   );
 
   const empty =
@@ -338,13 +334,15 @@ function AgentsRoster({ query, openOrders }: { query: string; openOrders: number
 
   return (
     <>
-      <div className="mh-team-band is-agents">
-        <span />
-        <span />
-        <Figure className="mh-team-sum" text={fmtQty(openOrders)} label={`${fmtQty(openOrders)} הזמנות פתוחות`} />
-        <Figure className="mh-team-sum" text={fmtQty(team.month)} label={`${fmtQty(team.month)} הזמנות החודש`} />
-        <span className="mh-team-sumword">{team.last ? fmtRelative(team.last) : "—"}</span>
-      </div>
+      {visible.length > 0 ? (
+        <div className="mh-team-band is-agents">
+          <span />
+          <span />
+          <Figure className="mh-team-sum" text={fmtQty(team.open)} label={`${fmtQty(team.open)} הזמנות פתוחות`} />
+          <Figure className="mh-team-sum" text={fmtQty(team.month)} label={`${fmtQty(team.month)} הזמנות החודש`} />
+          <span className="mh-team-sumword">{team.last ? fmtRelative(team.last) : "—"}</span>
+        </div>
+      ) : null}
       <Table<Agent>
         caption="רשימת הסוכנים"
         className="mh-team-table is-agents"

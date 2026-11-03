@@ -9,7 +9,7 @@ import { COARSE_POINTER, REDUCED_MOTION } from "./use-device";
 const PALETTE_RETRY_MS = 100;
 
 /** three is reached only from here, in an effect, so no other page's bundle ever carries it. */
-export function useMapEngine(host: RefObject<HTMLDivElement | null>, events: Required<MapEngineEvents>) {
+export function useMapEngine(host: RefObject<HTMLDivElement | null>, events: Required<MapEngineEvents>, maxDistance?: number) {
   const [engine, setEngine] = useState<MapEngine | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -34,7 +34,7 @@ export function useMapEngine(host: RefObject<HTMLDivElement | null>, events: Req
               onHover: (hit) => onHover(hit),
               onDragObject: (id, x, z, done) => onDragObject(id, x, z, done),
             },
-            { reducedMotion: window.matchMedia(REDUCED_MOTION).matches, coarse: window.matchMedia(COARSE_POINTER).matches },
+            { reducedMotion: window.matchMedia(REDUCED_MOTION).matches, coarse: window.matchMedia(COARSE_POINTER).matches, maxDistance },
           );
           const palette = readPalette();
           if (palette) created.setPalette(palette);
@@ -52,7 +52,7 @@ export function useMapEngine(host: RefObject<HTMLDivElement | null>, events: Req
       cancelled = true;
       created?.dispose();
     };
-  }, [host]);
+  }, [host, maxDistance]);
 
   useEffect(() => {
     if (!engine) return;

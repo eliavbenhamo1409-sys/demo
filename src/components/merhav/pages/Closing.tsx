@@ -8,7 +8,6 @@
  */
 
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
@@ -29,7 +28,7 @@ const ACTION_LABEL: Record<DayAction["kind"], string> = {
   order_delivered: "סומנה כנמסרה",
 };
 
-const STOCK_WORD: Record<DayStock["state"], string> = { short: "חסר", out: "אזל", low: "מינימום" };
+const STOCK_WORD: Record<DayStock["state"], string> = { short: "חסר", out: "אזל", low: "מתחת למינימום" };
 
 const count = (n: number, one: string, many: string) => (n === 1 ? one : `${fmtQty(n)} ${many}`);
 
@@ -94,9 +93,14 @@ function dayPassed(): number {
 }
 
 function Band({ summary, live }: { summary: DaySummary; live: boolean }): ReactElement {
-  const seed = fingerprint(live ? summary.day : JSON.stringify(summary));
+  const seed = useMemo(() => fingerprint(live ? summary.day : JSON.stringify(summary)), [summary, live]);
   const path = useMemo(() => engraving(seed), [seed]);
-  const [passed] = useState(dayPassed);
+  const [passed, setPassed] = useState(dayPassed);
+  useEffect(() => {
+    if (!live) return;
+    const tick = setInterval(() => setPassed(dayPassed()), 60_000);
+    return () => clearInterval(tick);
+  }, [live]);
   return (
     <div className="mh-dc-band" dir="ltr" aria-hidden="true">
       <svg key={seed} viewBox={`0 0 ${BAND_W} ${BAND_H}`} preserveAspectRatio="none" style={{ "--cut": live ? `${(1 - passed) * 100}%` : "0%" } as CSSProperties}>
@@ -116,6 +120,8 @@ const PITCH_NUMBERS = 26;
 const SPAN_UNKNOWN = 30;
 /** Days whose figures the rule reads. */
 const SPAN_MARKED = 120;
+/** Half the tip, so it stays on the plate at both ends of the rule. */
+const TIP_ROOM = 210;
 
 interface DayMark {
   in: number;
@@ -196,13 +202,14 @@ function DayRule({ day, today, first, live, onGo }: RuleProps): ReactElement {
   const index = days.indexOf(shown);
 
   // The tape keeps the day you are on in view; a rule that fits the plate has nowhere to go.
-  const placed = useRef(false);
+  const placed = useRef(0);
+  const span = days.length;
   useLayoutEffect(() => {
     const node = track.current;
     if (!node || width === 0 || scrub) return;
-    node.scrollTo({ left: (index + 0.5) * pitch - width / 2, behavior: placed.current ? "smooth" : "instant" });
-    placed.current = true;
-  }, [index, pitch, width, scrub]);
+    node.scrollTo({ left: (index + 0.5) * pitch - width / 2, behavior: placed.current === span ? "auto" : "instant" });
+    placed.current = span;
+  }, [index, pitch, width, scrub, span]);
 
   const dayAt = (x: number) => {
     const box = strip.current?.getBoundingClientRect();
@@ -219,7 +226,7 @@ function DayRule({ day, today, first, live, onGo }: RuleProps): ReactElement {
     const box = e.currentTarget.getBoundingClientRect();
     const at = dayAt(e.clientX);
     if (scrub) setScrub(at);
-    setPeek({ day: at, x: e.clientX - box.left });
+    setPeek({ day: at, x: Math.min(Math.max(e.clientX - box.left, TIP_ROOM), box.width - TIP_ROOM) });
   };
 
   const onUp = () => {
@@ -229,7 +236,7 @@ function DayRule({ day, today, first, live, onGo }: RuleProps): ReactElement {
   };
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, PageUp: -7, PageDown: 7, Home: -days.length, End: days.length };
+    const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, PageDown: -7, PageUp: 7, Home: -days.length, End: days.length };
     const by = step[e.key];
     if (by === undefined) return;
     e.preventDefault();
@@ -245,6 +252,7 @@ function DayRule({ day, today, first, live, onGo }: RuleProps): ReactElement {
         <span>נקלט</span>
         <span>נמסר</span>
       </div>
+      <i className="mh-dr-line" aria-hidden="true" />
       <div
         ref={track}
         className="mh-dr-track"
@@ -279,13 +287,14 @@ function DayRule({ day, today, first, live, onGo }: RuleProps): ReactElement {
               </span>
             );
           })}
+          {peek ? <i className="mh-dr-carriage is-ghost" style={{ transform: `translateX(${(days.indexOf(peek.day) + 0.5) * pitch}px)` }} /> : null}
           <i className="mh-dr-carriage" style={{ transform: `translateX(${(index + 0.5) * pitch}px)` }} />
         </div>
       </div>
       {peek ? (
         <span className="mh-dr-tip" style={{ "--x": `${peek.x}px` } as CSSProperties}>
           {fmtClosingDay(peek.day)}
-          {peeked ? <span className="mh-tone-quiet"> · נקלט <span className="ltr">₪{fmtQty(peeked.in)}</span> · נמסר <span className="ltr">₪{fmtQty(peeked.out)}</span></span> : null}
+          {peeked ? <span className="mh-dr-tip-sums"> · נקלט <span className="ltr">₪{fmtQty(peeked.in)}</span> · נמסר <span className="ltr">₪{fmtQty(peeked.out)}</span> במחירון</span> : null}
         </span>
       ) : null}
     </div>
@@ -461,7 +470,7 @@ function Amount({ text, sign, live, className, style }: { text: string; sign?: s
   if (live) return <Figure text={text} sign={sign} className={className} style={style} />;
   return (
     <span className={cx("mh-figure", className)} style={style}>
-      {sign ? <span className="mh-figure-sign" aria-hidden="true">{sign}</span> : null}
+      {sign ? <span className="mh-figure-sign">{sign}</span> : null}
       {[...text].map((char, i) => (char === "," ? <span key={i} className="mh-figure-sep is-thin">,</span> : char))}
     </span>
   );
@@ -477,17 +486,18 @@ function Face({ summary, live }: { summary: DaySummary; live: boolean }): ReactE
   const last = summary.actions[0];
   const inText = fmtQty(worthOf(received));
   const outText = fmtQty(worthOf(delivered));
-  const size = { "--len": Math.max(inText.length, outText.length) } as CSSProperties;
+  // One size for both, and the same size from day to day until the sums truly grow.
+  const size = { "--len": Math.max(inText.length, outText.length, 7) } as CSSProperties;
 
   return (
     <section className="mh-dc-face" aria-label="חמש התשובות של היום">
       <div className="mh-dc-money">
-        <Link href="#closing-in" className="mh-dc-hero">
+        <a href="#closing-in" className="mh-dc-hero">
           <span className="mh-label">נקלט</span>
           <Amount className="mh-dc-n" text={inText} sign="₪" live={live} style={size} />
           <span className="mh-dc-sub">{received.length > 0 ? movedNote(received, "ספק אחד", "ספקים") : "לא נקלטה סחורה"}</span>
-        </Link>
-        <Link href="#closing-out" className="mh-dc-hero">
+        </a>
+        <a href="#closing-out" className="mh-dc-hero">
           <span className="mh-label">נמסר</span>
           <Amount className="mh-dc-n" text={outText} sign="₪" live={live} style={size} />
           <span className="mh-dc-sub">
@@ -498,31 +508,31 @@ function Face({ summary, live }: { summary: DaySummary; live: boolean }): ReactE
               </>
             ) : "לא נמסרה סחורה"}
           </span>
-        </Link>
+        </a>
       </div>
 
       <Band summary={summary} live={live} />
 
       <div className="mh-dc-counts">
-        <Link href="#closing-open" className="mh-dc-count">
+        <a href="#closing-open" className="mh-dc-count">
           <span className="mh-label">תעודות פתוחות</span>
           <Amount className="mh-dc-c" text={fmtQty(open)} live={live} />
           <span className="mh-dc-sub">
             {open > 0 ? joined(summary.orders.length > 0 && count(summary.orders.length, "הזמנה אחת", "הזמנות"), summary.requests.length > 0 && `${fmtQty(summary.requests.length)} אצל המנהל`) : <span className="mh-tone-ok">הכל סגור</span>}
           </span>
-        </Link>
-        <Link href="#closing-exceptions" className="mh-dc-count">
+        </a>
+        <a href="#closing-exceptions" className="mh-dc-count">
           <span className="mh-label">חריגות שלא טופלו</span>
           <Amount className="mh-dc-c" text={fmtQty(exceptions)} live={live} />
           <span className="mh-dc-sub">
             {exceptions > 0 ? joined(summary.faults.length > 0 && count(summary.faults.length, "תקלה אחת", "תקלות"), stock > 0 && `${fmtQty(stock)} במלאי`, summary.names.length > 0 && `${fmtQty(summary.names.length)} שמות ספק`) : <span className="mh-tone-ok">{summary.stock ? "הכל טופל" : "אין תקלות פתוחות"}</span>}
           </span>
-        </Link>
-        <Link href="#closing-actions" className="mh-dc-count">
+        </a>
+        <a href="#closing-actions" className="mh-dc-count">
           <span className="mh-label">פעולות מנהל</span>
           <Amount className="mh-dc-c" text={fmtQty(summary.actions.length)} live={live} />
           <span className="mh-dc-sub">{last ? <>אחרונה <span className="ltr">{fmtTime(last.at)}</span></> : "אין פעולות"}</span>
-        </Link>
+        </a>
         <div className="mh-dc-count">
           <span className="mh-label">סגירה</span>
           <span className="mh-dc-c mh-dc-state">{live ? "עד עכשיו" : "נסגר"}</span>
@@ -568,14 +578,23 @@ function ClosingInner(): ReactElement {
   const shown = ready ?? held;
   const live = useMemo(() => (summary && isToday ? markOf(summary.moved) : null), [summary, isToday]);
 
+  // The key you are on goes dead at either end of the days, and the keyboard carries on from the one that still goes somewhere.
+  const keys = useRef<HTMLDivElement>(null);
+  const atEnd = isToday || atStart;
+  const atEndWas = useRef(atEnd);
+  useEffect(() => {
+    if (atEnd && !atEndWas.current && document.activeElement === document.body) keys.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus({ preventScroll: true });
+    atEndWas.current = atEnd;
+  }, [atEnd]);
+
   return (
     <div className={cx("mh-dc", isToday ? "is-open" : "is-closed", !ready && "is-reading")}>
       <header className="mh-dc-head">
         <div>
           <h1 className="sa-page-title">סגירת יום</h1>
-          <p className="mh-dc-date">{fmtClosingDay(day)}{shown ? null : <span className="mh-tone-quiet"> · {isToday ? "עד עכשיו, נסגר בחצות" : "נסגר"}</span>}</p>
+          <p className="mh-dc-date">{fmtClosingDay(day)}{shown ? null : <span className="mh-dc-then"> · {isToday ? "עד עכשיו, נסגר בחצות" : "נסגר"}</span>}</p>
         </div>
-        <div className="mh-dc-keys">
+        <div ref={keys} className="mh-dc-keys">
           {isToday ? null : <Button variant="ghost" onClick={() => go(today)}>היום</Button>}
           <Button variant="secondary" icon="chevron-right" disabled={isToday} onClick={() => go(shiftDay(day, 1))}>יום הבא</Button>
           <Button variant="secondary" iconEnd="chevron-left" disabled={atStart} onClick={() => go(shiftDay(day, -1))}>יום קודם</Button>

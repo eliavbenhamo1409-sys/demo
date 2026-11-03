@@ -173,7 +173,11 @@ export default function SuppliersPage() {
       </EmptyState>
     );
   } else if (visible.length === 0) {
-    body = <EmptyState title="לא נמצאו תוצאות" />;
+    body = (
+      <EmptyState title="לא נמצאו מוצרים" hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
+        <Button variant="secondary" onClick={() => setQuery("")}>ניקוי סינון</Button>
+      </EmptyState>
+    );
   } else {
     body = (
       <div className="sa-dict-list" role="list" aria-label="מוצרים ושמות של ספקים">

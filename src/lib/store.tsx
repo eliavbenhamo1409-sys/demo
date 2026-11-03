@@ -73,6 +73,8 @@ type State = {
   error: string | null;
   live: boolean; // realtime channel subscribed
   loadedAt: number | null;
+  /** When the store last heard anything: a full read, or one row arriving. */
+  heardAt: number | null;
 };
 
 export const RECENT_MOVEMENTS = 400;
@@ -104,7 +106,7 @@ async function allPages<T>(read: (from: number, to: number) => PromiseLike<PageR
 }
 
 type Action =
-  | { type: "loaded"; data: Omit<State, "status" | "error" | "live" | "loadedAt"> }
+  | { type: "loaded"; data: Omit<State, "status" | "error" | "live" | "loadedAt" | "heardAt"> }
   | { type: "error"; error: string }
   | { type: "live"; live: boolean }
   | { type: "upsert"; table: TableName; row: Row }
@@ -145,7 +147,7 @@ function sortFor(table: TableName, rows: Row[]): Row[] {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "loaded":
-      return { ...state, ...action.data, status: "ready", error: null, loadedAt: Date.now() };
+      return { ...state, ...action.data, status: "ready", error: null, loadedAt: Date.now(), heardAt: Date.now() };
     case "error":
       return { ...state, status: "error", error: action.error };
     case "live":
@@ -162,13 +164,13 @@ function reducer(state: State, action: Action): State {
       }
       next = sortFor(action.table, next);
       if (action.table === "movements" && next.length > RECENT_MOVEMENTS) next = next.slice(0, RECENT_MOVEMENTS);
-      return { ...state, [key]: next };
+      return { ...state, [key]: next, heardAt: Date.now() };
     }
     case "remove": {
       const key = KEY[action.table];
       const list = state[key] as Row[];
       if (!list.some((r) => r.id === action.id)) return state;
-      return { ...state, [key]: list.filter((r) => r.id !== action.id) };
+      return { ...state, [key]: list.filter((r) => r.id !== action.id), heardAt: Date.now() };
     }
     case "replaceId": {
       const key = KEY[action.table];
@@ -197,6 +199,7 @@ const initial: State = {
   error: null,
   live: false,
   loadedAt: null,
+  heardAt: null,
 };
 
 /** What can still be promised: the shelf minus what open orders hold. Negative when the shelf fell below the holds. */
@@ -341,7 +344,8 @@ type Api = {
   issue: (input: IssueInput) => Promise<Movement>;
   adjust: (productId: string, qty: number, workerId?: string | null, note?: string | null) => Promise<Movement>;
   reportFault: (input: FaultInput) => Promise<Fault>;
-  resolveFault: (id: string) => Promise<void>;
+  /** Closes a fault with what was done about it; the database records who. */
+  resolveFault: (id: string, resolution?: string) => Promise<void>;
   reopenFault: (id: string) => Promise<void>;
   updateFault: (fault: Fault, patch: FaultPatch) => Promise<void>;
   /** Removes the report and its photo for good; its movement and the stock stay. */
@@ -770,7 +774,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const optimistic: Fault = {
         id: tempId(), product_id: input.productId ?? null, movement_id: movementId, description: input.description,
         reported_by: input.workerId ?? null, status: "open", created_at: new Date().toISOString(), resolved_at: null,
-        photo_path: input.photoPath ?? null, asset: input.asset ?? null,
+        photo_path: input.photoPath ?? null, asset: input.asset ?? null, resolution: null, resolved_by: null,
       };
       return (await insert("faults", {
         product_id: input.productId ?? null, movement_id: movementId, description: input.description,
@@ -779,8 +783,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...(input.asset ? { asset: input.asset } : {}),
       }, optimistic)) as Fault;
     },
-    resolveFault: (id) => update("faults", id, { status: "resolved", resolved_at: new Date().toISOString() }),
-    reopenFault: (id) => update("faults", id, { status: "open", resolved_at: null }),
+    resolveFault: (id, resolution) => update("faults", id, { status: "resolved", resolved_at: new Date().toISOString(), resolution }),
+    reopenFault: (id) => update("faults", id, { status: "open", resolved_at: null, resolution: null }),
     updateFault: async (fault, patch) => {
       await update("faults", fault.id, patch);
       if (!fault.movement_id) return;

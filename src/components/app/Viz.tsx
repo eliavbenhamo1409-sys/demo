@@ -14,11 +14,6 @@ export function ProductThumb({ product, small }: { product?: Pick<Product, "imag
   return src ? <img className={cls} src={src} alt="" loading="lazy" /> : <span className={cls} aria-hidden="true" />;
 }
 
-export interface StockBarPart {
-  value: number;
-  tone: "ok" | "low" | "out" | "other";
-}
-
 /** What is left against the minimum, like a battery: the mark in the middle is the minimum, so anything short of it reads at once. */
 export function StockMeter({ value, min, tone }: { value: number; min: number; tone: "ok" | "low" | "out" }): ReactElement {
   const full = Math.max(1, min * 2);
@@ -27,16 +22,6 @@ export function StockMeter({ value, min, tone }: { value: number; min: number; t
     <span className={`sa-meter is-${tone}`} aria-hidden="true">
       <i style={{ width: `${at}%` }} />
     </span>
-  );
-}
-
-/** One bar split by what the parts are worth, the way an iPhone shows its storage. Each part keeps its own width at any size. */
-export function StockBar({ parts, label }: { parts: StockBarPart[]; label: string }): ReactElement {
-  const shown = parts.filter((p) => p.value > 0);
-  return (
-    <div className="viz-stock" role="img" aria-label={label}>
-      {shown.length === 0 ? <span className="is-empty" /> : shown.map((p) => <span key={p.tone} className={`is-${p.tone}`} style={{ flexGrow: p.value }} />)}
-    </div>
   );
 }
 

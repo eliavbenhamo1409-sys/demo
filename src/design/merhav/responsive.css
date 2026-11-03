@@ -6,6 +6,9 @@
 
 /* Locking the page for a drawer or the search must not move what stands behind it by a scrollbar's width. */
 html[data-theme^="merhav"] { scrollbar-gutter: stable; }
+/* A scrim stops at that gutter, so the gutter dims with it and no bright stripe stands beside a dialog. A solid colour: the gutter paints no image. */
+html[data-theme^="merhav"]:has(.sa-scrim:not(.app-scrim)) { background: color-mix(in srgb, #181b19 28%, var(--bg-surface)); }
+html[data-theme="merhav-dark"]:has(.sa-scrim:not(.app-scrim)) { background: color-mix(in srgb, #000 50%, var(--bg-surface)); }
 
 /* The phone's bar and the scrim of its sheet don't exist on a desk. */
 .mh-bar, .mh-more-scrim { display: none; }
@@ -63,6 +66,8 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
     --mh-hero-right: 0px;
     --mh-hero-bottom: 0px;
     --mh-hero-bleed: 36px;
+    /* The bar stands over the page's foot, and what the keyboard reaches stops above it. */
+    scroll-padding-bottom: calc(var(--mh-foot) + 12px);
   }
 
   /* The housing is at the bottom now, so the door rises out of it, and its edge and its shadow run along the top. */
@@ -242,6 +247,11 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-tag:nth-child(2n) .mh-tag-body { bottom: 42px; }
   .mh-tag:nth-child(2n)::after { height: 42px; }
 
+  /* Every drawer rises out of the housing, the way the door does, whichever door it came through. */
+  [data-theme^="merhav"] .mh-app[data-door] .app-panelHost { left: 0; right: 0; width: 100%; animation-name: mh-rise; }
+  [data-theme^="merhav"] .mh-app[data-door] .app-panelHost[data-closing] { animation-name: mh-sink; }
+  [data-theme^="merhav"] .mh-app[data-door] .sa-panel { box-shadow: none; }
+
   /* ── The pages on a phone ── */
   /* In RTL anything too wide runs off to the left, and a phone answers by widening the whole layout, bar and all.
      Clip, not hidden: it makes no scroller, so a sticky head still sticks to the window. */
@@ -249,6 +259,22 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-page > .sa-page { padding: 24px var(--mh-gutter) 40px; }
   /* A table with no box on a desk still has to scroll in a hand. */
   [data-theme^="merhav"] .sa-table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
+
+  /* A menu rises to the top of the screen as a plate of its own: under its word it would run past the edge, the bar or the foot of a drawer. */
+  [data-theme^="merhav"] .sa-select > .sa-menu:not(.is-static) {
+    position: fixed;
+    inset: calc(12px + env(safe-area-inset-top, 0px)) 12px auto;
+    z-index: 135;
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    max-width: 520px;
+    max-height: calc(100dvh - var(--mh-foot) - 24px);
+    margin-inline: auto;
+    box-shadow: var(--shadow-lift), 0 0 0 100vmax var(--bg-scrim);
+  }
+  [data-theme^="merhav"] .sa-select > .sa-menu:not(.is-static) .sa-menu-list { flex: 1; min-height: 0; max-height: none; }
+  [data-theme^="merhav"] .sa-select > .app-when-sheet { overflow-y: auto; overscroll-behavior: contain; }
 
   /* סקירה: the band of model, then one plate that carries the figures and rises over it. */
   /* Painted once and clipped under the band, so the plate has no seam for the model to show through. */
@@ -272,20 +298,31 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-ov-answers { width: 100%; }
   .mh-ov-answers a { padding-block: 11px; }
   .mh-ov-week { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-  .mh-day-hour { font-size: var(--t-13); }
   .mh-sheet { gap: 36px; margin-top: -1px; padding: 28px var(--mh-gutter) 40px; box-shadow: none; }
   .mh-sheet-split { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  /* A title and its way out share the line; what explains the list takes the line under them. */
+  .mh-col-head { flex-wrap: wrap; row-gap: 2px; }
+  .mh-col-head:has(.mh-col-link) .mh-col-note { order: 1; flex-basis: 100%; }
+  .mh-col-link { padding-block: 10px; margin-block: -10px; }
+  .mh-rows .mh-row-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+  /* The line under a name ends in its state, late or short, so it turns before it is cut. */
+  .mh-rows .mh-row-sub { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+  /* On a narrow plate the width goes to the name, not to a column of keys. */
+  .mh-rows:has(> li > .sa-btn) > li:not(:has(> .sa-btn))::after { display: none; }
 
   /* מחסן: the door stops under the model and the plate scrolls inside itself, so a row lights its place in plain view. */
   .mh-app[data-route="map"] { --mh-band: max(300px, min(96vw, 46dvh)); }
   .mh-wh { height: calc(100dvh - var(--mh-band) - var(--mh-foot)); padding-block: 20px 0; overflow-y: auto; overscroll-behavior: contain; }
-  /* The plan is measured for a whole window; here it has the band, down to the time ruler. */
-  .mh-app:has(.mh-wh[data-plan]) .mh-world :is(.mh-twin, .mh-wh-tags) { inset: 0 0 auto; height: calc(var(--mh-band) - 58px); }
   [data-theme^="merhav"] {
     .mh-wh > .sa-tabs { position: sticky; top: -20px; z-index: 3; align-self: stretch; margin-inline: calc(var(--mh-gutter) * -1); padding-inline: var(--mh-gutter); overflow-x: auto; scrollbar-width: none; background: var(--bg-surface); }
     .mh-wh .m3d-rail { flex: none; overflow: visible; }
-    .mh-wh .m3d-ledger-head { top: 18px; }
+    .mh-wh .m3d-ledger-head { top: 24px; }
+    /* The notch of the floor is free, so the way of looking stands there over the ruler and hides nothing. */
+    .mh-world .m3d-corner { top: auto; bottom: 62px; inset-inline: 12px auto; }
   }
+  /* The worth is the widest of the three, so they step down with the phone, and a sum too long to share the line takes its own. */
+  .mh-wh-figures { flex-wrap: wrap; gap: 4px 12px; }
+  .mh-wh-figure { font-size: clamp(23px, 7.2vw, 30px); }
 
   /* מלאי: a name and its figure. The skyline stays. */
   .mh-inv { padding: 24px var(--mh-gutter) 40px; }
@@ -305,6 +342,54 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
 /* A bar of the skyline is a pixel or two wide: a finger would open whichever one it landed on, and every one is a row below. */
 @media (hover: none) {
   .mh-sky { pointer-events: none; }
+
+  /* A tick stays a hair on the line and gets a finger's reach around it. */
+  .mh-tick { top: -21px; width: 24px; height: 44px; margin-left: -12px; }
+  .mh-tick::before { transform: translate(7px, 12px); }
+
+  /* Under 16 pixels an iPhone zooms the page into the field it was given, and leaves it there. */
+  [data-theme^="merhav"] :is(.sa-input, .sa-menu-search input) { font-size: 16px; }
+  [data-theme^="merhav"] :is(.app-panelHost, .sa-modal) .sa-textarea { font-size: 16px; }
+
+  /* Every press gets its 44 pixels: by height where the line has room, and by a reach around a word that stands among others. */
+  [data-theme^="merhav"] .sa-tab { min-height: 44px; }
+  .mh-mv .app-filters .sa-select-trigger, .mh-mv-rack { height: 44px; }
+  .mh-lens-item { min-width: 44px; min-height: 44px; }
+  .mh-ov-answers a { min-height: 44px; align-items: center; }
+  .mh-col-link { padding-block: 10px; margin-block: -10px; }
+  .mh-seek, .mh-back { height: 44px; }
+  [data-theme^="merhav"] body:has(.mh-app) .sys-switch a { min-width: 44px; min-height: 44px; }
+  /* A hand takes the door by the same edge, and needs more of it than a pointer does. */
+  .mh-door-handle { left: calc(var(--mh-dock) - 22px); width: 44px; }
+  .mh-door-handle::after { left: 18px; }
+  [data-theme^="merhav"] .sa-btn-link, .mh-led-head button, .mh-fl-product { position: relative; }
+  [data-theme^="merhav"] .sa-btn-link::after, .mh-led-head button::after, .mh-fl-product::after, .mh-tag-body::after { content: ""; position: absolute; inset: -12px -6px; }
+  .mh-fl-go { justify-content: center; min-width: 44px; min-height: 44px; }
+  [data-theme^="merhav"] {
+    /* The line under a tab is its own ::after, so the reach is the other side's. */
+    .sa-tab::before { content: ""; position: absolute; inset-block: 0; inset-inline: -8px; }
+    .sa-menu-item { min-height: 44px; }
+    .app-when-preset, .app-when-pick { min-height: 44px; }
+    .sa-appearance-opt { min-width: 44px; min-height: 44px; }
+    .m3d-tag::after { content: ""; position: absolute; inset: -9px -3px; }
+    /* Sits inside the plate, so the plate's own height is the rest of its reach. */
+    .m3d-views > .sa-btn-primary { position: relative; height: 36px; margin-inline-start: -7px; }
+    .m3d-views > .sa-btn-primary::after { content: ""; position: absolute; inset: -4px 0; }
+
+    /* The tap's own flash is off everywhere, so a row answers the press itself. */
+    :is(.mh-led-row, .mh-row, .mh-mv-row, .m3d-line, .m3d-shelf, button.mh-dc-line, .sa-table tr.is-clickable):active { background: var(--accent-soft); }
+    /* A finger leaves :hover behind it, and a row must not stay a step aside after the drawer closes. */
+    .sa-attention-item:hover { padding-inline-start: 0; }
+  }
+  .mh-row:hover, .mh-ov-answers a:hover { padding-inline-start: 0; }
+}
+
+@keyframes mh-rise {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes mh-sink {
+  to { transform: translateY(100%); }
 }
 
 /* ── A tablet held upright: every place fits on the bar, and the plate has room for two columns ── */
@@ -316,7 +401,7 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
 
   /* עוד holds only what is left, so it is a small plate over its own word. */
   .mh-nav { display: none; }
-  .mh-rail { right: auto; width: 320px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  .mh-rail { right: auto; width: 320px; }
   [data-theme^="merhav"] body:has(.mh-app) .sys-switch { right: auto; width: 320px; }
 
   .mh-ov-figures { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 48px; padding-top: 26px; }
@@ -329,18 +414,48 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
 
   .mh-led { --cols: minmax(0, 1fr) 76px 120px; }
   .mh-led-head .is-place, .mh-led-row .is-place { display: flex; }
-
-  .mh-command { width: 100%; }
 }
 
-/* The smallest phones: the bar's words step down rather than touch. */
+/* A phone's ledger on מחסן: a name takes its whole line, because its end is what tells two sizes apart, and its figures stand under their columns. */
+@media (max-width: 480px) {
+  [data-theme^="merhav"] {
+    .m3d-ledger:not(.is-value) { --ledger-columns: minmax(0, 1fr) 72px 92px; }
+    .m3d-ledger:not(.is-value) :is(.m3d-ledger-head, .m3d-line) { padding-inline-start: calc(var(--mh-thumb) + 10px); }
+    .m3d-ledger:not(.is-value) .m3d-ledger-head > :first-child { display: none; }
+    .m3d-ledger:not(.is-value) .m3d-line { row-gap: 2px; }
+    .m3d-ledger:not(.is-value) .m3d-line-product { grid-column: 1 / -1; }
+    .m3d-ledger:not(.is-value) .m3d-line .sa-thumb { position: absolute; inset-inline-start: 0; top: calc(50% - var(--mh-thumb) / 2); }
+    :is(.m3d-ledger-head, .m3d-line).is-past { grid-template-columns: minmax(0, 1fr) 96px; }
+
+    /* The same for the shelves of one rack. */
+    .m3d-shelves { --shelf-columns: minmax(0, 1fr) 72px 84px 14px; }
+    .m3d-shelf-head > :nth-child(2) { display: none; }
+    .m3d-shelf:not(.is-empty) { row-gap: 2px; }
+    .m3d-shelf:not(.is-empty) .m3d-line-name { grid-column: 1 / -1; grid-row: 1; }
+
+    /* A figure and its unit read as one on a line this short. */
+    :is(.m3d-line, .m3d-shelf) .m3d-num:has(> .m3d-line-unit) { display: flex; align-items: baseline; gap: 4px; }
+  }
+
+  /* Every tab stays in sight: a word that scrolls away takes its number's name with it. */
+  [data-theme^="merhav"] .sa-toolbar-tabs .sa-tabs { flex-wrap: wrap; column-gap: 14px; overflow: visible; }
+}
+
+/* The smallest phones: the bar's words step down rather than touch, and a name keeps the room of its photo. */
 @media (max-width: 359px) {
   .mh-stop, .mh-bar-seek { font-size: var(--t-14); }
   .mh-bar-seek { gap: 5px; padding-inline: 14px 6px; }
+  .mh-led-row .sa-thumb { display: none; }
+  [data-theme^="merhav"] .m3d-views { gap: 8px; padding-inline: 10px; }
+  /* The settings: four words don't share a line with their name here, so they take the next one. */
+  [data-theme^="merhav"] :is(.sa-modal-head, .sa-modal-body, .sa-modal-foot) { padding-inline: 20px; }
+  [data-theme^="merhav"] .sa-settings-group .sa-appearance { flex-wrap: wrap; }
+  [data-theme^="merhav"] .sa-settings-group .sa-appearance-opts { gap: 10px; }
 }
 
-/* A phone on its side is someone who wants to see the warehouse: the model stands beside the plate, the way it does on a desk. */
-@media (max-width: 899px) and (max-height: 500px) {
+/* A phone on its side is someone who wants to see the warehouse: the model stands beside the plate, the way it does on a desk.
+   Wide as well as low, because a keyboard that shortens an upright phone must not turn the room around under the form. */
+@media (max-width: 899px) and (max-height: 500px) and (min-aspect-ratio: 3 / 2) {
   html[data-theme^="merhav"] { --mh-band: 0px; --mh-gutter: 24px; --mh-beside: 46vw; }
   .mh-app[data-route="map"] { --mh-band: 0px; }
 
@@ -357,6 +472,13 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-ov-answers, .mh-ov-week { flex: none; }
   .mh-ov-answers { width: 100%; }
   .mh-sheet-split { grid-template-columns: minmax(0, 1fr); }
+
+  /* A low screen can't lend a third of its height to a head that stays: it scrolls away with the rest. */
+  .mh-mv-band, .mh-dr { position: static; }
+  .mh-mv-dayhead { top: 0; }
+  /* The day's two sums stand side by side, or either alone would fill the screen. */
+  .mh-dc-money { --room: calc((100cqw - var(--mh-dc-gap)) / 2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mh-dc-counts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* ── Small laptops and tablets on their side: the door still works, and the list wins the room ── */
@@ -370,6 +492,15 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-rail { padding-right: 22px; }
   [data-theme^="merhav"] body:has(.mh-app) .sys-switch { padding-right: 22px; }
   .mh-inv-tools .sa-select { width: 128px; }
+}
+
+/* Tags that touch lean apart along their line: see use-tag-room.ts. */
+@media (max-width: 1099px) {
+  .mh-tag-body, [data-theme^="merhav"] .m3d-tag { translate: var(--lean, 0px) 0; }
+}
+/* Beside a tablet's door the model stands as small as on a phone, so only what needs a hand keeps its tag. */
+@media (min-width: 900px) and (max-width: 1099px) {
+  [data-theme^="merhav"] .m3d-label:not(.is-attention, .is-selected, .is-flash, .is-hover) { display: none; }
 }
 
 /* A low window keeps the whole rail in reach: it tightens first, and only then scrolls. */
@@ -402,15 +533,14 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
     --mh-hero-right: clamp(300px, 15vw, 560px);
     --mh-hero-bottom: 96px;
     --mh-ways: 48px;
+    --mh-title: 52px;
+    --mh-thumb: 48px;
     --panel: 560px;
     --modal: 560px;
   }
 
   .mh-nav-row { height: 46px; line-height: 46px; }
   .mh-rail .sa-nav-item, .mh-rail .mh-rail-foot .mh-seek { height: 40px; }
-
-  .sa-page-title { font-size: 52px; }
-  [data-theme^="merhav"] .sa-page-title { font-size: 52px; }
 
   /* סקירה: the same corners of the L, at the size of the room. */
   .mh-ov-figures { padding: 48px 64px 0 0; }
@@ -422,7 +552,7 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-ov-floor { padding: 0 64px 20px 48px; }
   .mh-ov-bottom { margin-bottom: 18px; }
   .mh-ov-answers { width: min(520px, 100%); }
-  .mh-ov-answers dt, .mh-ov-answers dd { font-size: var(--t-16); }
+  .mh-ov-answers span, .mh-ov-answers b { font-size: var(--t-16); }
   .mh-ov-answers a { padding-block: 11px; }
   .mh-ov-week { gap: clamp(64px, 4.4vw, 150px); }
   .mh-ov-week dd { font-size: clamp(36px, 2.1vw, 70px); }
@@ -432,17 +562,34 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-sheet { flex-flow: row wrap; align-items: flex-start; gap: 56px clamp(56px, 3.6vw, 120px); padding-block: 56px 96px; }
   .mh-sheet > .sa-notice { flex: 0 0 100%; }
   .mh-sheet-split { display: contents; }
-  .mh-col { flex: 1 1 0; }
+  .mh-sheet .mh-col { flex: 1 1 0; }
 
   /* מלאי: the skyline stands taller and the ledger gives its width to the scale, not to the gap after the name. */
   .mh-skyline { height: clamp(120px, 5.6vw, 200px); }
   .mh-lens-n { font-size: clamp(30px, 1.5vw, 44px); }
   .mh-lens-item { height: 54px; }
-  .mh-led { --cols: minmax(0, 1.25fr) 120px minmax(200px, 1fr) 190px; }
-  .mh-led-head, .mh-led-row { gap: 28px; }
+  /* Only while the scale is there at all: a door pulled wide by hand leaves the plate its narrow columns. */
+  @container mh-inv (min-width: 761px) {
+    .mh-led { --cols: minmax(0, 1.25fr) 120px minmax(200px, 1fr) 190px; }
+    .mh-led-head, .mh-led-row { gap: 28px; }
+  }
   .mh-led-fig { font-size: 26px; line-height: 32px; }
   .mh-inv-tools .sa-select { width: 200px; }
-  [data-theme^="merhav"] .sa-thumb { width: 48px; height: 48px; }
+
+  .mh-docs { --mh-docs-top: 72px; }
+
+  /* The ledgers whose columns are drawn in pixels step up with the type, or a code breaks over two lines. */
+  [data-theme^="merhav"] {
+    .m3d-ledger { --ledger-columns: minmax(0, 1fr) 52px 60px 76px; }
+    .m3d-ledger.is-count { --ledger-columns: minmax(0, 1fr) 52px 84px 56px; }
+    .m3d-ledger.is-value { --ledger-columns: 52px minmax(0, 1fr) 100px 60px; }
+  }
+  @container (min-width: 601px) {
+    .mh-mv-row { grid-template-columns: 56px 128px var(--mh-thumb) minmax(0, 1fr) 120px; }
+  }
+  @container (min-width: 860px) {
+    .mh-mv-row { grid-template-columns: 56px 128px var(--mh-thumb) minmax(0, 1.2fr) minmax(0, 1fr) 120px; }
+  }
 }
 
 /* A 4K room, read from further back: the type takes a second step, so the hierarchy stays the same picture at a new size. */
@@ -456,6 +603,8 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
     --control-md: 46px;
     --control-lg: 52px;
     --mh-ways: 60px;
+    --mh-title: 72px;
+    --mh-thumb: 60px;
     --panel: 680px;
     --modal: 640px;
   }
@@ -470,7 +619,6 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-rail svg { width: 20px; height: 20px; }
   [data-theme^="merhav"] body:has(.mh-app) .sys-switch { gap: 22px; }
 
-  [data-theme^="merhav"] .sa-page-title { font-size: 72px; }
   .mh-ov-figures { padding: 72px 96px 0 0; }
   .mh-ov-worth-n { font-size: min(calc(var(--room) / (var(--len, 9) * 0.5 + 0.7)), 260px); }
   .mh-ov-held dd { font-size: 30px; }
@@ -479,13 +627,28 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   .mh-ov-answers { width: min(680px, 100%); }
   .mh-ov-answers a { padding-block: 16px; }
   .mh-day { height: 48px; }
-  .mh-day-hour { font-size: var(--t-13); line-height: var(--l-18); }
+  .mh-day-hour { line-height: var(--l-18); }
 
   .mh-led-fig { font-size: 34px; line-height: 42px; }
   .mh-led-fig small { font-size: var(--t-15); }
   .mh-lens-item { height: 66px; }
   .mh-inv-tools .sa-select { width: 260px; }
-  [data-theme^="merhav"] .sa-thumb { width: 60px; height: 60px; }
+  [data-theme^="merhav"] {
+    .m3d-ledger { --ledger-columns: minmax(0, 1fr) 64px 76px 96px; }
+    .m3d-ledger.is-count { --ledger-columns: minmax(0, 1fr) 64px 104px 68px; }
+    .m3d-ledger.is-value { --ledger-columns: 64px minmax(0, 1fr) 124px 76px; }
+    .m3d-line-qty, .m3d-line-percent, .m3d-move-qty { font-size: 22px; line-height: 28px; }
+  }
+  @container (min-width: 601px) {
+    .mh-mv-row { grid-template-columns: 64px 156px var(--mh-thumb) minmax(0, 1fr) 150px; }
+  }
+  @container (min-width: 860px) {
+    .mh-mv-row { grid-template-columns: 64px 156px var(--mh-thumb) minmax(0, 1.2fr) minmax(0, 1fr) 150px; }
+  }
+  .mh-docs { --mh-docs-top: 84px; }
+  .mh-mv-n { font-size: 34px; line-height: 38px; }
+  .mh-mv-sums dd, .mh-team-fig { font-size: 26px; line-height: 32px; }
+  .mh-mv-dayhead h2 { font-size: 28px; line-height: 34px; }
   .mh-command { width: min(860px, 100%); }
   .mh-command-field { height: 84px; }
   .mh-command-field input { font-size: 26px; }
@@ -498,4 +661,6 @@ html[data-theme^="merhav"] { --mh-ways: 42px; }
   [data-theme^="merhav"] body:has(.mh-app) .sys-switch { transition: none; }
   .mh-page, .mh-command, .mh-command-scrim, .mh-leader path, .mh-leader circle { animation: none; }
   .mh-leader path { stroke-dashoffset: 0; }
+  /* Two depths moving at two speeds is the motion this setting is there to stop. */
+  .mh-twin { transform: none; }
 }

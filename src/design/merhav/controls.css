@@ -4,7 +4,7 @@
 [data-theme^="merhav"] {
 
   /* ── Type on the plate ── */
-  .sa-page-title { font-size: clamp(30px, 2.6vw, 44px); line-height: 1.12; font-weight: 300; letter-spacing: -0.02em; }
+  .sa-page-title { font-size: var(--mh-title); line-height: 1.12; font-weight: 300; letter-spacing: -0.02em; }
   .sa-page-sub { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
   .sa-section-title { font-size: var(--t-17); line-height: var(--l-23); font-weight: 600; }
   .sa-pagehead { grid-template: "title actions" auto "sub sub" var(--l-20) / minmax(0, 1fr) auto; row-gap: 4px; }
@@ -223,6 +223,8 @@
   .mh-app[data-door="open"] .app-panelHost[data-closing] { animation-name: mh-door-out; }
   .mh-app[data-door="open"] .sa-panel { box-shadow: var(--shadow-door); }
   .mh-app[data-door="open"] .app-scrim { background: none; right: var(--mh-rail); left: auto; width: var(--panel); }
+  /* The page it was opened on is gone, and so is it. */
+  .mh-app[data-drawer-left] .app-panelHost { visibility: hidden; }
 
   .app-toasts { z-index: 140; }
   .app-toast { background: var(--bg-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); padding: 12px 16px; animation: mh-settle var(--dur-move) var(--spring-move) both; }

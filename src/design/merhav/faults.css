@@ -3,14 +3,11 @@
 .mh-fl { padding: 34px var(--mh-gutter) 72px; min-width: 0; container-type: inline-size; }
 
 .mh-fl-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.mh-fl-top > .sa-btn { margin-block-start: var(--mh-title-key); }
 .mh-fl-lens { margin-top: 18px; }
-.mh-fl-lens .mh-lens-item { height: auto; padding-block-end: 8px; gap: 9px; }
-.mh-fl-lens .mh-lens-n { font-size: clamp(40px, 3.6vw, 64px); font-weight: 200; letter-spacing: -0.03em; }
-
-.mh-fl-body { margin-top: 18px; }
 
 /* One grid for the head and every row, so a column is a real column. The key stands under the place until there is room beside it. */
-.mh-fl-body { --cols: 92px minmax(0, 1fr) 64px 132px; }
+.mh-fl-body { --cols: 92px minmax(0, 1fr) 64px 132px; margin-top: 18px; }
 .mh-fl-body.is-record { --cols: 92px minmax(0, 1fr) 88px 132px; }
 .mh-fl-head, .mh-fl-row {
   display: grid;
@@ -35,6 +32,7 @@
 
 .mh-fl-list { list-style: none; margin: 0; padding: 0; }
 .mh-fl-row { position: relative; align-items: start; padding-block: 16px; border-bottom: 1px solid var(--border-subtle); }
+.mh-fl-row.has-spot { cursor: pointer; }
 .mh-fl-row > * { grid-row: 1 / span 2; }
 .mh-fl-row::before {
   content: "";
@@ -72,7 +70,7 @@
   text-align: start;
 }
 .mh-fl-product:hover { color: var(--accent-text); }
-.mh-fl-product .ltr { color: var(--text-tertiary); }
+.mh-fl-product .ltr { flex: none; color: var(--text-tertiary); }
 .mh-fl-row > .mh-fl-act { grid-column: 4; grid-row: 2; margin-top: 10px; }
 
 .mh-fl-wait { grid-column: 3; display: flex; flex-direction: column; align-items: flex-start; }
@@ -106,6 +104,34 @@
   .mh-fl-row > * { grid-row: 1; }
   .mh-fl-row > .mh-fl-act { grid-column: 5; grid-row: 1; margin-top: 0; justify-self: end; }
   .mh-fl-what { font-size: var(--t-17); line-height: var(--l-24); }
+}
+
+/* A narrow plate: the photo shrinks, and the figure stands beside the place. */
+@container (max-width: 600px) {
+  .mh-fl-body, .mh-fl-body.is-record { --cols: 64px minmax(0, 1fr) 118px; }
+  .mh-fl-head { display: none; }
+  [data-theme^="merhav"] .mh-fl-photo { width: 64px; height: 64px; }
+  .mh-fl-row { grid-template-rows: auto auto auto; }
+  .mh-fl-row > .mh-fl-place { grid-column: 3; grid-row: 1; }
+  .mh-fl-row > .mh-fl-wait { grid-column: 3; grid-row: 2; flex-direction: row; align-items: baseline; gap: 6px; margin-top: 4px; }
+  .mh-fl-row > .mh-fl-act { grid-column: 3; grid-row: 3; }
+  .mh-fl-row > .mh-fl-main { grid-row: 1 / span 3; }
+  .mh-fl-row > .mh-fl-photo { grid-row: 1 / span 3; }
+}
+
+/* A phone: what happened takes the width beside its photo, and where, how long and the key share a line under it. */
+@container (max-width: 480px) {
+  .mh-fl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .mh-fl-row > .mh-fl-photo { align-self: flex-start; }
+  .mh-fl-row > .mh-fl-main { flex: 1 1 calc(100% - 78px); }
+  /* With no photo the words take its room too, so the place never climbs up beside them. */
+  .mh-fl-row:not(:has(> .mh-fl-photo:not(.is-empty))) > .mh-fl-main { flex-basis: 100%; }
+  .mh-fl-row > .mh-fl-place { order: 1; }
+  .mh-fl-row > .mh-fl-wait { order: 2; margin-top: 0; }
+  .mh-fl-row > .mh-fl-act { order: 3; margin-top: 0; margin-inline-start: auto; }
+  /* The code stops squeezing the name: each has its own line, and the name is read whole. */
+  .mh-fl-product { flex-direction: column; gap: 0; }
+  .mh-fl-product .sa-truncate { white-space: normal; }
 }
 
 .mh-fl-foot { margin: 12px 0 0; font-size: var(--t-13); color: var(--text-tertiary); }
@@ -148,4 +174,12 @@
   z-index: 4;
   background: var(--bg-raised);
   box-shadow: var(--shadow-lift);
+}
+
+.mh-fl-go:focus-visible, .mh-fl-product:focus-visible, a.mh-fl-photo:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-fl-row::before { transition: none; }
+  /* Still ends, so the row leaves the list. */
+  .mh-fl-row.is-leaving { animation-duration: 1ms; }
 }

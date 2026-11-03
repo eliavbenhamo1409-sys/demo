@@ -54,6 +54,30 @@ export type Database = {
         }
         Relationships: []
       }
+      day_signoffs: {
+        Row: {
+          day: string
+          note: string | null
+          open_items: Json
+          signed_at: string
+          signed_by: string
+        }
+        Insert: {
+          day: string
+          note?: string | null
+          open_items?: Json
+          signed_at?: string
+          signed_by: string
+        }
+        Update: {
+          day?: string
+          note?: string | null
+          open_items?: Json
+          signed_at?: string
+          signed_by?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
@@ -112,7 +136,9 @@ export type Database = {
           photo_path: string | null
           product_id: string | null
           reported_by: string | null
+          resolution: string | null
           resolved_at: string | null
+          resolved_by: string | null
           status: Database["public"]["Enums"]["fault_status"]
         }
         Insert: {
@@ -124,7 +150,9 @@ export type Database = {
           photo_path?: string | null
           product_id?: string | null
           reported_by?: string | null
+          resolution?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           status?: Database["public"]["Enums"]["fault_status"]
         }
         Update: {
@@ -136,7 +164,9 @@ export type Database = {
           photo_path?: string | null
           product_id?: string | null
           reported_by?: string | null
+          resolution?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           status?: Database["public"]["Enums"]["fault_status"]
         }
         Relationships: [
@@ -664,7 +694,13 @@ export type Database = {
         }
         Returns: Database["public"]["Tables"]["orders"]["Row"]
       }
+      actor_label: { Args: never; Returns: string }
       day_summary: { Args: { target: string }; Returns: Json }
+      exit_pass_story: { Args: { pass: string }; Returns: Json }
+      sign_day: {
+        Args: { target: string; why?: string }
+        Returns: Database["public"]["Tables"]["day_signoffs"]["Row"]
+      }
       deliver_order: {
         Args: { by_worker?: string; receipt?: string; target_order: string }
         Returns: Database["public"]["Tables"]["orders"]["Row"]

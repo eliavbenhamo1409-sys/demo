@@ -9,6 +9,7 @@ export interface SearchBarProps {
   defaultValue?: string;
   onChange?: (q: string) => void;
   onSubmit?: (q: string) => void;
+  onFocus?: () => void;
   placeholder?: string;
   /** Key that focuses the field; false for a local table filter. */
   kbd?: string | false;
@@ -17,7 +18,7 @@ export interface SearchBarProps {
 
 /** The one global search (top bar) — also the local table filter with `kbd={false}`. */
 export function SearchBar({
-  value: valueProp, defaultValue, onChange, onSubmit, placeholder = 'חיפוש לפי מוצר, מק"ט או ספק', kbd = "/", className,
+  value: valueProp, defaultValue, onChange, onSubmit, onFocus, placeholder = 'חיפוש לפי מוצר, מק"ט או ספק', kbd = "/", className,
 }: SearchBarProps): ReactElement {
   const [valueState, setValueState] = useState(defaultValue ?? "");
   const value = valueProp !== undefined ? valueProp : valueState;
@@ -34,7 +35,8 @@ export function SearchBar({
     const onKey = (e: KeyboardEvent) => {
       const el = inputRef.current;
       if (!el) return;
-      const meta = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k";
+      // e.code, because a Hebrew keyboard reads ל on that key.
+      const meta = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.code === "KeyK" || e.key.toLowerCase() === "k");
       const target = e.target as HTMLElement | null;
       const typing = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
       const bare = kbd.length === 1 && e.key === kbd && !e.metaKey && !e.ctrlKey && !e.altKey && !typing;
@@ -61,6 +63,7 @@ export function SearchBar({
           aria-label={placeholder}
           autoComplete="off"
           onChange={(e) => set(e.target.value)}
+          onFocus={onFocus}
           onKeyDown={(e) => {
             if (e.key === "Enter") onSubmit?.(value);
             if (e.key === "Escape") {

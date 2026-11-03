@@ -6,13 +6,13 @@
  * What waits has no line yet and stands at the top. Same data, same writes and the same words as the shared page.
  */
 
-import { useCallback, useMemo, useRef, useState, type ReactElement } from "react";
+import { useCallback, useDeferredValue, useMemo, useRef, useState, type ReactElement } from "react";
 import { productOptions } from "@/components/app/forms/options";
 import { useUi } from "@/components/app/ui-state";
 import { Button, Count, cx, EmptyState, Icon, Modal, SearchBar, Showing } from "@/components/ui";
 import { isTempId, normalizeName, useData, type Product, type SupplierItem } from "@/lib/store";
 import { Band } from "../catalog/Band";
-import { linkKey, type Link } from "../catalog/geometry";
+import { linkKey, settle, type Link } from "../catalog/geometry";
 import { OpenPorts } from "../catalog/OpenPorts";
 import { CatalogPanel, type Lens, type Trace } from "../catalog/Panel";
 import { useLight } from "../catalog/use-light";
@@ -38,6 +38,7 @@ export function Catalog(): ReactElement {
   const [lens, setLens] = useState<Lens>({ category: null, supplier: null });
   const [seating, setSeating] = useState<SupplierItem | null>(null);
   const [trace, setTrace] = useState<Trace | null>(null);
+  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set());
 
   const supplierName = useCallback((id: string) => supplier(id)?.name ?? "ספק לא ידוע", [supplier]);
 
@@ -68,7 +69,8 @@ export function Catalog(): ReactElement {
       .sort((a, b) => (b.pending > 0 ? 1 : 0) - (a.pending > 0 ? 1 : 0) || b.aliases.length - a.aliases.length || a.product.name.localeCompare(b.product.name, "he"));
   }, [state.products, state.supplierItems, product]);
 
-  const q = normalizeName(query);
+  // The field answers every key at once; a long list follows a moment later instead of holding the keys back.
+  const q = normalizeName(useDeferredValue(query));
   const visible = useMemo(() => {
     if (!q) return rows;
     return rows.filter(({ product: p, aliases }) => {
@@ -94,17 +96,18 @@ export function Catalog(): ReactElement {
     return [...counts.values()];
   }, [state.supplierItems, product, groupOf]);
 
-  const categories = useMemo(() => {
-    const counts = new Map(state.products.map((p) => [groupOf(p), 0]));
-    for (const link of links) counts.set(link.category, (counts.get(link.category) ?? 0) + link.names);
-    return [...counts].map(([key, count]) => ({ key, label: key, count }));
-  }, [state.products, links, groupOf]);
-
-  const suppliers = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const i of state.supplierItems) counts.set(i.supplier_id, (counts.get(i.supplier_id) ?? 0) + 1);
-    return [...counts].map(([key, count]) => ({ key, label: supplierName(key), count }));
-  }, [state.supplierItems, supplierName]);
+  // Both sides in the order that keeps the lines apart. The list under the panel follows the same order.
+  const { categories, suppliers } = useMemo(() => {
+    const catCounts = new Map(state.products.map((p) => [groupOf(p), 0]));
+    for (const link of links) catCounts.set(link.category, (catCounts.get(link.category) ?? 0) + link.names);
+    const supCounts = new Map<string, number>();
+    for (const i of state.supplierItems) supCounts.set(i.supplier_id, (supCounts.get(i.supplier_id) ?? 0) + 1);
+    const order = settle([...catCounts.keys()], [...supCounts.keys()], links);
+    return {
+      categories: order.categories.map((key) => ({ key, label: key, count: catCounts.get(key) ?? 0 })),
+      suppliers: order.suppliers.map((key) => ({ key, label: supplierName(key), count: supCounts.get(key) ?? 0 })),
+    };
+  }, [state.products, state.supplierItems, links, groupOf, supplierName]);
 
   const shown = useMemo(() => {
     if (!lens.category && !lens.supplier) return visible;
@@ -113,6 +116,22 @@ export function Catalog(): ReactElement {
       .map((row) => (lens.supplier ? { ...row, aliases: row.aliases.filter((a) => a.supplier_id === lens.supplier) } : row))
       .filter((row) => !lens.supplier || row.aliases.length > 0);
   }, [visible, lens, groupOf]);
+
+  /* ── a long list stands in the panel's groups; a search or a chosen group is already narrow ── */
+  const sections = useMemo(() => {
+    if (q || lens.category) return null;
+    const byCategory = new Map<string, Row[]>(categories.map((c) => [c.key, []]));
+    for (const row of shown) byCategory.get(groupOf(row.product))?.push(row);
+    return [...byCategory].filter(([, list]) => list.length > 0);
+  }, [q, lens.category, categories, shown, groupOf]);
+
+  const fold = useCallback((key: string) => {
+    setFolded((now) => {
+      const next = new Set(now);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  }, []);
 
   /* ── writes ── */
   const stillSaving = useCallback(
@@ -124,31 +143,41 @@ export function Catalog(): ReactElement {
     [notify],
   );
 
+  // The line on the panel answers a name seated in the rows.
+  const traceTo = useCallback(
+    (productId: string, supplierId: string) => {
+      const target = product(productId);
+      if (target) setTrace((now) => ({ link: linkKey(groupOf(target), supplierId), count: (now?.count ?? 0) + 1 }));
+    },
+    [product, groupOf],
+  );
+
   const approveWithProduct = useCallback(
     async (item: SupplierItem, productId: string) => {
       if (stillSaving(item)) return;
       setApprovingId(item.id);
       setSeating(item);
       window.setTimeout(() => setSeating((now) => (now?.id === item.id ? null : now)), SEAT);
-      const target = product(productId);
-      if (target) setTrace((now) => ({ link: linkKey(groupOf(target), item.supplier_id), count: (now?.count ?? 0) + 1 }));
+      traceTo(productId, item.supplier_id);
       try {
         await mapSupplierItem(item.id, productId);
         const p = product(productId);
         notify({ tone: "success", title: `"${item.external_name}" אושר כ-${p?.name ?? ""}`.trim() });
       } catch (e) {
+        setSeating(null);
         notify({ tone: "danger", title: "האישור נכשל", text: e instanceof Error ? e.message : undefined });
       } finally {
         setApprovingId(null);
       }
     },
-    [mapSupplierItem, product, notify, stillSaving, groupOf],
+    [mapSupplierItem, product, notify, stillSaving, traceTo],
   );
 
   const approveInRow = useCallback(
     async (item: SupplierItem) => {
       if (stillSaving(item)) return;
       setApprovingId(item.id);
+      if (item.product_id) traceTo(item.product_id, item.supplier_id);
       try {
         await approveSupplierItem(item.id);
         const p = product(item.product_id);
@@ -159,7 +188,7 @@ export function Catalog(): ReactElement {
         setApprovingId(null);
       }
     },
-    [approveSupplierItem, product, notify, stillSaving],
+    [approveSupplierItem, product, notify, stillSaving, traceTo],
   );
 
   const unapprove = useCallback(
@@ -221,7 +250,27 @@ export function Catalog(): ReactElement {
 
   const deleteSupplierLabel = pendingDelete ? supplierName(pendingDelete.supplier_id) : "";
   const lensOn = Boolean(lens.category || lens.supplier);
+  const clearLens = () => setLens({ category: null, supplier: null });
   const light = useLight();
+
+  const band = ({ product: p, aliases }: Row) => (
+    <Band
+      key={p.id}
+      product={p}
+      aliases={aliases}
+      supplierName={supplierName}
+      open={openRowId === p.id}
+      onOpen={setOpenRowId}
+      onClose={closeRow}
+      onOpenProduct={openProduct}
+      onOpenName={onOpenName}
+      onApprove={onApprove}
+      onUnapprove={onUnapprove}
+      onRemove={requestDelete}
+      onSupplier={onSupplier}
+      approvingId={aliases.some((a) => a.id === approvingId) ? approvingId : null}
+    />
+  );
 
   return (
     <div className="mh-cat">
@@ -262,40 +311,41 @@ export function Catalog(): ReactElement {
           <Button variant="secondary" onClick={() => openAction("new-product")}>מוצר חדש</Button>
         </EmptyState>
       ) : shown.length === 0 ? (
-        <EmptyState title="לא נמצאו תוצאות" />
+        <EmptyState title="לא נמצאו תוצאות" hint={lensOn ? "אפשר להסיר את הסינון" : undefined}>
+          {lensOn ? <Button variant="secondary" onClick={clearLens}>ניקוי</Button> : null}
+        </EmptyState>
       ) : (
         <div ref={bay} className="mh-cat-bay" {...light}>
-          <div className="mh-cat-bay-head">
-            <span>מוצר במחסן{lens.category ? <> · {lens.category}</> : null}</span>
+          <div className={cx("mh-cat-bay-head", lensOn && "is-held")}>
+            <span className="mh-cat-bay-held">
+              מוצר במחסן
+              {lens.category ? <b> · {lens.category}</b> : null}
+              {lens.supplier ? <b> · {supplierName(lens.supplier)}</b> : null}
+            </span>
             <span />
             <span className="mh-cat-bay-head-names">
               <span>שם אצל הספק</span>
-              <span>ספק{lens.supplier ? <> · {supplierName(lens.supplier)}</> : null}</span>
-              {lensOn ? (
-                <button type="button" className="mh-cat-bay-clear" onClick={() => setLens({ category: null, supplier: null })}><Icon name="x" size={14} />ניקוי</button>
-              ) : <span />}
+              <span>ספק</span>
+              {lensOn ? <button type="button" className="mh-cat-bay-clear" onClick={clearLens}><Icon name="x" size={14} />ניקוי</button> : <span />}
             </span>
           </div>
-          <div role="list" aria-label="מוצרים ושמות של ספקים">
-            {shown.map(({ product: p, aliases }) => (
-            <Band
-              key={p.id}
-              product={p}
-              aliases={aliases}
-              supplierName={supplierName}
-              open={openRowId === p.id}
-              onOpen={setOpenRowId}
-              onClose={closeRow}
-              onOpenProduct={openProduct}
-              onOpenName={onOpenName}
-              onApprove={onApprove}
-              onUnapprove={onUnapprove}
-              onRemove={requestDelete}
-              onSupplier={onSupplier}
-              approvingId={approvingId}
-            />
-            ))}
-          </div>
+          {sections ? (
+            sections.map(([key, list]) => {
+              const open = !folded.has(key);
+              return (
+                <section key={key} className="mh-cat-section" aria-label={key}>
+                  <button type="button" className="mh-cat-section-head" aria-expanded={open} onClick={() => fold(key)}>
+                    <span className="mh-cat-section-word">{key}</span>
+                    <span className="mh-cat-section-note"><Count n={list.reduce((sum, row) => sum + row.aliases.length, 0)} one="שם" many="שמות" /></span>
+                    <Icon name={open ? "chevron-up" : "chevron-down"} size={14} />
+                  </button>
+                  {open ? <div role="list">{list.map(band)}</div> : null}
+                </section>
+              );
+            })
+          ) : (
+            <div role="list" aria-label="מוצרים ושמות של ספקים">{shown.map(band)}</div>
+          )}
         </div>
       )}
 

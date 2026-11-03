@@ -29,7 +29,7 @@ import {
   type SelectOption,
   type TableColumn,
 } from "@/components/ui";
-import { fmtDay, fmtDayWord, fmtName, fmtTime, MOVEMENT_LABEL } from "@/lib/format";
+import { fmtDay, fmtDayWord, fmtName, fmtTime, MOVEMENT_LABEL, orderRef } from "@/lib/format";
 
 type Period = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
@@ -42,6 +42,8 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "custom", label: "טווח תאריכים" },
 ];
 const DEFAULT_PERIOD: Period = "month";
+/** What a period's tab says when it holds nothing; a range of days reads the same whichever it is. */
+const NOTHING_IN: Partial<Record<Period, string>> = { today: "אין תנועות היום", yesterday: "אין תנועות אתמול" };
 const MOVEMENT_TYPES: MovementType[] = ["in", "out", "fault", "adjust"];
 const NO_WORKER = "none";
 const PAGE_SIZE = 100;
@@ -242,9 +244,22 @@ function MovementsInner() {
         <Button variant="secondary" onClick={() => ui.openAction("receive")}>קליטת סחורה</Button>
       </EmptyState>
     ) : q ? (
-      <EmptyState title="לא נמצאו תנועות" hint={<>עבור <span className="sa-mono ltr">„{query.trim()}”</span></>} />
+      <EmptyState title="לא נמצאו תנועות" hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
+        <Button variant="secondary" onClick={clearFilters}>ניקוי סינון</Button>
+      </EmptyState>
+    ) : period !== DEFAULT_PERIOD && !differs(applied, { ...applied, ...NO_FILTERS }) ? (
+      // A tab is not a filter: nothing was narrowed down, the period is simply empty.
+      <EmptyState title={NOTHING_IN[period] ?? "אין תנועות בטווח הזה"} hint="אפשר לראות תנועות ישנות יותר">
+        <Button variant="secondary" onClick={() => choosePeriod("all")}>כל התנועות</Button>
+      </EmptyState>
+    ) : hasFilters ? (
+      <EmptyState title="לא נמצאו תנועות" hint="אפשר להסיר את הסינון">
+        <Button variant="secondary" onClick={clearFilters}>ניקוי סינון</Button>
+      </EmptyState>
     ) : (
-      <EmptyState title="לא נמצאו תנועות" hint="אפשר להסיר את הסינון" />
+      <EmptyState title="אין תנועות ב-30 הימים האחרונים" hint="אפשר לראות תנועות ישנות יותר">
+        <Button variant="secondary" onClick={() => choosePeriod("all")}>כל התנועות</Button>
+      </EmptyState>
     );
 
   return (
@@ -255,7 +270,7 @@ function MovementsInner() {
         tabs={<Tabs tabs={PERIODS} value={period} onChange={choosePeriod} />}
         query={query}
         onQuery={setQuery}
-        placeholder='חיפוש לפי מוצר, מק"ט או מספר תעודה'
+        placeholder='חיפוש לפי מוצר או מק"ט'
       />
 
       {failed ? (
@@ -377,14 +392,15 @@ function MovementsTable({ rows, isLoading, empty }: { rows: MovementRow[]; isLoa
       },
       {
         key: "supplier",
-        title: "ספק ותעודה",
+        title: "מקור",
         render: (m) => {
           const name = supplier(m.supplier_id)?.name;
-          if (!name && !m.reference && !m.exit_pass) return <span className="text-ink-3">—</span>;
+          const order = orderRef(m.reference);
+          if (!name && !order && !m.exit_pass) return <span className="text-ink-3">—</span>;
           return (
             <span className="sa-mv-source block">
               {name ? <span className="sa-truncate block" title={name}>{name}</span> : null}
-              {m.reference ? <span className="sa-cell-sub sa-truncate" title={m.reference}><bdi>{m.reference}</bdi></span> : null}
+              {order ? <span className="sa-cell-sub sa-truncate" title={order}><bdi>{order}</bdi></span> : null}
               {m.exit_pass ? <span className="sa-cell-sub sa-truncate">בלי קבלה</span> : null}
             </span>
           );
@@ -404,7 +420,7 @@ function MovementsTable({ rows, isLoading, empty }: { rows: MovementRow[]; isLoa
       isLoading={isLoading}
       skeletonRows={8}
       empty={empty}
-      onRowClick={(m) => ui.openProduct(m.product_id, "history")}
+      onRowClick={(m) => ui.openMovement(m)}
       footer={
         page.length < rows.length ? (
           <>

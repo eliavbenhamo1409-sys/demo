@@ -58,7 +58,7 @@ export function ProductRow({ product, aliases, supplierName, open, onOpen, onClo
         <ProductThumb product={product} />
         <div className="sa-dict-product-text">
           <button type="button" className="sa-dict-product-name" onClick={onOpenProduct} aria-label={`פתיחת מוצר ${product.name}`} title="פתיחת מוצר">
-            {product.name}
+            <span className="sa-dict-product-label">{product.name}</span>
           </button>
           <span className="sa-dict-product-codes">
             <span className="sa-mono ltr">{product.sku}</span>

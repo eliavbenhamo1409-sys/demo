@@ -13,6 +13,8 @@ export interface SelectProps {
   defaultValue?: string;
   onChange?: (value: string) => void;
   label?: string;
+  /** What the closed control shows, when it should be shorter than the option's own label. */
+  shown?: ReactNode;
   placeholder?: string;
   allLabel?: string;
   searchPlaceholder?: string;
@@ -38,7 +40,7 @@ function labelText(label: ReactNode): string {
 
 /** Searchable select; `allLabel` adds an empty "all" option first. */
 export function Select({
-  options, value: valueProp, defaultValue, onChange, label, placeholder = "בחירה", allLabel, searchPlaceholder = "חיפוש לפי שם",
+  options, value: valueProp, defaultValue, onChange, label, shown, placeholder = "בחירה", allLabel, searchPlaceholder = "חיפוש לפי שם",
   emptyLabel = "לא נמצאו תוצאות", searchable = true, disabled, open: openProp, defaultOpen, inline, activeIndex: activeProp,
   minWidth, maxWidth, block, className,
 }: SelectProps): ReactElement {
@@ -183,7 +185,7 @@ export function Select({
         onClick={() => setOpen(!open)}
       >
         <span id={`sa-sel-${uid}-value`} className={cx("sa-select-value", !current && "is-placeholder")}>
-          {current ? current.label : placeholder}
+          {current ? (shown ?? current.label) : placeholder}
         </span>
         <Icon name="chevron-down" size={14} className="sa-select-chevron" />
       </button>

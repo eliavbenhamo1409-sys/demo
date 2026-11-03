@@ -23,6 +23,8 @@ import { useTwin } from "../twin/Twin";
 
 type Tab = "open" | "resolved";
 
+const MINUTE = 60_000;
+
 /** ISO timestamp of seven days ago; rows are compared as ISO strings like the store does. */
 function weekAgoIso(): string {
   const d = new Date();
@@ -53,7 +55,7 @@ function fmtDuration(fromIso: string, toIso: string): string | null {
 
 /** How long an open fault has waited, as a figure and its word. */
 function waited(iso: string, now: number): { n: string; word: string } {
-  const min = Math.floor((now - Date.parse(iso)) / 60000);
+  const min = Math.floor((now - Date.parse(iso)) / MINUTE);
   if (min < 1) return { n: "", word: "עכשיו" };
   if (min < 60) return { n: fmtQty(min), word: min === 1 ? "דקה" : "דקות" };
   const hours = Math.floor(min / 60);
@@ -75,12 +77,8 @@ interface Spot {
 /** The floor's mark stands this far off what it marks, as the stock marks do. */
 const MARK_MARGIN = 0.45;
 const BEND = 28;
-/** Clear pixels between a place and the door's edge, enough for its tag. */
-const TAG_ROOM = 60;
 /** Half the photo and a margin: what it needs on either side of its place. */
 const PEEK_ROOM = 80;
-/** A mouse crossing the list moves nothing; one that stops does. Long enough for the engine to have placed the point. */
-const SLIDE_AFTER = 140;
 
 interface PlaceTag {
   object: MapObject;
@@ -163,34 +161,11 @@ function Stage({ tags, now, aim, rowOf, door, pinned, onPick, onHome }: StagePro
     };
   }, [world, point, door, aimId, rowOf]);
 
-  // The L can stand wider than the dock leaves it, so the picture slides out from under the door just far enough to show what the list is about.
-  const slid = useRef(0);
-  useEffect(() => {
-    if (!engine || !world || !door || pinned) return;
-    const shown = point && aimId ? [point] : [...nodes.current.values()];
-    if (shown.length === 0) return;
-    const rest = setTimeout(() => {
-      const edge = door.getBoundingClientRect().left;
-      const spots = shown.map((el) => el.getBoundingClientRect().left + slid.current);
-      slid.current = Math.max(0, Math.min(Math.max(...spots) + TAG_ROOM - edge, Math.min(...spots) - TAG_ROOM));
-      engine.setInsets({ top: 0, left: 0, bottom: 0, right: world.clientWidth - edge + slid.current * 2 });
-    }, SLIDE_AFTER);
-    return () => clearTimeout(rest);
-  }, [engine, world, door, point, aimId, tags, pinned]);
-
-  useEffect(() => {
-    if (!engine || !world) return;
-    const gauge = world.getBoundingClientRect();
-    return () => {
-      if (slid.current > 0) engine.setInsets({ top: 0, left: 0, bottom: 0, right: gauge.width - (door?.getBoundingClientRect().left || 0) });
-    };
-  }, [engine, world, door]);
-
   if (!world) return null;
   return createPortal(
     <>
       <div className={cx("mh-tags", aim && "is-aiming")} aria-hidden="true">
-        {tags.map(({ object, fault, count }) => {
+        {(engine ? tags : []).map(({ object, fault, count }) => {
           const wait = waited(fault.created_at, now);
           return (
             <button
@@ -206,7 +181,7 @@ function Stage({ tags, now, aim, rowOf, door, pinned, onPick, onHome }: StagePro
             >
               <span className="mh-tag-body">
                 <span className="mh-tag-code ltr">{object.id}</span>
-                <span className="mh-tag-word">{count > 1 ? `${fmtQty(count)} תקלות` : `${wait.n} ${wait.word}`}</span>
+                <span className="mh-tag-word">{count > 1 ? `${fmtQty(count)} תקלות` : `${wait.n} ${wait.word}`.trim()}</span>
               </span>
               {photo && aim?.spot.object.id === object.id ? <Peek src={photo} /> : null}
             </button>
@@ -256,9 +231,9 @@ export function Faults(): ReactElement {
 }
 
 function FaultsInner(): ReactElement {
-  const { state, product, worker, resolveFault, reopenFault } = useData();
-  const { openAction, openProduct, notify, panel, closing } = useUi();
-  const { engine, objects, itemsOf, spotObjects, listen, setPageRoutes } = useTwin();
+  const { state, product, worker, reopenFault } = useData();
+  const { openAction, openProduct, openFault, notify, panel, closing } = useUi();
+  const { engine, objects, itemsOf, spotObjects, holdCamera, listen, setPageRoutes } = useTwin();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -280,7 +255,13 @@ function FaultsInner(): ReactElement {
   const [query, setQuery] = useState("");
   const [workerId, setWorkerId] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [now] = useState(() => Date.now());
+
+  // A wait is a live figure: it keeps counting while the page stands open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), MINUTE);
+    return () => clearInterval(tick);
+  }, []);
 
   /* ───────── counts ───────── */
   const open = useMemo(() => state.faults.filter((f) => f.status === "open"), [state.faults]);
@@ -339,13 +320,6 @@ function FaultsInner(): ReactElement {
   }, []);
   const gone = useCallback((id: string) => setLeaving((list) => list.filter((item) => item.fault.id !== id)), []);
 
-  const onResolve = useCallback(
-    (f: Fault) => {
-      leave(f);
-      return run(f, () => resolveFault(f.id), "התקלה סומנה כטופלה", "סימון התקלה נכשל");
-    },
-    [run, resolveFault, leave],
-  );
   const onReopen = useCallback(
     (f: Fault) => {
       leave(f);
@@ -407,11 +381,11 @@ function FaultsInner(): ReactElement {
     [aimed, aimedSpot],
   );
 
-  const pinnedFault = useMemo(() => visible.find((f) => f.id === pinned) ?? null, [visible, pinned]);
-  const pinnedSpot = useMemo(() => (pinnedFault ? spotOf(pinnedFault) : null), [pinnedFault, spotOf]);
-
   // A product open in the drawer holds the camera and the light; this page takes them back when it closes.
   const drawerHolds = panel?.type === "product" && !closing;
+
+  const pinnedFault = useMemo(() => (drawerHolds ? null : (visible.find((f) => f.id === pinned) ?? null)), [drawerHolds, visible, pinned]);
+  const pinnedSpot = useMemo(() => (pinnedFault ? spotOf(pinnedFault) : null), [pinnedFault, spotOf]);
 
   useEffect(() => {
     if (drawerHolds) return;
@@ -425,11 +399,19 @@ function FaultsInner(): ReactElement {
   const pinnedOnShelf = pinnedSpot?.level !== null && pinnedSpot?.level !== undefined;
   useEffect(() => {
     if (!engine || !pinnedObject) return;
-    engine.flyTo({ objectId: pinnedObject, shelf: pinnedOnShelf });
-    return () => engine.flyTo(null);
-  }, [engine, pinnedObject, pinnedOnShelf]);
+    holdCamera({ objectId: pinnedObject, shelf: pinnedOnShelf });
+    return () => holdCamera(null);
+  }, [engine, pinnedObject, pinnedOnShelf, holdCamera]);
 
-  const pin = useCallback((f: Fault) => setPinned((at) => (at === f.id ? null : f.id)), []);
+  // A phone's door stands shut over the model, so a place opens on מחסן instead of pointing at nothing.
+  const pin = useCallback(
+    (f: Fault) => {
+      const object = spotOf(f)?.object.id;
+      if (object && window.matchMedia("(max-width: 899px)").matches) router.push(`/3d?at=${encodeURIComponent(object)}`);
+      else setPinned((at) => (at === f.id ? null : f.id));
+    },
+    [router, spotOf],
+  );
 
   // The model answers too: pointing at a place finds its rows, pressing one takes you to the first.
   useEffect(
@@ -447,7 +429,7 @@ function FaultsInner(): ReactElement {
             return;
           }
           setPinned(tag.fault.id);
-          rows.current.get(tag.fault.id)?.scrollIntoView({ block: "center", behavior: "smooth" });
+          rows.current.get(tag.fault.id)?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
         },
       }),
     [listen, router, tags],
@@ -484,7 +466,7 @@ function FaultsInner(): ReactElement {
         <div className="mh-fl-head" aria-hidden="true">
           <span className="is-what">מה קרה</span>
           <span className="is-wait">{tab === "open" ? "ממתינה" : "טופל"}</span>
-          <span className="is-place">מקום</span>
+          <span className="is-place">מיקום</span>
         </div>
         <ul className="mh-fl-list" aria-label={tab === "open" ? "תקלות פתוחות" : "תקלות שטופלו"}>
           {listed.map((f) => {
@@ -497,6 +479,8 @@ function FaultsInner(): ReactElement {
             const spot = spotOf(f);
             const wait = waited(f.created_at, now);
             const place = spot?.code ?? f.asset ?? p?.location ?? null;
+            // An open fault counts how long it has waited in its own column; a closed one is a record, so it keeps its date.
+            const told = [w && `דווח ע"י ${w.name}`, done && fmtDay(f.created_at)].filter(Boolean).join(" · ");
             return (
               <li
                 key={f.id}
@@ -504,7 +488,7 @@ function FaultsInner(): ReactElement {
                   if (el) rows.current.set(f.id, el);
                   else rows.current.delete(f.id);
                 }}
-                className={cx("mh-fl-row", done && "is-done", pinned === f.id && "is-pinned", spot && spot.object.id === modelAt && "is-lit", fold && "is-leaving")}
+                className={cx("mh-fl-row", done && "is-done", spot && "has-spot", pinned === f.id && "is-pinned", spot && spot.object.id === modelAt && "is-lit", fold && "is-leaving")}
                 style={fold ? ({ "--h": `${fold.height}px` } as CSSProperties) : undefined}
                 onAnimationEnd={(e) => {
                   if (e.animationName === "mh-fl-fold") gone(f.id);
@@ -513,6 +497,9 @@ function FaultsInner(): ReactElement {
                 onPointerLeave={() => setHover(null)}
                 onFocus={() => setHover(f.id)}
                 onBlur={() => setHover(null)}
+                onClick={(e) => {
+                  if (spot && e.target instanceof Element && !e.target.closest("a, button")) pin(f);
+                }}
               >
                 <Photo src={faultPhotoUrl(f.photo_path)} product={p} framed={anyPhoto} />
                 <div className="mh-fl-main">
@@ -528,12 +515,12 @@ function FaultsInner(): ReactElement {
                     ) : spot ? null : (
                       <span>ללא מוצר</span>
                     )}
-                    <span>{w ? <>דווח ע&quot;י {w.name}</> : "ללא מדווח"}{done ? ` · ${fmtDay(f.created_at)}` : ""}</span>
+                    {told ? <span>{told}</span> : null}
                   </div>
                 </div>
                 <div className="mh-fl-wait">
                   {done ? (
-                    <span className="mh-fl-took">{took ?? "מיד"}</span>
+                    took ? <span className="mh-fl-took">{took}</span> : null
                   ) : (
                     <>
                       {wait.n ? <span className="mh-fl-n ltr">{wait.n}</span> : null}
@@ -545,7 +532,7 @@ function FaultsInner(): ReactElement {
                   {spot ? (
                     <button type="button" className="mh-fl-go" aria-pressed={pinned === f.id} onClick={() => pin(f)}>
                       <span className="mh-fl-code ltr">{place}</span>
-                      <span className="mh-fl-words">{spot.words}</span>
+                      {spot.words.includes(spot.object.id) ? null : <span className="mh-fl-words">{spot.words}</span>}
                     </button>
                   ) : place ? (
                     <span className="mh-fl-code ltr">{place}</span>
@@ -555,9 +542,9 @@ function FaultsInner(): ReactElement {
                 </div>
                 <div className="mh-fl-act">
                   {done ? (
-                    <Button variant="ghost" size="sm" icon="refresh" isLoading={busy} onClick={() => void onReopen(f)}>פתיחה מחדש</Button>
+                    <Button variant="ghost" size="sm" icon="refresh" aria-label={`פתיחה מחדש: ${f.description}`} isLoading={busy} onClick={() => void onReopen(f)}>פתיחה מחדש</Button>
                   ) : (
-                    <Button variant="secondary" size="sm" icon="check" isLoading={busy} onClick={() => void onResolve(f)}>סימון כטופל</Button>
+                    <Button variant="secondary" size="sm" icon="check" aria-label={`סגירה עם תיעוד: ${f.description}`} onClick={() => openFault(f.id)}>סגירה עם תיעוד</Button>
                   )}
                 </div>
               </li>
@@ -583,9 +570,9 @@ function FaultsInner(): ReactElement {
         <Button variant="primary" icon="tool" onClick={() => openAction("fault")}>דיווח תקלה</Button>
       </header>
 
-      <div className="mh-lens mh-fl-lens" role="tablist" aria-label="סינון לפי מצב">
+      <div className="mh-lens mh-fl-lens" role="group" aria-label="סינון לפי מצב">
         {lens.map((item) => (
-          <button key={item.key} type="button" role="tab" aria-selected={tab === item.key} className={cx("mh-lens-item", tab === item.key && "is-on")} onClick={() => setTab(item.key)}>
+          <button key={item.key} type="button" aria-pressed={tab === item.key} className={cx("mh-lens-item", tab === item.key && "is-on")} onClick={() => setTab(item.key)}>
             <Figure className="mh-lens-n" text={fmtQty(item.count)} />
             <span className="mh-lens-word">{item.word}</span>
           </button>

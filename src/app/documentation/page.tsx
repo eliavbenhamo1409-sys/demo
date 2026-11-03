@@ -15,7 +15,7 @@ import { productOptions, supplierOptions } from "@/components/app/forms/options"
 import { REQUIRED, useForm } from "@/components/app/forms/useForm";
 import { Badge, Button, Card, Count, EmptyState, Fields, Icon, Input, Modal, PageHead, Select, Showing, SidePanel, Tabs, Toolbar, type FieldItem, type IconName, type SelectOption } from "@/components/ui";
 import { ProductThumb } from "@/components/app/Viz";
-import { fmtFull, fmtQty, fmtRelative } from "@/lib/format";
+import { fmtFull, fmtQty, fmtRelative, fmtUnit, orderRef } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { documentDownloadUrl, useDocumentUrls } from "@/lib/documents";
 
@@ -144,13 +144,17 @@ function DocumentationInner() {
   if (visible.length > 0) {
     body = <Gallery key={`${tab}|${q}|${workerId}`} entries={visible} showKind={tab === "all"} />;
   } else if (q || workerId) {
-    body = <EmptyState title="לא נמצא תיעוד" hint="אפשר להסיר את הסינון" />;
+    body = (
+      <EmptyState title="לא נמצא תיעוד" hint={q && !workerId ? <>עבור „<bdi>{query.trim()}</bdi>”</> : "אפשר להסיר את הסינון"}>
+        <Button variant="secondary" onClick={() => { setQuery(""); setWorkerId(""); }}>ניקוי סינון</Button>
+      </EmptyState>
+    );
   } else if (tab === "in") {
     body = <EmptyState title="אין קבלות הכנסה" hint="קבלה שעובד מצלם בקליטה תופיע כאן" />;
   } else if (tab === "out") {
     body = <EmptyState title="אין קבלות הוצאה" hint="קבלה שעובד מצלם בהוצאה תופיע כאן" />;
   } else if (tab === "fault") {
-    body = <EmptyState title="אין תקלות" />;
+    body = <EmptyState title="אין תקלות" hint="דיווח תקלה מהטלפון יופיע כאן" />;
   } else {
     body = <EmptyState title="אין תיעוד" hint="קבלות מהטלפון ודיווחי תקלות יופיעו כאן" />;
   }
@@ -164,7 +168,7 @@ function DocumentationInner() {
         filters={workerOptions.length > 0 ? <Select options={workerOptions} value={workerId} onChange={setWorkerId} allLabel="כל העובדים" placeholder="עובד" /> : null}
         query={query}
         onQuery={setQuery}
-        placeholder="חיפוש לפי שם, מספר תעודה או עובד"
+        placeholder="חיפוש לפי שם או עובד"
       />
 
       {visible.length > 0 ? body : <Card flush>{body}</Card>}
@@ -299,11 +303,12 @@ function EntryPanel({ entry, src, onClose }: { entry: Entry; src: string | null;
 
   const reporter = worker(entry.workerId)?.name;
   const faultProduct = product(fault?.product_id);
+  const order = orderRef(doc?.reference);
   const fields: FieldItem[] = doc
     ? [
         { label: doc.kind === "in" ? "ספק" : "לקוח", value: entry.title },
         { label: "עובד", value: reporter },
-        ...(doc.reference ? [{ label: "מספר תעודה", value: doc.reference, num: true }] : []),
+        ...(order ? [{ label: "מקור", value: order }] : []),
       ]
     : [
         { label: "מוצר", value: faultProduct?.name ?? (fault?.product_id ? "מוצר שנמחק" : "ללא מוצר") },
@@ -373,7 +378,7 @@ function EntryPanel({ entry, src, onClose }: { entry: Entry; src: string | null;
                       <ProductThumb product={l.product} />
                       <span className="sa-truncate min-w-0 flex-1">{l.name}</span>
                       {l.status ? <Badge tone={l.status.tone} dot={false}>{l.status.label}</Badge> : null}
-                      <span className="shrink-0 text-end"><span className="sa-num">{fmtQty(l.qty)}</span>{l.unit ? ` ${l.unit}` : ""}</span>
+                      <span className="shrink-0 text-end"><span className="sa-num">{fmtQty(l.qty)}</span>{l.unit ? ` ${fmtUnit(l.qty, l.unit)}` : ""}</span>
                     </li>
                   ))}
                 </ul>
@@ -408,7 +413,6 @@ function EntryForm({ entry, onClose, children }: { entry: Entry; onClose: () => 
 
   const [supplierId, setSupplierId] = useState(doc?.supplier_id ?? "");
   const [customer, setCustomer] = useState(doc?.customer ?? "");
-  const [reference, setReference] = useState(doc?.reference ?? "");
   const [description, setDescription] = useState(fault?.description ?? "");
   const [productId, setProductId] = useState(fault?.product_id ?? "");
 
@@ -419,8 +423,7 @@ function EntryForm({ entry, onClose, children }: { entry: Entry; onClose: () => 
     }
     void form.run(async () => {
       if (doc) {
-        const party = doc.kind === "in" ? { supplier_id: supplierId || null } : { customer: customer.trim() || null };
-        await updateDocument(doc.id, { ...party, reference: reference.trim() || null });
+        await updateDocument(doc.id, doc.kind === "in" ? { supplier_id: supplierId || null } : { customer: customer.trim() || null });
       } else if (fault) {
         await updateFault(fault, { description: description.trim(), product_id: productId || null });
       }
@@ -453,15 +456,10 @@ function EntryForm({ entry, onClose, children }: { entry: Entry; onClose: () => 
           />
           <Select label="מוצר" options={productOptions(state.products)} value={productId} onChange={setProductId} allLabel="ללא מוצר" block />
         </>
+      ) : doc?.kind === "in" ? (
+        <Select label="ספק" options={supplierOptions(state.suppliers)} value={supplierId} onChange={setSupplierId} placeholder="בחירת ספק" block />
       ) : (
-        <>
-          {doc?.kind === "in" ? (
-            <Select label="ספק" options={supplierOptions(state.suppliers)} value={supplierId} onChange={setSupplierId} placeholder="בחירת ספק" block />
-          ) : (
-            <Input label="לקוח" value={customer} onChange={(e) => setCustomer(e.target.value)} autoComplete="off" />
-          )}
-          <Input label="מספר תעודה" optional mono value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" spellCheck={false} />
-        </>
+        <Input label="לקוח" value={customer} onChange={(e) => setCustomer(e.target.value)} autoComplete="off" />
       )}
     </FormPanel>
   );

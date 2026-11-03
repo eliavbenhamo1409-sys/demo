@@ -115,6 +115,8 @@
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
+/* Everything the empty search offers shows at once; a short window scrolls instead. */
+.app-results .sa-menu-list { max-height: min(420px, calc(100dvh - 96px)); }
 
 .app-resultTitle {
   display: block;
@@ -139,6 +141,20 @@
   color: var(--text-tertiary);
   white-space: nowrap;
 }
+
+/* That the screen is live, in one quiet line; the rest of it gives way before the search does. */
+.app-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.app-pulse-more { margin-inline-start: -2px; }
+@media (max-width: 1239px) { .app-pulse-more { display: none; } }
+@media (max-width: 899px) { .app-pulse { display: none; } }
 
 /* ── Loading skeleton ───────────────────────────────────────── */
 .app-skeletonTable {
@@ -822,6 +838,179 @@
   }
 }
 
+/* The default style: the same row as every list, in type and in height. The ring read as a box to tick and ticked nothing, so a waiting name is plain text. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  .sa-dict-list {
+    --dict-line: 44px;
+    --dict-group: minmax(0, 170px) minmax(0, 1fr);
+  }
+
+  /* A name that needs a second line takes it from the code under it, so a row keeps its height. A button can't clamp its own lines, so the words inside it do. */
+  .sa-dict-product-text {
+    max-height: calc(2 * var(--l-20));
+    overflow: hidden;
+  }
+
+  .sa-dict-product-name {
+    flex: none;
+  }
+
+  .sa-dict-product-label {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* The column names stay on a long list, as a table's do. Hidden overflow on the sheet would leave them nothing to stick to. */
+  @media (min-width: 1100px) {
+    .sa-card:has(.sa-dict-list) {
+      overflow: clip;
+    }
+
+    .sa-dict-head {
+      position: sticky;
+      top: var(--topbar);
+      z-index: 2;
+      background: var(--bg-surface);
+    }
+  }
+
+  .sa-dict-alias-name {
+    font-size: var(--t-14);
+    line-height: var(--l-20);
+    font-weight: 400;
+  }
+
+  .sa-dict-alias-sup {
+    font-weight: 400;
+    color: var(--text-tertiary);
+  }
+
+  /* The supplier's own column already parts the groups. */
+  .sa-dict-group + .sa-dict-group {
+    border-top: 0;
+  }
+
+  /* A waiting name keeps the whole column: its state stands on the quiet line under it, on one edge with the others. */
+  .sa-dict-alias {
+    grid-template-rows: auto auto;
+    align-content: center;
+  }
+
+  .sa-dict-alias-text {
+    display: contents;
+  }
+
+  .sa-dict-alias-name {
+    grid-column: 1 / span 2;
+  }
+
+  .sa-dict-alias-meta {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .sa-dict-alias-state {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  @media (hover: hover) {
+    .sa-dict-alias-state .sa-btn-link {
+      height: var(--l-18);
+    }
+  }
+
+  .sa-dict-alias .sa-btn.sa-dict-alias-remove {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .sa-dict-inbox-mark {
+    display: none;
+  }
+
+  .sa-dict-inbox-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: var(--row);
+    padding-block: var(--space-2);
+  }
+
+  .sa-dict-inbox-row:not(:last-child)::after {
+    inset-inline-start: var(--inset);
+  }
+
+  .sa-dict-inbox-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sa-dict-inbox-actions {
+    grid-column: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  /* The supplier keeps its own column as long as a name still fits beside it. */
+  @media (min-width: 1000px) {
+    .sa-dict-head-names,
+    .sa-dict-group {
+      grid-template-columns: var(--dict-group);
+    }
+
+    .sa-dict-head-names > span:first-child {
+      display: inline;
+    }
+
+    .sa-dict-alias-sup {
+      min-height: var(--dict-line);
+      padding-block-start: 0;
+      font-size: var(--t-14);
+      line-height: var(--l-20);
+    }
+  }
+
+  @media (max-width: 1339px) {
+    .sa-dict-inbox-actions .sa-select {
+      width: 240px;
+    }
+  }
+
+  /* The suggestion is what the blue button beside it approves, so it reads whole where the row has the room. */
+  @media (min-width: 1340px) {
+    .sa-dict-inbox-actions .sa-select {
+      width: 464px;
+    }
+  }
+
+  @media (max-width: 1239px) {
+    .sa-dict-list {
+      --dict-product: minmax(200px, 240px);
+      --dict-group: minmax(0, 120px) minmax(0, 1fr);
+    }
+
+    .sa-dict-row,
+    .sa-dict-head {
+      column-gap: var(--space-4);
+    }
+  }
+
+  @media (max-width: 899px) {
+    .sa-dict-inbox-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sa-dict-inbox-actions {
+      grid-column: 1;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+  }
+}
+
 /* ── Faults page ────────────────────────────────────────────── */
 .sa-faults {
   list-style: none;
@@ -1048,6 +1237,84 @@ a.sa-fault-thumb:focus-visible {
   }
   [data-theme^="minimal"] .sa-faults.has-photos .sa-fault-row:not(:last-child)::after {
     inset-inline-start: var(--inset);
+  }
+}
+
+/* The default style: a fault is a row like any other. What happened and on what, then who said so and when on one edge, and the way out at the far end. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  .sa-faults {
+    --fault-photo: 44px;
+    --fault-gap: var(--space-3);
+  }
+
+  .sa-fault-row {
+    min-height: var(--row);
+    padding-block: var(--space-2);
+  }
+
+  .sa-faults.has-photos .sa-fault-row:not(:last-child)::after {
+    inset-inline-start: var(--inset);
+  }
+
+  /* An empty frame keeps its place on a phone too, so the titles stand on one edge. */
+  .sa-fault-thumb.is-empty {
+    display: block;
+  }
+
+  .sa-fault-main {
+    gap: 0;
+  }
+
+  .sa-fault-product {
+    gap: var(--space-2);
+  }
+
+  .sa-fault-product .sa-mono {
+    font-size: inherit;
+  }
+
+  @media (min-width: 900px) {
+    .sa-fault-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      column-gap: var(--space-6);
+      align-items: center;
+    }
+
+    .sa-fault-main > :nth-child(2) {
+      grid-column: 1;
+      justify-self: start;
+    }
+
+    .sa-fault-main > :last-child {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+  }
+
+  @media (min-width: 900px) and (max-width: 1239px) {
+    .sa-fault-main {
+      grid-template-columns: minmax(0, 1fr) 250px;
+    }
+  }
+
+  @media (min-width: 1100px) and (max-width: 1239px) {
+    .sa-fault-main {
+      grid-template-columns: minmax(0, 1fr) 280px;
+    }
+  }
+
+  /* How long it took stands on its own line, as a state stands under a figure. The dot before it leaves with its line's size. */
+  .sa-fault-meta > span:has(> .sa-fault-took) {
+    display: block;
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .sa-fault-took {
+    display: block;
+    font-size: var(--t-13);
+    line-height: var(--l-18);
   }
 }
 
@@ -1357,11 +1624,130 @@ a.sa-fault-thumb:focus-visible {
   }
 }
 
+/* The default style: more of the archive on the first screen, captions on the photo's own edge. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  @media (min-width: 600px) {
+    .sa-doc-grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: var(--space-6) var(--space-5);
+    }
+  }
+
+  .sa-doc-card {
+    gap: var(--space-2);
+  }
+
+  .sa-doc-caption {
+    padding-inline: 0;
+  }
+
+  .sa-doc-grid .sa-doc-thumb.is-empty {
+    padding: var(--space-4);
+  }
+
+  .sa-doc-grid .sa-doc-thumb .sa-thumb {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sa-doc-note {
+    font-size: var(--t-14);
+    line-height: var(--l-20);
+    font-weight: 500;
+  }
+}
+
 /* ── Inventory page ─────────────────────────────────────────── */
 /* Nine columns, and from this width a table clips instead of scrolling, so the cells sit closer. */
 @media (min-width: 1100px) {
   .sa-inventory-table .sa-table :is(th, td) {
     padding-inline: var(--space-3);
+  }
+}
+
+/* Where the last columns give way, the last one left closes the row: its inset, and the rule stopping where the text does. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  /* One grid on every tab and filter, as on the orders page, so a press never moves a figure off its edge. The name takes what is left. */
+  @media (min-width: 768px) {
+    .sa-inventory-table .sa-table {
+      table-layout: fixed;
+    }
+
+    .sa-inventory-table th:nth-child(2) {
+      width: 120px;
+    }
+
+    .sa-inventory-table th:nth-child(3) {
+      width: 80px;
+    }
+
+    .sa-inventory-table th:nth-child(4) {
+      width: 150px;
+    }
+
+    .sa-inventory-table th:nth-child(5),
+    .sa-inventory-table th:nth-child(7) {
+      width: 84px;
+    }
+
+    .sa-inventory-table th:nth-child(6) {
+      width: 170px;
+    }
+  }
+
+  /* The empty line spans every column, also those hidden here, and would push the column names out of line. */
+  @media (max-width: 1379px) {
+    .sa-inventory-table thead:has(+ tbody .sa-table-empty) {
+      display: none;
+    }
+  }
+
+  /* A tablet's name gives way as a laptop's does, so no column goes behind a sideways scroll. */
+  @media (min-width: 768px) and (max-width: 1099px) {
+    :where(.sa-inventory-table .sa-table) :is(th, td) {
+      padding-inline: var(--space-3);
+    }
+
+    .sa-inventory-table td:first-child .sa-thumbed > span {
+      max-width: none;
+    }
+  }
+
+  /* Here the minimum closes the row, so its column holds the row's end inset too. */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .sa-inventory-table th:nth-child(4) {
+      width: 158px;
+    }
+  }
+
+  @media (min-width: 1240px) and (max-width: 1379px) {
+    .sa-inventory-table .sa-table :is(th, td):nth-child(6) {
+      padding-inline-end: var(--inset);
+    }
+
+    .sa-inventory-table .sa-table tbody tr:not(:last-child) td:nth-child(6)::after {
+      inset-inline-end: var(--inset);
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1239px) {
+    .sa-inventory-table .sa-table :is(th, td):nth-child(5) {
+      padding-inline-end: var(--inset);
+    }
+
+    .sa-inventory-table .sa-table tbody tr:not(:last-child) td:nth-child(5)::after {
+      inset-inline-end: var(--inset);
+    }
+  }
+
+  @media (min-width: 601px) and (max-width: 1023px) {
+    .sa-inventory-table .sa-table :is(th, td):nth-child(4) {
+      padding-inline-end: var(--inset);
+    }
+
+    .sa-inventory-table .sa-table tbody tr:not(:last-child) td:nth-child(4)::after {
+      inset-inline-end: var(--inset);
+    }
   }
 }
 
@@ -1406,6 +1792,35 @@ a.sa-fault-thumb:focus-visible {
   background: var(--chart-bar, var(--border-control));
 }
 
+/* The default style: the row's own figure, and the last column closes the sheet's far edge. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  .sa-team-table .sa-row-figure {
+    font-size: var(--t-16);
+    line-height: var(--l-22);
+    letter-spacing: 0;
+  }
+
+  .sa-team-table :is(th, td):last-child {
+    text-align: end;
+  }
+
+  /* The head holds the name's width too, so an empty tab keeps the columns of a full one. */
+  .sa-team-table th:first-child {
+    width: 38%;
+  }
+
+  @media (max-width: 600px) {
+    .sa-team-table th:first-child {
+      width: 100%;
+    }
+  }
+
+  /* Blue is what you can press, and a week's last day isn't. */
+  .sa-team-table .viz-spark > .is-today {
+    background: var(--chart-bar, var(--border-control));
+  }
+}
+
 /* Phones: the name, its second line and the first figure; a row tap opens the rest. */
 @media (max-width: 599px) {
   .sa-team-table th:nth-child(n + 3),
@@ -1443,12 +1858,7 @@ a.sa-fault-thumb:focus-visible {
 }
 
 /* ── Orders page ────────────────────────────────────────────── */
-/* Who, what, how much, where it stands: every row reads the same four beats, the way Mail reads a message. */
-[data-theme^="minimal"] .sa-table .sa-row-lead {
-  font-size: var(--t-17);
-  line-height: var(--l-24);
-}
-
+/* A figure that leads a row, for the rows of the team page. */
 [data-theme^="minimal"] .sa-table .sa-row-figure {
   font-size: var(--t-17);
   line-height: var(--l-24);
@@ -1456,69 +1866,195 @@ a.sa-fault-thumb:focus-visible {
   letter-spacing: -0.02em;
 }
 
-[data-theme^="minimal"] .sa-orders-table td {
+[data-theme^="minimal-bokeh"] .sa-orders-table td {
   height: 76px;
 }
 
-/* Phones hide the status column, so the total takes the row's far edge and the rule stops where the text does.
-   A figure's cell runs left to right, so its far edge is its start. */
-@media (max-width: 600px) {
-  [data-theme^="minimal"] .sa-orders-table .sa-table td:nth-child(3) {
-    padding-inline-start: var(--inset);
-  }
-  [data-theme^="minimal"] .sa-orders-table .sa-table tbody tr:not(:last-child) td:nth-child(3)::after {
-    inset-inline-start: var(--inset);
-  }
+/* One grid on every tab, so a figure or a date stays where the eye left it.
+   The names share what the figures leave and truncate, so no column is ever cut. */
+.sa-orders-table .sa-table {
+  table-layout: fixed;
 }
 
-.sa-order-what {
+.sa-orders-table th:nth-child(1) {
+  width: 22%;
+}
+
+/* Room for a sum in the millions on the one edge, and for a delay of weeks. */
+.sa-orders-table th:nth-child(3) {
+  width: 132px;
+}
+
+.sa-orders-table th:nth-child(4) {
+  width: 116px;
+}
+
+.sa-orders-table th:nth-child(5) {
+  width: 152px;
+}
+
+/* A cancelled order has no fourth question, so its date takes both places. */
+.sa-orders-table th:nth-child(4):last-child {
+  width: 268px;
+}
+
+/* On a phone the number gives way before what is late or due. */
+.sa-cell-sub.sa-order-meta {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  font-weight: 500;
+  column-gap: var(--space-1);
 }
 
-/* A product's size sits at the end of its name, so the name takes a second line before it is cut. */
-[data-theme^="minimal"] .sa-order-what .sa-truncate {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  white-space: normal;
-  overflow-wrap: anywhere;
+.sa-order-meta > :last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-/* Below this width a table scrolls, so a long customer must not close the column up on a wrapping name. */
-@media (max-width: 1099px) {
-  [data-theme^="minimal"] .sa-thumbed > .sa-order-what {
-    min-width: 140px;
-  }
+/* The first line of the order, how much of it, then how many more. */
+.sa-order-what {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) auto;
+  justify-content: start;
+  column-gap: var(--space-1);
+}
+
+.sa-order-qty {
+  white-space: nowrap;
+}
+
+.sa-order-qty::before {
+  content: "· ";
 }
 
 .sa-order-more {
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
+  grid-column: 1 / -1;
 }
 
-.sa-order-state {
-  display: block;
-  font-weight: 600;
+/* Every cell starts on one line, so a row reads across as one sentence and its quiet second lines stand under it. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  .sa-orders-table td {
+    padding-block: calc((var(--row) - var(--l-20) - var(--l-18)) / 2);
+    vertical-align: top;
+  }
+
+  .sa-orders-table .ov-fig-n {
+    line-height: var(--l-20);
+  }
+
+  /* A smaller size sits a pixel high on the same line. */
+  .sa-orders-table td:nth-child(4) > .ov-fig-word {
+    padding-block-start: 1px;
+    line-height: var(--l-20);
+  }
+
+  .sa-orders-table .sa-thumbed {
+    align-items: flex-start;
+    min-height: calc(var(--l-20) + var(--l-18));
+  }
+
+  .sa-orders-table .sa-thumb {
+    align-self: center;
+  }
+
+  /* A cancelled order's date takes both places and stands on the edge the date has on every other tab. */
+  @media (min-width: 1100px) {
+    .sa-orders-table :is(th, td):nth-child(4):last-child {
+      padding-inline-start: calc(var(--space-4) + 116px);
+    }
+  }
+
+  /* Four tabs on the narrowest phone: a step closer, so the last keeps its end. */
+  @media (max-width: 379px) {
+    .sa-page:has(> .sa-orders-table) .sa-toolbar-tabs .sa-tab {
+      padding-inline: calc(var(--space-2) - 2px);
+    }
+  }
 }
 
-.sa-order-state.is-open {
-  color: var(--accent-text);
+/* Where a name can't stand beside its quantity, the quantity joins the quiet line and the name keeps the width. */
+@media (max-width: 1279px) {
+  .sa-order-what {
+    display: flex;
+    flex-wrap: wrap;
+    max-height: calc(var(--l-20) + var(--l-18));
+    overflow: hidden;
+  }
+
+  .sa-order-what > .sa-truncate {
+    flex-basis: 100%;
+  }
+
+  .sa-order-qty {
+    font-size: var(--t-13);
+    line-height: var(--l-18);
+    color: var(--text-tertiary);
+  }
+
+  .sa-order-qty::before {
+    content: none;
+  }
+
+  .sa-order-qty + .sa-order-more::before {
+    content: "· ";
+  }
 }
 
-.sa-order-state.is-delivered {
-  color: var(--success-text);
+/* A tablet gives up the fourth column for the names, and keeps its word under the total. */
+@media (max-width: 1099px) {
+  .sa-orders-table th:nth-child(1) {
+    width: 30%;
+  }
+
+  .sa-orders-table :is(th, td):nth-child(4):not(:last-child) {
+    display: none;
+  }
+
+  .sa-orders-table th:nth-child(4):last-child {
+    width: 152px;
+  }
+
+  /* The empty line spans every column, also those hidden here, and would push the column names out of line. */
+  .sa-orders-table thead:has(+ tbody .sa-table-empty) {
+    display: none;
+  }
 }
 
-.sa-order-state.is-cancelled {
-  color: var(--text-tertiary);
+/* Here a photo would leave the name no room, and again where the rail comes back and takes the width. */
+@media (max-width: 767px), (min-width: 900px) and (max-width: 979px) {
+  .sa-orders-table .sa-thumb {
+    display: none;
+  }
 }
 
-.sa-order-state.is-short {
-  color: var(--short);
+/* Phones keep the customer and the total. The total takes the row's far edge and the rule stops where the text does.
+   A figure's cell runs left to right, so its far edge is its start. */
+@media (max-width: 600px) {
+  .sa-orders-table :is(th, td):is(:nth-child(2), :nth-child(4), :nth-child(5)) {
+    display: none;
+  }
+
+  .sa-orders-table th:nth-child(1) {
+    width: auto;
+  }
+
+  .sa-orders-table th:nth-child(3) {
+    width: 126px;
+  }
+
+  .sa-orders-table td:first-child {
+    padding-inline-end: var(--space-2);
+  }
+
+  .sa-orders-table :is(th, td):nth-child(3) {
+    padding-right: var(--space-2);
+  }
+
+  [data-theme^="minimal"] .sa-orders-table .sa-table td:nth-child(3) {
+    padding-inline-start: var(--inset);
+  }
+
+  [data-theme^="minimal"] .sa-orders-table .sa-table tbody tr:not(:last-child) td:nth-child(3)::after {
+    inset-inline-start: var(--inset);
+  }
 }
 
 /* A promise to a customer that has passed: a word in colour, not an alarm. */
@@ -1624,15 +2160,71 @@ a.sa-fault-thumb:focus-visible {
   }
 }
 
+/* One grid in every period, and in the same cells when a period has no rows, so the figures keep their edge. The name takes what is left. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  @media (min-width: 601px) {
+    .sa-moves .sa-table {
+      table-layout: fixed;
+    }
+
+    .sa-moves .sa-table :is(th, td):not(:first-child) {
+      padding-inline-start: var(--space-3);
+    }
+
+    .sa-moves .sa-table :is(th, td):not(:last-child) {
+      padding-inline-end: var(--space-3);
+    }
+
+    .sa-moves th:nth-child(2) {
+      width: 120px;
+    }
+
+    .sa-moves th:nth-child(3) {
+      width: 124px;
+    }
+
+    .sa-moves th:nth-child(4) {
+      width: 104px;
+    }
+
+    .sa-moves th:nth-child(5) {
+      width: 160px;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .sa-moves th:nth-child(2) {
+      width: 136px;
+    }
+
+    .sa-moves th:nth-child(3) {
+      width: 160px;
+    }
+
+    .sa-moves th:nth-child(4) {
+      width: 156px;
+    }
+
+    .sa-moves th:nth-child(5) {
+      width: 202px;
+    }
+  }
+
+  /* The empty line spans every column, also the ones hidden here, and would push the column names out of line. */
+  @media (max-width: 1099px) {
+    .sa-moves thead:has(+ tbody .sa-table-empty) {
+      display: none;
+    }
+  }
+}
+
 /* Phones hide the columns after the quantity, so the quantity takes the row's far edge and the rule stops where the text does.
    The word under the figure gives up its icon, for the name's sake. */
 @media (max-width: 600px) {
-  [data-theme^="minimal"] .sa-moves .sa-table td:nth-child(2),
-  [data-theme^="minimal"] .sa-inventory-table .sa-table td:nth-child(4) {
+  [data-theme^="minimal"] :is(.sa-moves, .sa-inventory-table) .sa-table td:nth-child(2) {
     padding-inline-end: var(--inset);
   }
-  [data-theme^="minimal"] .sa-moves .sa-table tbody tr:not(:last-child) td:nth-child(2)::after,
-  [data-theme^="minimal"] .sa-inventory-table .sa-table tbody tr:not(:last-child) td:nth-child(4)::after {
+  [data-theme^="minimal"] :is(.sa-moves, .sa-inventory-table) .sa-table tbody tr:not(:last-child) td:nth-child(2)::after {
     inset-inline-end: var(--inset);
   }
   /* A figure's cell runs left to right, so its far edge is its start. */

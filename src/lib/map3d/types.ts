@@ -165,6 +165,8 @@ export interface MapEngineOptions {
   reducedMotion: boolean;
   /** A touch device: smaller shadow map, one finger scrolls the page. */
   coarse: boolean;
+  /** How far the camera may stand back, for a model fitted into a narrow part of the stage. Stay under the far plane. */
+  maxDistance?: number;
 }
 
 export interface MapEngine {

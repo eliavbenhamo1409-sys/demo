@@ -3,18 +3,19 @@
 /**
  * תנועות: the warehouse's memory. A timeline by day where the signed quantity leads every row, and over it a wave of the
  * whole period, in above the line and out below it, that is also the way through it: press a day and the list is there.
- * Every row replays on the model: the line goes where the goods went and the shelf answers. The filters are the shared
- * page's, word for word: the same ?period=, the same wait for החל, the same reads past the store's cap.
+ * Every row replays on the model: the line goes where the goods went and the shelf answers, and pressing a rack keeps
+ * what happened there. The filters are the shared page's, word for word: the same ?period=, the same wait for החל, the
+ * same reads past the store's cap. Only the rows on screen exist, so a year of movements costs what a day does.
  */
 
-import { memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type RefObject } from "react";
+import { memo, Suspense, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactElement, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { DateRangeFilter, dayValue, HoursFilter } from "@/components/app/WhenFilters";
 import { Button, cx, EmptyState, Icon, Notice, Select, Tabs, Toolbar, type SelectOption } from "@/components/ui";
-import { fmtDate, fmtDayWord, fmtName, fmtQty, fmtSigned, fmtTime, MOVEMENT_LABEL } from "@/lib/format";
+import { fmtDate, fmtDayWord, fmtName, fmtQty, fmtSigned, fmtTime, MOVEMENT_LABEL, orderRef } from "@/lib/format";
 import { DISPATCH_ZONE, RECEIVING_ZONE, shelfAnchor, sideX } from "@/lib/map3d/layout";
 import { resolvePlace } from "@/lib/map3d/place";
 import { routeBetween } from "@/lib/map3d/route";
@@ -194,12 +195,9 @@ const MOST_DAYS = 120;
 
 type BarUnit = "hour" | "day" | "week";
 
-interface Bar {
+interface Bar extends Counts {
   /** When it starts, epoch ms. */
   start: number;
-  in: number;
-  out: number;
-  other: number;
   /** The newest row at or before this bar, where pressing it lands. */
   row: number;
 }
@@ -213,6 +211,10 @@ interface WaveData {
   top: number;
 }
 
+const others = (bar: Bar) => bar.fault + bar.adjust;
+
+const NO_BAR = "אין תנועות";
+
 /** Time runs left to right. One day reads by the hour, a season by the day, and anything longer by the week. */
 function waveOf(rows: readonly MovementRow[], from: number | null, to: number | null): WaveData {
   const oldest = from ?? Date.parse(rows[rows.length - 1]?.created_at ?? new Date().toISOString());
@@ -223,10 +225,8 @@ function waveOf(rows: readonly MovementRow[], from: number | null, to: number | 
   const size = unit === "week" ? 7 : 1;
   const count = unit === "hour" ? 24 : Math.ceil(days / size);
   const bars: Bar[] = Array.from({ length: count }, (_, i) => ({
+    ...noCounts(),
     start: unit === "hour" ? firstDay + i * 3_600_000 : midnight(i * size, new Date(firstDay)),
-    in: 0,
-    out: 0,
-    other: 0,
     row: -1,
   }));
   const barOf = new Int32Array(rows.length);
@@ -237,9 +237,7 @@ function waveOf(rows: readonly MovementRow[], from: number | null, to: number | 
     const bar = bars[index];
     barOf[i] = index;
     if (bar.row < 0) bar.row = i;
-    if (m.type === "in") bar.in += 1;
-    else if (m.type === "out") bar.out += 1;
-    else bar.other += 1;
+    bar[m.type] += 1;
   });
   // An empty bar lands on the first thing older than it.
   let seen = rows.length - 1;
@@ -249,7 +247,7 @@ function waveOf(rows: readonly MovementRow[], from: number | null, to: number | 
   }
   // A stocktake can hold a day's two hundred corrections, and it must not flatten the months around it.
   const flow = bars.reduce((most, bar) => Math.max(most, bar.in, bar.out), 0);
-  const top = flow > 0 ? flow : bars.reduce((most, bar) => Math.max(most, bar.other), 1);
+  const top = flow > 0 ? flow : bars.reduce((most, bar) => Math.max(most, others(bar)), 1);
   return { bars, unit, barOf, top };
 }
 
@@ -263,10 +261,19 @@ function barWhen(bar: Bar, unit: BarUnit): string {
   return `${fmtDate(iso)} – ${fmtDate(new Date(midnight(6, new Date(bar.start))).toISOString())}`;
 }
 
+function barWords(bar: Bar): string {
+  const said = MOVEMENT_TYPES.filter((type) => bar[type] > 0).map((type) => `${fmtQty(bar[type])} ${countWord(type, bar[type])}`);
+  return said.length > 0 ? said.join(" · ") : NO_BAR;
+}
+
 function axisOf(wave: WaveData): { at: number; word: string }[] {
   const count = wave.bars.length;
   if (wave.unit === "hour") return [0, 6, 12, 18, 24].map((h) => ({ at: h / 24, word: String(h).padStart(2, "0") }));
-  return [0, 0.25, 0.5, 0.75, 1].map((at) => ({ at, word: fmtDayWord(new Date(wave.bars[Math.round(at * (count - 1))].start).toISOString()) }));
+  // A date marks its own bar, so it stands at that bar's centre.
+  return [0, 0.25, 0.5, 0.75, 1].map((share) => {
+    const bar = Math.round(share * (count - 1));
+    return { at: (bar + 0.5) / count, word: fmtDayWord(new Date(wave.bars[bar].start).toISOString()) };
+  });
 }
 
 function Wave({ wave, days, list, band, onJump, onSpot }: {
@@ -278,6 +285,7 @@ function Wave({ wave, days, list, band, onJump, onSpot }: {
   onSpot: (bar: number | null) => void;
 }): ReactElement {
   const strip = useRef<HTMLDivElement>(null);
+  const landed = useRef({ x: 0, y: 0 });
   const [peek, setPeek] = useState<number | null>(null);
   const count = wave.bars.length;
 
@@ -299,6 +307,7 @@ function Wave({ wave, days, list, band, onJump, onSpot }: {
   };
 
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch" && Math.abs(e.clientX - landed.current.x) <= Math.abs(e.clientY - landed.current.y)) return;
     const bar = barAt(e.clientX);
     if (bar !== peek) {
       setPeek(bar);
@@ -307,7 +316,10 @@ function Wave({ wave, days, list, band, onJump, onSpot }: {
     if (e.buttons === 1) onJump(wave.bars[bar].row);
   };
 
+  // A finger that lands here may be on its way to scroll the page, so it moves the list only by sliding along the wave or by a tap.
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
+    landed.current = { x: e.clientX, y: e.clientY };
+    if (e.pointerType === "touch") return;
     e.currentTarget.setPointerCapture(e.pointerId);
     onJump(wave.bars[barAt(e.clientX)].row);
   };
@@ -316,7 +328,7 @@ function Wave({ wave, days, list, band, onJump, onSpot }: {
     const step = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
     if (step) {
       let next = current + step;
-      while (next > 0 && next < count - 1 && wave.bars[next].in + wave.bars[next].out + wave.bars[next].other === 0) next += step;
+      while (next > 0 && next < count - 1 && barWords(wave.bars[next]) === NO_BAR) next += step;
       onJump(wave.bars[Math.min(Math.max(next, 0), count - 1)].row);
     } else if (e.key === "Home") onJump(wave.bars[0].row);
     else if (e.key === "End") onJump(wave.bars[count - 1].row);
@@ -325,14 +337,6 @@ function Wave({ wave, days, list, band, onJump, onSpot }: {
   };
 
   const shown = peek === null ? null : wave.bars[peek];
-  const shownWhen = (bar: Bar) => {
-    const parts = [
-      bar.in > 0 ? `${fmtQty(bar.in)} ${countWord("in", bar.in)}` : "",
-      bar.out > 0 ? `${fmtQty(bar.out)} ${countWord("out", bar.out)}` : "",
-      bar.other > 0 ? `${fmtQty(bar.other)} אחרות` : "",
-    ].filter(Boolean);
-    return parts.length > 0 ? parts.join(" · ") : "אין תנועות";
-  };
 
   return (
     <div ref={band} className="mh-mv-band">
@@ -353,21 +357,26 @@ function Wave({ wave, days, list, band, onJump, onSpot }: {
           setPeek(null);
           onSpot(null);
         }}
+        onClick={(e) => onJump(wave.bars[barAt(e.clientX)].row)}
         onKeyDown={onKey}
       >
-        {wave.bars.map((bar) => (
-          <span key={bar.start} className="mh-wave-bar" style={{ "--in": reach(bar.in + bar.other, wave.top), "--part": bar.in + bar.other > 0 ? bar.in / (bar.in + bar.other) : 1, "--out": reach(bar.out, wave.top) } as CSSProperties}>
-            <i />
-            <b />
-          </span>
-        ))}
+        {wave.bars.map((bar) => {
+          const come = reach(bar.in, wave.top);
+          return (
+            <span key={bar.start} className="mh-wave-bar" style={{ "--in": come, "--other": Math.min(reach(others(bar), wave.top), 1 - come), "--out": reach(bar.out, wave.top) } as CSSProperties}>
+              <i />
+              <u />
+              <b />
+            </span>
+          );
+        })}
         {peek === null ? null : <i className="mh-wave-peekline" style={{ "--x": (peek + 0.5) / count } as CSSProperties} aria-hidden="true" />}
         <i className="mh-wave-at" style={{ "--x": current, "--n": count } as CSSProperties} aria-hidden="true" />
       </div>
       <div className="mh-wave-axis" dir="ltr" aria-hidden="true">
         {shown ? (
           <span className="mh-wave-peek" dir="rtl" style={{ "--x": ((peek ?? 0) + 0.5) / count } as CSSProperties}>
-            <b>{barWhen(shown, wave.unit)}</b> {shownWhen(shown)}
+            <b>{barWhen(shown, wave.unit)}</b> {barWords(shown)}
           </span>
         ) : (
           axisOf(wave).map((mark) => <span key={mark.at} style={{ "--x": mark.at } as CSSProperties}>{mark.word}</span>)
@@ -399,7 +408,7 @@ interface RowProps {
 }
 
 const Row = memo(function Row({ m, index, total, top, joined, dated, at, selected, p, who, source, place, recorded }: RowProps): ReactElement {
-  const paper = [source, m.reference].filter(Boolean).join(" · ");
+  const paper = [source, orderRef(m.reference)].filter(Boolean).join(" · ");
   const detail = m.external_name ? `בתעודה: ${m.external_name}` : m.note;
   const line = [paper, detail].filter(Boolean).join(" · ");
   return (
@@ -443,7 +452,7 @@ const Row = memo(function Row({ m, index, total, top, joined, dated, at, selecte
         <span title={place && !recorded ? "המיקום הנוכחי של המוצר" : undefined} className={cx(recorded && "is-recorded")}>
           {place ? <span className="ltr">{place}</span> : "ללא מיקום"}
         </span>
-        <span title={who} className="mh-mv-who">{who ?? "—"}</span>
+        {who ? <span title={who} className="mh-mv-who">{who}</span> : null}
       </span>
     </div>
   );
@@ -480,7 +489,8 @@ const Day = memo(function Day({ day, index, first, last, total, cursorId, opened
     <section className={cx("mh-mv-day", !headed && "is-flat")} role="group" aria-labelledby={headed ? headId : undefined} aria-label={headed ? undefined : "תנועות שנמצאו"} style={{ top: day.top, height: day.height }}>
       {headed ? (
         <header id={headId} className="mh-mv-dayhead" data-day={index}>
-          <h2>{word}</h2>
+          {/* A listbox holds options: the day names its group, and is no heading here. */}
+          <h2 role="presentation">{word}</h2>
           <span className="mh-mv-weekday">{weekday}</span>
           <span className="mh-mv-daysum">
             {sum.map((type) => (
@@ -562,17 +572,20 @@ function Timeline({ rows, days, height, list, band, openedId, placeOfRow, onPoin
   const shown = days.slice(firstDay, lastDay + 1);
 
   /* ───────── a mouse needs one listener, however long the list ───────── */
+  const heldDay = useRef<number | null>(null);
+  const holdDay = (index: number | null) => {
+    if (index === heldDay.current) return;
+    heldDay.current = index;
+    onDay(index === null ? null : days[index]);
+  };
+
   const onPointerOver = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== "mouse" || !(e.target instanceof Element)) return;
     const row = e.target.closest<HTMLElement>("[data-i]");
-    if (row) {
-      onDay(null);
-      onPoint(rows[Number(row.dataset.i)] ?? null);
-      return;
-    }
-    const head = e.target.closest<HTMLElement>("[data-day]");
-    onPoint(null);
-    onDay(head ? (days[Number(head.dataset.day)] ?? null) : null);
+    const head = row ? null : e.target.closest<HTMLElement>("[data-day]");
+    if (!head) holdDay(null);
+    onPoint(row ? (rows[Number(row.dataset.i)] ?? null) : null);
+    if (head) holdDay(Number(head.dataset.day));
   };
 
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -597,19 +610,30 @@ function Timeline({ rows, days, height, list, band, openedId, placeOfRow, onPoin
     else if (y + ROW > window.innerHeight) window.scrollBy({ top: y + ROW - window.innerHeight + 12, behavior: "instant" });
   };
 
+  const rowInView = () => {
+    const box = list.current?.getBoundingClientRect();
+    return box ? rowAt(days, (band.current?.offsetHeight ?? 0) + (days[0]?.head ?? 0) - box.top) : 0;
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const pageRows = Math.max(Math.floor(window.innerHeight / ROW) - 3, 1);
     const moves: Record<string, number> = { ArrowDown: 1, ArrowUp: -1, PageDown: pageRows, PageUp: -pageRows };
     if (e.key === "Enter") {
-      if (cursor >= 0 && rows[cursor]) onOpen(rows[cursor]);
+      if (rows[cursor]) onOpen(rows[cursor]);
     } else if (e.key === "Home") walk(0);
     else if (e.key === "End") walk(rows.length - 1);
-    else if (moves[e.key]) {
-      const box = list.current?.getBoundingClientRect();
-      const inView = box ? rowAt(days, (band.current?.offsetHeight ?? 0) + (days[0]?.head ?? 0) - box.top) : 0;
-      walk(cursor < 0 ? inView : cursor + moves[e.key]);
-    } else return;
+    else if (moves[e.key]) walk(cursor < 0 ? rowInView() : cursor + moves[e.key]);
+    else return;
     e.preventDefault();
+  };
+
+  // A keyboard that arrives lands on the row in view, so what holds the focus can be seen. Safari scrolls to the list only
+  // after this runs, which can leave the row behind the band, so it is placed again once the page has settled.
+  const onFocus = (e: FocusEvent<HTMLDivElement>) => {
+    if (!e.target.matches(":focus-visible")) return;
+    const at = cursor < 0 ? rowInView() : cursor;
+    walk(at);
+    requestAnimationFrame(() => walk(at));
   };
 
   return (
@@ -619,13 +643,14 @@ function Timeline({ rows, days, height, list, band, openedId, placeOfRow, onPoin
       role="listbox"
       tabIndex={0}
       aria-label="תנועות לפי יום"
-      aria-activedescendant={cursor >= 0 && rows[cursor] ? `mv-${rows[cursor].id}` : undefined}
-      style={{ height }}
+      aria-activedescendant={rows[cursor] ? `mv-${rows[cursor].id}` : undefined}
+      style={{ height, "--mv-row": `${ROW}px`, "--mv-head": `${HEAD}px` } as CSSProperties}
       onPointerOver={onPointerOver}
       onPointerLeave={() => {
+        holdDay(null);
         onPoint(null);
-        onDay(null);
       }}
+      onFocus={onFocus}
       onBlur={() => onPoint(null)}
       onClick={onClick}
       onKeyDown={onKeyDown}
@@ -709,18 +734,17 @@ function ReplayLine({ shown }: { shown: Replayed | null }): ReactElement | null 
 
   useEffect(() => {
     if (!shown) return;
-    const points = shown.route?.points ?? [];
-    const floor = points.map(([x, z]) => ({ el: document.createElement("i"), x, y: 0, z }));
+    const floor = (shown.route?.points ?? []).map(([x, z]) => ({ el: document.createElement("i"), x, y: 0, z }));
     const end = { el: document.createElement("i"), ...shown.shelf };
     // Goods come in along the floor and climb to the shelf, or leave it and go along the floor.
     const corners = shown.kind === "out" ? [end, ...floor] : [...floor, end];
     const draw = () => {
-      const placed = corners.map(({ el }) => PLACED.exec(el.style.transform));
-      if (placed.some((at) => !at)) return;
-      if (floor.length > 0) line.current?.setAttribute("d", `M${placed.map((at) => `${at?.[1]} ${at?.[2]}`).join(" L")}`);
-      const shelf = PLACED.exec(end.el.style.transform);
-      ring.current?.setAttribute("cx", shelf?.[1] ?? "0");
-      ring.current?.setAttribute("cy", shelf?.[2] ?? "0");
+      const placed = corners.map(({ el }) => PLACED.exec(el.style.transform)?.slice(1, 3) ?? []);
+      if (placed.some((at) => at.length === 0)) return;
+      line.current?.setAttribute("d", `M${placed.map((at) => at.join(" ")).join(" L")}`);
+      const [x, y] = placed[shown.kind === "out" ? 0 : placed.length - 1];
+      ring.current?.setAttribute("cx", x);
+      ring.current?.setAttribute("cy", y);
     };
     const watcher = new MutationObserver(draw);
     watcher.observe(end.el, { attributes: true, attributeFilter: ["style"] });
@@ -752,13 +776,15 @@ function ReplayLine({ shown }: { shown: Replayed | null }): ReactElement | null 
 
 /* ───────── the page ───────── */
 
-
 /** Stopping on a row draws it; passing over rows only lights their shelves. */
 const DWELL_MS = 130;
 /** How long the engine takes to draw a line along the floor. */
 const DRAWN_MS = 640;
 
 const NO_ROUTES: readonly MapRoute[] = [];
+
+/** The strongest mat under a rack: enough to find it, never as loud as the rack itself. */
+const MAT = 0.6;
 
 export function Movements(): ReactElement {
   return (
@@ -877,6 +903,8 @@ function MovementsInner(): ReactElement {
 
   /* ───────── filtering ───────── */
   const q = query.trim().toLowerCase();
+  // Years of movements must never slow the field itself: the letters land first and the list follows.
+  const sought = useDeferredValue(q);
 
   const listed = useMemo(() => {
     return rows.filter((m) => {
@@ -886,16 +914,17 @@ function MovementsInner(): ReactElement {
       if (!inHours(m.created_at, applied.fromTime, applied.toTime)) return false;
       const p = product(m.product_id);
       if (applied.category && p?.category !== applied.category) return false;
-      if (q) {
-        const hay = [p?.name, p?.sku, p?.barcode, m.external_name, m.reference, m.note, worker(m.worker_id)?.name, supplier(m.supplier_id)?.name]
+      if (sought) {
+        // The place is here for a phone, where no model stands to press a rack on.
+        const hay = [p?.name, p?.sku, p?.barcode, m.external_name, m.reference, m.note, placeOfRow(m)?.code, worker(m.worker_id)?.name, supplier(m.supplier_id)?.name]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-        if (!hay.includes(q)) return false;
+        if (!hay.includes(sought)) return false;
       }
       return true;
     });
-  }, [rows, applied, q, product, worker, supplier]);
+  }, [rows, applied, sought, product, worker, supplier, placeOfRow]);
 
   // The model is a filter too: pressing a rack keeps what happened there, at once, like a tab.
   const [rack, setRack] = useState<string | null>(null);
@@ -911,7 +940,7 @@ function MovementsInner(): ReactElement {
   }, [listed, objectOf]);
 
   const hasFilters = period !== DEFAULT_PERIOD || q !== "" || rack !== null || differs(chosen, { ...chosen, ...NO_FILTERS });
-  const narrowed = q !== "" || differs(applied, { ...applied, ...NO_FILTERS }) || (period !== DEFAULT_PERIOD && period !== "all");
+  const narrowed = sought !== "" || differs(applied, { ...applied, ...NO_FILTERS }) || (period !== DEFAULT_PERIOD && period !== "all");
 
   const clearFilters = () => {
     setQuery("");
@@ -1059,7 +1088,7 @@ function MovementsInner(): ReactElement {
   useEffect(() => {
     if (!engine) return;
     const most = Math.max(...moved.values(), 1);
-    engine.setFootprints(narrowed && moved.size > 0 ? [...moved].map(([objectId, n]) => ({ objectId, strength: Math.sqrt(n / most) })) : null);
+    engine.setFootprints(narrowed && moved.size > 0 ? [...moved].map(([objectId, n]) => ({ objectId, strength: Math.sqrt(n / most) * MAT })) : null);
   }, [engine, moved, narrowed]);
 
   useEffect(() => () => engine?.setFootprints(null), [engine]);
@@ -1076,7 +1105,11 @@ function MovementsInner(): ReactElement {
           const object = objects.find((o) => o.id === hit?.objectId && (o.kind === "rack" || o.kind === "floor"));
           if (pointed.current || panelOpen.current) return;
           const n = object ? (moved.get(object.id) ?? 0) : 0;
-          setReplayed(object ? { id: `rack ${object.id}`, shelf: { x: object.x, y: object.h, z: object.z }, route: null, kind: "rack", place: object.id, figure: `${fmtQty(n)} ${n === 1 ? "תנועה" : "תנועות"}` } : null);
+          const id = object ? `rack ${object.id}` : null;
+          setReplayed((shown) => {
+            if (shown?.id === id) return shown;
+            return object ? { id: `rack ${object.id}`, shelf: { x: object.x, y: object.h, z: object.z }, route: null, kind: "rack", place: object.id, figure: `${fmtQty(n)} ${n === 1 ? "תנועה" : "תנועות"}` } : null;
+          });
         },
       }),
     [listen, objects, moved],
@@ -1106,7 +1139,7 @@ function MovementsInner(): ReactElement {
         tabs={<Tabs tabs={PERIODS} value={period} onChange={choosePeriod} />}
         query={query}
         onQuery={setQuery}
-        placeholder='חיפוש לפי מוצר, מק"ט או תעודה'
+        placeholder='חיפוש לפי מוצר, מק"ט או מיקום'
       />
 
       {failed ? (
@@ -1115,10 +1148,10 @@ function MovementsInner(): ReactElement {
         </Notice>
       ) : null}
 
-      <div className={cx("sa-moves", refreshing && "is-refreshing")} data-settle={settled ? settled % 2 : undefined}>
+      <div className={cx("sa-moves", refreshing && "is-refreshing")} data-settle={settled ? settled % 2 : undefined} role="tabpanel" aria-label={PERIODS.find((p) => p.value === period)?.label}>
         <div className="app-filters">
           {rack ? (
-            <button type="button" className="mh-mv-rack" title="הסרת הסינון לפי מיקום" onClick={() => setRack(null)}>
+            <button type="button" className="mh-mv-rack" aria-label={`הסרת הסינון לפי ${rack}`} title="הסרת הסינון לפי מיקום" onClick={() => setRack(null)}>
               <span className="ltr">{rack}</span>
               <Icon name="x" size={13} />
             </button>
@@ -1156,7 +1189,7 @@ function MovementsInner(): ReactElement {
 
         {showing ? (
           <Timeline
-            key={`${from}|${to}|${applied.fromTime}|${applied.toTime}|${applied.workerId}|${applied.moveType}|${applied.supplierId}|${applied.category}|${q}|${rack}`}
+            key={`${from}|${to}|${applied.fromTime}|${applied.toTime}|${applied.workerId}|${applied.moveType}|${applied.supplierId}|${applied.category}|${sought}|${rack}`}
             rows={visible}
             days={days}
             height={height}

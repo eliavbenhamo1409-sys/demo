@@ -8,7 +8,7 @@
 import { useMemo, useState } from "react";
 import { Button, Fields, Modal, Notice, Select } from "@/components/ui";
 import { useData } from "@/lib/store";
-import { fmtQty, fmtRelative } from "@/lib/format";
+import { fmtQty, fmtRelative, fmtUnit, orderRef } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { FormPanel } from "./FormPanel";
 import { productOptions } from "./options";
@@ -108,7 +108,7 @@ export function ReviewItemRequestForm({ ctx }: { ctx: ActionContext }) {
                 { label: "כתוב בקבלה", value: request.external_name },
                 ...(request.proposed_name && request.proposed_name !== request.external_name ? [{ label: "שם שהעובד הציע", value: request.proposed_name }] : []),
                 { label: "כמות שהוצאה", value: fmtQty(request.qty), num: true },
-                { label: "מספר תעודה", value: request.reference ?? undefined, num: true },
+                { label: "מקור", value: orderRef(request.reference) ?? undefined },
                 { label: "עובד", value: worker(request.worker_id)?.name },
                 { label: "נשלח", value: fmtRelative(request.created_at) },
                 ...(request.worker_note ? [{ label: "הערת העובד", value: request.worker_note }] : []),
@@ -128,7 +128,7 @@ export function ReviewItemRequestForm({ ctx }: { ctx: ActionContext }) {
                 <span className="sa-error" role="alert">{form.errors.product}</span>
               ) : target ? (
                 <span className="sa-hint">
-                  {fmtQty(request.qty)} {target.unit} ירדו מהמלאי · במלאי כעת {fmtQty(target.qty)}
+                  {fmtQty(request.qty)} {fmtUnit(request.qty, target.unit)} ירדו מהמלאי · במלאי כעת {fmtQty(target.qty)}
                 </span>
               ) : (
                 <span className="sa-hint">יזוהה אוטומטית בקבלה הבאה</span>

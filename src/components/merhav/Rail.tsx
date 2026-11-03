@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
 import { Icon } from "@/components/ui";
 import { fmtQty } from "@/lib/format";
 
@@ -15,8 +15,19 @@ export interface RailItem {
 /** The place of the work first, the work on it after. A rule between them says so without a heading. */
 const AREAS = ["overview", "inventory", "map", "suppliers"];
 
+/** The rail's own order, so the search lists the pages the way the rail does. */
+export function railOrder(items: RailItem[]): { areas: RailItem[]; rest: RailItem[] } {
+  return {
+    areas: items.filter((item) => AREAS.includes(item.key)).sort((a, b) => AREAS.indexOf(a.key) - AREAS.indexOf(b.key)),
+    rest: items.filter((item) => !AREAS.includes(item.key)),
+  };
+}
+
 /** Words this style uses for the same pages. */
-const WORDS: Record<string, string> = { map: "מחסן", suppliers: "קטלוג" };
+export const WORDS: Record<string, string> = { map: "מחסן" };
+
+/** A stop on the bar is one narrow word: a second line would run into its own tick and count. */
+const BAR_WORDS: Record<string, string> = { ...WORDS, suppliers: "מיפוי" };
 
 /** What stays under the thumb on a phone. The rest waits behind עוד. */
 const NEAR = ["overview", "inventory", "map", "orders"];
@@ -64,8 +75,7 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
   const more = moreOn === active;
   const closeMore = useCallback(() => setMoreOn(null), []);
 
-  const areas = items.filter((item) => AREAS.includes(item.key)).sort((a, b) => AREAS.indexOf(a.key) - AREAS.indexOf(b.key));
-  const rest = items.filter((item) => !AREAS.includes(item.key));
+  const { areas, rest } = railOrder(items);
 
   const seat = useCallback((mark: HTMLElement | null, row: Element | null) => {
     if (!mark || !list.current) return;
@@ -121,13 +131,18 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
     settle();
   }, [active, more, offline, settle]);
 
-  // The carriage stays exact through any change of size, or of which shape the rail has taken.
+  // The carriage stays exact through any change of size, or of which shape the rail has taken, or when the font lands and the words change width.
   useEffect(() => {
-    const watcher = new ResizeObserver(() => settle(true));
+    const again = () => settle(true);
+    const watcher = new ResizeObserver(again);
     for (const el of [rail.current, bar.current]) {
       if (el) watcher.observe(el);
     }
-    return () => watcher.disconnect();
+    document.fonts.addEventListener("loadingdone", again);
+    return () => {
+      watcher.disconnect();
+      document.fonts.removeEventListener("loadingdone", again);
+    };
   }, [settle]);
 
   useEffect(() => {
@@ -145,8 +160,9 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
 
   const onPick = (e: MouseEvent<HTMLElement>, key: string) => {
     closeMore();
-    if (e.metaKey || e.ctrlKey || e.shiftKey || key === active) return;
-    going.current = key;
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    // Pressing where you are takes back a press still on its way: nothing will arrive to bring the carriage home.
+    going.current = key === active ? null : key;
     settle();
   };
 
@@ -186,7 +202,7 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
       aria-current={item.key === active ? "page" : undefined}
       onClick={(e) => onPick(e, item.key)}
     >
-      <span className="mh-stop-word" data-word={WORDS[item.key] ?? item.label}>{WORDS[item.key] ?? item.label}</span>
+      <span className="mh-stop-word" data-word={BAR_WORDS[item.key] ?? item.label}>{BAR_WORDS[item.key] ?? item.label}</span>
       {item.count ? <span className="mh-stop-count ltr">{fmtQty(item.count)}</span> : null}
     </Link>
   );
@@ -210,7 +226,7 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
           onFocus={onFocus}
           onBlur={() => seat(ghost.current, null)}
         >
-          <i ref={ghost} className="mh-carriage is-ghost" style={{ opacity: 0 } as CSSProperties} aria-hidden="true" />
+          <i ref={ghost} className="mh-carriage is-ghost" style={{ opacity: 0 }} aria-hidden="true" />
           <i ref={carriage} className="mh-carriage" aria-hidden="true" />
           {areas.map(row)}
           <span className="mh-nav-gap" aria-hidden="true" />
@@ -245,7 +261,7 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
           <span>חיפוש</span>
         </button>
         <div className="mh-scale">
-          <i ref={barCarriage} className="mh-bar-carriage" style={{ opacity: 0 } as CSSProperties} aria-hidden="true" />
+          <i ref={barCarriage} className="mh-bar-carriage" style={{ opacity: 0 }} aria-hidden="true" />
           {areas.map(stop)}
           {rest.map(stop)}
           <button

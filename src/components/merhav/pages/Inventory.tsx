@@ -5,12 +5,12 @@
  * reaches for its own shelf on the model. Same data and the same ?filter= as the shared page.
  */
 
-import { Suspense, useCallback, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactElement } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactElement, type RefObject } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, EmptyState, Icon, SearchBar, Select, type SelectOption } from "@/components/ui";
-import { fmtName, fmtQty, fmtRelative } from "@/lib/format";
+import { fmtName, fmtQty } from "@/lib/format";
 import { available, stockState, useData, type Product } from "@/lib/store";
 import { useTwin } from "../twin/Twin";
 
@@ -54,8 +54,9 @@ function bySkyline(a: Product, b: Product): number {
 
 function Skyline({ products, onHover, onOpen }: { products: Product[]; onHover: (p: Product | null) => void; onOpen: (p: Product) => void }): ReactElement {
   const sorted = useMemo(() => [...products].sort(bySkyline), [products]);
+  // For the pointer alone: every bar is a row below, and the figures under it say the same in words.
   return (
-    <div className="mh-skyline" role="img" aria-label={`${fmtQty(products.length)} מוצרים לפי מצב המלאי`} onPointerLeave={() => onHover(null)}>
+    <div className="mh-skyline" aria-hidden="true" onPointerLeave={() => onHover(null)}>
       {sorted.map((p) => {
         const state = stockState(p);
         return (
@@ -63,7 +64,6 @@ function Skyline({ products, onHover, onOpen }: { products: Product[]; onHover: 
             key={p.id}
             type="button"
             tabIndex={-1}
-            aria-hidden="true"
             className={cx("mh-sky", state !== "ok" && `is-${state}`)}
             style={{ "--h": fullness(p) } as CSSProperties}
             onPointerEnter={() => onHover(p)}
@@ -73,6 +73,24 @@ function Skyline({ products, onHover, onOpen }: { products: Product[]; onHover: 
       })}
       <i className="mh-skyline-min" style={{ bottom: `${(Math.log1p(1) / Math.log1p(SKY_TOP)) * 100}%` }} aria-hidden="true" />
     </div>
+  );
+}
+
+/** Who the pointer is on along the skyline. In its own state: crossing a bar must not render every row of the list. */
+function SkyPeek({ peekRef }: { peekRef: RefObject<((p: Product | null) => void) | null> }): ReactElement | null {
+  const [p, setP] = useState<Product | null>(null);
+  useEffect(() => {
+    peekRef.current = setP;
+    return () => {
+      peekRef.current = null;
+    };
+  }, [peekRef]);
+  if (!p) return null;
+  return (
+    <span className="mh-lens-peek">
+      <span className="mh-row-title">{fmtName(p.name)}</span>
+      <span className="ltr">{fmtQty(p.qty)}</span>
+    </span>
   );
 }
 
@@ -174,13 +192,22 @@ function InventoryInner(): ReactElement {
     [spotProduct, aimProduct],
   );
 
+  // A list that ends under the pointer never sends its row's leave.
+  useEffect(
+    () => () => {
+      spotProduct(null);
+      aimProduct(null);
+    },
+    [spotProduct, aimProduct],
+  );
+
   const selected = ui.panel?.type === "product" ? ui.panel.id : undefined;
   const filtered = Boolean(q || category || supplierId);
 
-  const [skyHover, setSkyHover] = useState<Product | null>(null);
+  const skyPeek = useRef<((p: Product | null) => void) | null>(null);
   const onSky = useCallback(
     (p: Product | null) => {
-      setSkyHover(p);
+      skyPeek.current?.(p);
       spotProduct(p?.id ?? null);
     },
     [spotProduct],
@@ -202,21 +229,16 @@ function InventoryInner(): ReactElement {
           <Button variant="primary" icon="plus" onClick={() => ui.openAction("new-product")}>מוצר חדש</Button>
         </div>
 
-        <Skyline products={base} onHover={onSky} onOpen={(p) => ui.openProduct(p.id)} />
+        {base.length > 0 ? <Skyline products={base} onHover={onSky} onOpen={(p) => ui.openProduct(p.id)} /> : null}
 
         <div className="mh-lens" role="group" aria-label="סינון לפי מצב">
           {lensRow.map((item) => (
             <button key={item.key} type="button" aria-pressed={lens === item.key} className={cx("mh-lens-item", lens === item.key && "is-on")} onClick={() => setLens(item.key)}>
-              <span className={cx("mh-lens-n ltr", item.tone)}>{fmtQty(item.count)}</span>
+              <span className={cx("mh-lens-n ltr", item.count > 0 && item.tone)}>{fmtQty(item.count)}</span>
               <span className="mh-lens-word">{item.word}</span>
             </button>
           ))}
-          {skyHover ? (
-            <span className="mh-lens-peek">
-              <span className="mh-row-title">{fmtName(skyHover.name)}</span>
-              <span className="ltr">{fmtQty(skyHover.qty)}</span>
-            </span>
-          ) : null}
+          <SkyPeek peekRef={skyPeek} />
         </div>
       </header>
 
@@ -277,10 +299,12 @@ function InventoryInner(): ReactElement {
                   <span className={cx("ltr", stock === "short" ? "mh-tone-short" : stock === "out" ? "mh-tone-out" : stock === "low" ? "mh-tone-warn" : undefined)}>{fmtQty(p.qty)}</span>
                   <small>{p.unit}</small>
                 </span>
-                <span className={cx("mh-row-state", stock === "short" && "mh-tone-short")}>
-                  {stock !== "ok" ? STATE_WORD[stock] : p.reserved > 0 ? <>משוריין <span className="ltr">{fmtQty(p.reserved)}</span></> : <>עודכן {fmtRelative(p.updated_at)}</>}
-                  {stock === "short" ? <> <span className="ltr">{fmtQty(-free)}</span></> : null}
-                </span>
+                {stock !== "ok" || p.reserved > 0 ? (
+                  <span className={cx("mh-row-state", stock === "short" && "mh-tone-short")}>
+                    {stock !== "ok" ? STATE_WORD[stock] : <>משוריין <span className="ltr">{fmtQty(p.reserved)}</span></>}
+                    {stock === "short" ? <> <span className="ltr">{fmtQty(-free)}</span></> : null}
+                  </span>
+                ) : null}
               </span>
             </button>
             </li>

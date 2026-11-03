@@ -2,8 +2,8 @@
 
 /**
  * תקלות — every fault reported from the floor, open ones first. A fault stays
- * open until someone marks it handled; resolved ones remain here as a record
- * and can be reopened.
+ * open until its drawer closes it with a note of what was done; resolved ones
+ * remain here as a record and can be reopened.
  */
 import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -11,7 +11,7 @@ import { isTempId, normalizeName, useData, type Fault } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, Card, Count, EmptyState, PageHead, Select, Showing, Tabs, Toolbar, type SelectOption } from "@/components/ui";
-import { fmtAge, fmtDay, fmtName, fmtQty } from "@/lib/format";
+import { fmtAge, fmtDay, fmtElapsed, fmtName, fmtQty } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { DEFAULT_OBJECTS } from "@/lib/map3d/layout";
 
@@ -31,19 +31,13 @@ function tabFromParams(params: URLSearchParams): Tab {
 
 /** "תוך 40 דקות" / "תוך 3 שעות" / "תוך יומיים" — how long a fault stayed open. */
 function fmtDuration(fromIso: string, toIso: string): string | null {
-  const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
-  if (!Number.isFinite(ms) || ms < 0) return null;
-  const min = Math.round(ms / 60000);
-  if (min < 1) return null; // same minute: nothing worth saying
-  if (min < 60) return `תוך ${fmtQty(min)} דקות`;
-  const h = Math.round(min / 60);
-  if (h === 1) return "תוך שעה";
-  if (h === 2) return "תוך שעתיים";
-  if (h < 24) return `תוך ${fmtQty(h)} שעות`;
-  const d = Math.round(h / 24);
-  if (d === 1) return "תוך יום";
-  if (d === 2) return "תוך יומיים";
-  return `תוך ${fmtQty(d)} ימים`;
+  const took = fmtElapsed(fromIso, toIso);
+  if (!took) return null;
+  const { n, unit } = took;
+  if (n === 1) return `תוך ${unit}`;
+  if (n === 2 && unit === "שעות") return "תוך שעתיים";
+  if (n === 2 && unit === "ימים") return "תוך יומיים";
+  return `תוך ${fmtQty(n)} ${unit}`;
 }
 
 export default function FaultsPage() {
@@ -55,8 +49,8 @@ export default function FaultsPage() {
 }
 
 function FaultsInner() {
-  const { state, product, worker, resolveFault, reopenFault } = useData();
-  const { openAction, openProduct, notify } = useUi();
+  const { state, product, worker, reopenFault } = useData();
+  const { openAction, openFault, openProduct, notify } = useUi();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -126,7 +120,6 @@ function FaultsInner() {
     [notify],
   );
 
-  const onResolve = useCallback((f: Fault) => run(f, () => resolveFault(f.id), "התקלה סומנה כטופלה", "סימון התקלה נכשל"), [run, resolveFault]);
   const onReopen = useCallback((f: Fault) => run(f, () => reopenFault(f.id), "התקלה נפתחה מחדש", "פתיחת התקלה נכשלה"), [run, reopenFault]);
 
   const tabs = [
@@ -159,9 +152,13 @@ function FaultsInner() {
           <Button variant="secondary" onClick={() => openAction("fault")}>דיווח תקלה</Button>
         </EmptyState>
       ) : hasFilters ? (
-        <EmptyState title="לא נמצאו תקלות" hint="אפשר להסיר את הסינון" />
+        <EmptyState title="לא נמצאו תקלות" hint={q && !workerId ? <>עבור „<bdi>{query.trim()}</bdi>”</> : "אפשר להסיר את הסינון"}>
+          <Button variant="secondary" onClick={() => { setQuery(""); setWorkerId(""); }}>ניקוי סינון</Button>
+        </EmptyState>
       ) : tab === "open" ? (
-        <EmptyState title="אין תקלות פתוחות" />
+        <EmptyState title="אין תקלות פתוחות" hint="דיווח מהטלפון יופיע כאן">
+          <Button variant="secondary" onClick={() => openAction("fault")}>דיווח תקלה</Button>
+        </EmptyState>
       ) : (
         <EmptyState title="אין תקלות שטופלו" hint="תקלה שטופלה תישמר כאן" />
       );
@@ -181,9 +178,9 @@ function FaultsInner() {
           if (w) meta.push(<>דווח ע&quot;י {w.name}</>);
           // An open fault counts how long it has waited; a closed one is a record, so it keeps its date.
           meta.push(<>{done ? fmtDay(f.created_at) : fmtAge(f.created_at)}</>);
-          if (took) meta.push(<span className="sa-fault-took">טופל {took}</span>);
+          if (took) meta.push(<span className="sa-fault-took">טופלה {took}</span>);
           return (
-            <li key={f.id} className={done ? "sa-fault-row is-done" : "sa-fault-row"}>
+            <li key={f.id} className={done ? "sa-fault-row is-done relative" : "sa-fault-row relative"}>
               {src ? (
                 <a className="sa-fault-thumb" href={src} target="_blank" rel="noreferrer" aria-label="פתיחת התמונה">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -197,7 +194,9 @@ function FaultsInner() {
                 <span className="sa-fault-thumb is-empty" aria-hidden="true" />
               ) : null}
               <div className="sa-fault-main">
-                <p className="sa-fault-title">{f.description}</p>
+                <p className="sa-fault-title">
+                  <button type="button" className="sa-attention-open" onClick={() => openFault(f.id)}>{f.description}</button>
+                </p>
                 {p ? (
                   <button type="button" className="sa-fault-product" onClick={() => openProduct(p.id)}>
                     <span className="sa-truncate">{fmtName(p.name)}</span>
@@ -221,7 +220,7 @@ function FaultsInner() {
                 {done ? (
                   <Button variant="ghost" icon="refresh" isLoading={busy} onClick={() => void onReopen(f)}>פתיחה מחדש</Button>
                 ) : (
-                  <Button variant="secondary" icon="check" isLoading={busy} onClick={() => void onResolve(f)}>סימון כטופל</Button>
+                  <Button variant="secondary" icon="check" onClick={() => openFault(f.id)}>סגירה עם תיעוד</Button>
                 )}
               </div>
             </li>

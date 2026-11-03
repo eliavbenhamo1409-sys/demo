@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { logOut, loginErrorMessage } from "@/lib/login/auth";
-import { ORDER_STATUS_LABEL } from "@/lib/format";
+import { daysUntil, ORDER_STATUS_LABEL } from "@/lib/format";
 import { useData } from "@/lib/store";
 import { NavItem } from "@/components/ui/NavItem";
 import { Sidebar } from "@/components/ui/Sidebar";
@@ -16,13 +16,17 @@ import { PageHead } from "@/components/ui/PageHead";
 import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { MillShell } from "@/components/mill/MillShell";
 import { useMill } from "@/components/mill/use-mill";
-import { MerhavShell } from "@/components/merhav/Shell";
-import { useMerhav } from "@/components/merhav/use-merhav";
+import { useMerhav, useMerhavShell } from "@/components/merhav/use-merhav";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
+import { findCommands, type CommandHit } from "./command-search";
+import { FaultPanel } from "./FaultPanel";
+import { LiveStatus } from "./LiveStatus";
+import { MovementPanel } from "./MovementPanel";
 import { OrderPanel } from "./OrderPanel";
 import { ProductPanel } from "./ProductPanel";
 import "./app-shell.css";
+import "@/design/order.css";
 
 const SHELL_ACTIONS: ActionItem[] = [
   ...DEFAULT_ACTIONS,
@@ -54,7 +58,15 @@ const SETTINGS_PAGES = [
   { key: "team", label: "צוות", href: "/team" },
 ];
 
+/** A customer has no page of their own: the orders page opens on their name. */
+type CustomerHit = { kind: "customer"; id: string; title: string; sub: string };
+
+/** Everything the default shell's search can offer. The other styles' searches take SearchHit alone. */
+type ShellHit = CommandHit | CustomerHit | SearchHit;
+
 const HIT_ICON: Record<SearchHit["kind"], IconName> = { product: "package", order: "inbox", supplier: "truck", supplier_item: "tag" };
+
+const hitIcon = (h: ShellHit): IconName => ("icon" in h ? h.icon : h.kind === "customer" ? "user" : HIT_ICON[h.kind]);
 
 const MAX_HITS = 8;
 
@@ -85,7 +97,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const mill = useMill();
-  const merhav = useMerhav();
+  const merhavShell = useMerhavShell(useMerhav());
 
   /* ───────── sidebar ───────── */
   const items = useMemo(
@@ -119,7 +131,6 @@ function ShellInner({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState("");
   const [hit, setHit] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
 
   const hits = useMemo<SearchHit[]>(() => {
     const q = query.trim().toLowerCase();
@@ -162,10 +173,28 @@ function ShellInner({ children }: { children: ReactNode }) {
     return out;
   }, [query, state.products, state.orders, state.suppliers, state.supplierItems]);
 
+  const results = useMemo<ShellHit[]>(() => {
+    const q = query.trim();
+    const commands = findCommands(q, {
+      late: state.orders.filter((o) => o.status === "open" && o.promised_on !== null && daysUntil(o.promised_on) < 0).length,
+      open: stats.openOrders,
+      low: stats.low,
+      out: stats.out,
+      faults: stats.openFaults,
+      pending: stats.pendingRequests + stats.pendingMappings,
+      today: stats.movementsToday,
+    });
+    if (!q) return commands;
+    const open = new Map<string, number>();
+    for (const o of state.orders) if (o.customer.includes(q)) open.set(o.customer, (open.get(o.customer) ?? 0) + (o.status === "open" ? 1 : 0));
+    const customers = [...open].slice(0, 3).map(([name, n]): CustomerHit => ({ kind: "customer", id: name, title: name, sub: n > 0 ? `לקוח · ${n} הזמנות פתוחות` : "לקוח" }));
+    return [...commands, ...hits.slice(0, MAX_HITS - commands.length - customers.length), ...customers];
+  }, [query, hits, state.orders, stats]);
+
   const onSearchChange = useCallback((q: string) => {
     setQuery(q);
     setHit(0);
-    setSearchOpen(q.trim().length >= 1);
+    setSearchOpen(true);
   }, []);
 
   const closeSearch = useCallback(() => {
@@ -175,9 +204,12 @@ function ShellInner({ children }: { children: ReactNode }) {
   }, []);
 
   const pick = useCallback(
-    (h: SearchHit | undefined) => {
+    (h: ShellHit | undefined) => {
       if (!h) return;
-      if (h.kind === "product") ui.openProduct(h.id);
+      if (h.kind === "go") router.push(h.href);
+      else if (h.kind === "do") ui.openAction(h.id);
+      else if (h.kind === "customer") router.push(`/orders?q=${encodeURIComponent(h.id)}`);
+      else if (h.kind === "product") ui.openProduct(h.id);
       else if (h.kind === "order") ui.openOrder(h.id);
       else router.push("/suppliers");
       closeSearch();
@@ -193,23 +225,23 @@ function ShellInner({ children }: { children: ReactNode }) {
         closeSearch();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setHit((i) => (hits.length ? (i + 1) % hits.length : 0));
+        setHit((i) => (results.length ? (i + 1) % results.length : 0));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setHit((i) => (hits.length ? (i <= 0 ? hits.length - 1 : i - 1) : 0));
+        setHit((i) => (results.length ? (i <= 0 ? results.length - 1 : i - 1) : 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        pick(hits[hit]);
+        pick(results[hit]);
       }
     },
-    [searchOpen, hits, hit, pick, closeSearch],
+    [searchOpen, results, hit, pick, closeSearch],
   );
 
   // click outside the search closes the popover
   useEffect(() => {
     if (!searchOpen) return;
     const onDown = (e: PointerEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
+      if (!(e.target as Element).closest(".sa-search, .app-results")) setSearchOpen(false);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
@@ -236,24 +268,19 @@ function ShellInner({ children }: { children: ReactNode }) {
   /* ───────── render ───────── */
   const active = activeKey(pathname);
 
-  // A phone's tabs scroll sideways, so the page you are on is never left behind the edge.
+  // A phone's tabs scroll sideways, so the page you are on is never left behind the edge. Once more when the data lands: the counts widen them.
   useEffect(() => {
     document.querySelector(".sa-sidebar .sa-nav-item.is-active")?.scrollIntoView({ block: "nearest", inline: "center" });
-  }, [active]);
-
-  // A working connection needs no sign; only a lost one is worth a word.
-  const liveNode = state.live ? null : (
-    <span className="app-live" role="status" aria-live="polite">מתחבר</span>
-  );
+  }, [active, state.status]);
 
   const searchSlot =
-    searchOpen && query.trim() ? (
-      <div ref={searchRef} className="app-results" role="listbox" aria-label="תוצאות חיפוש">
-        {hits.length === 0 ? (
+    searchOpen ? (
+      <div className="app-results" role="listbox" aria-label="תוצאות חיפוש">
+        {results.length === 0 ? (
           <div className="sa-menu-empty">לא נמצאו תוצאות</div>
         ) : (
           <div className="sa-menu-list">
-            {hits.map((h, i) => (
+            {results.map((h, i) => (
               <button
                 key={`${h.kind}:${h.id}`}
                 type="button"
@@ -264,7 +291,7 @@ function ShellInner({ children }: { children: ReactNode }) {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(h)}
               >
-                <Icon name={HIT_ICON[h.kind]} size={16} />
+                <Icon name={hitIcon(h)} size={16} />
                 <span className="min-w-0 flex-1">
                   <span className="app-resultTitle">{h.title}</span>
                   <span className="app-resultSub"><bdi>{h.sub}</bdi></span>
@@ -307,7 +334,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <>
           <div className={`sa-scrim app-scrim`} data-closing={ui.closing || undefined} onClick={requestClose} aria-hidden />
           <div className="app-panelHost" role="dialog" aria-modal="true" data-closing={ui.closing || undefined} onInput={ui.markDirty}>
-            {panel.type === "action" ? <ActionDrawer /> : panel.type === "order" ? <OrderPanel /> : <ProductPanel />}
+            {panel.type === "action" ? <ActionDrawer /> : panel.type === "order" ? <OrderPanel /> : panel.type === "fault" ? <FaultPanel /> : panel.type === "movement" ? <MovementPanel /> : <ProductPanel />}
           </div>
           {ui.askingClose ? (
             <Modal title="לסגור בלי לשמור?" tone="danger" confirmLabel="סגירה" cancelLabel="המשך" onConfirm={ui.close} onClose={ui.keepOpen} />
@@ -327,22 +354,23 @@ function ShellInner({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (merhav) {
-    return (
-      <MerhavShell
-        items={items}
-        active={active}
-        foot={foot}
-        morePages={SETTINGS_PAGES}
-        actions={SHELL_ACTIONS}
-        onAction={onAction}
-        search={{ query, onQuery: onSearchChange, hits, pick }}
-        offline={!state.live}
-        page={page}
-        overlays={overlays}
-        panelOpen={panel !== null}
-      />
-    );
+  // Only for the moment before its code lands. What stands behind it is first-paint.css.
+  if (merhavShell === undefined) return null;
+
+  if (merhavShell) {
+    return createElement(merhavShell, {
+      items,
+      active,
+      foot,
+      morePages: SETTINGS_PAGES,
+      actions: SHELL_ACTIONS,
+      onAction,
+      search: { query, onQuery: onSearchChange, hits, pick },
+      offline: !state.live,
+      page,
+      overlays,
+      panelOpen: panel !== null,
+    });
   }
 
   if (mill) {
@@ -371,10 +399,11 @@ function ShellInner({ children }: { children: ReactNode }) {
           actions={<ActionMenu actions={SHELL_ACTIONS} onSelect={onAction} variant="secondary" icon="plus" />}
           searchValue={query}
           onSearchChange={onSearchChange}
-          onSearch={() => pick(hits[hit])}
+          onSearch={() => pick(results[hit])}
+          onSearchFocus={() => setSearchOpen(true)}
           onSearchKeyDown={onSearchKeyDown}
           searchSlot={searchSlot}
-          end={liveNode}
+          end={<LiveStatus />}
         />
         <main className="app-content">{page}</main>
       </div>

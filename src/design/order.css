@@ -1,0 +1,99 @@
+/* ניהול מלאי — order to the eye, in the default style, inside the admin's shell only. Added 2026-11-03.
+   Colour and brightness stay exactly as tokens.css has them: blue, the silver desk, white sheets. The owner said so.
+   This file changes only what the eye has to work for: one type scale, one row height, closer rows in the rail,
+   quiet figures with one dominant number, plain short motion. It loads with AppShell, so the worker's phone and the catalogue never see it.
+   The wrapper outranks [data-theme^="minimal"], so a rule here holds whichever stylesheet loads last. */
+
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) {
+  .sa-shell {
+    --sidebar: 216px;
+    --topbar: 64px;
+    --row: 60px;
+    --inset: 20px;
+    --gap: 16px;
+    --dur-1: 120ms;
+    --dur-2: 180ms;
+    --dur-3: 220ms;
+  }
+  @media (min-width: 900px) and (max-width: 1339px) { .sa-shell { --sidebar: 196px; } }
+
+  /* ── Type: a strong title, then quiet ─────────────────────── */
+  .sa-page-title { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.01em; }
+  .sa-modal-title { font-weight: 600; }
+  .sa-pagehead { grid-template-rows: 36px var(--l-22); }
+  .sa-pagehead .sa-page-title { line-height: 36px; }
+  .sa-page > .sa-pagehead + * { margin-block-start: var(--space-5); }
+  .sa-card-head { padding: var(--space-4) var(--inset) var(--space-3); }
+  .sa-card-title { font-size: var(--t-16); line-height: var(--l-24); font-weight: 600; }
+  .sa-card-sub { font-size: var(--t-13); line-height: var(--l-18); }
+  .sa-cell-primary, .sa-table .text-ink:has(+ .sa-cell-sub) { font-weight: 500; }
+  .sa-attention-title { font-weight: 500; }
+  .sa-table :is(td > span > .sa-stock, .sa-signed) { font-size: var(--t-16); line-height: var(--l-22); }
+
+  /* ── Toolbar: tabs at the start, filters beside them, the search at the far end. A second line only when the first can't hold them ── */
+  @media (min-width: 600px) {
+    .sa-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); }
+    .sa-toolbar-tools { flex: 1 1 0; min-width: min-content; justify-content: flex-start; }
+    .sa-toolbar-tools .sa-search { flex: 0 1 320px; min-width: 200px; max-width: 320px; margin-inline-start: auto; }
+    .sa-toolbar-tools .sa-select { flex: 0 10 140px; }
+  }
+  /* A filter stands like the search beside it: a white well with no drawn box, its name in a word that reads. */
+  .sa-toolbar-tools .sa-select-trigger:not(.is-open) { border-color: transparent; box-shadow: var(--shadow-sm); }
+  .sa-toolbar-tools .sa-select-trigger:focus-visible:not(.is-open) { box-shadow: var(--focus-ring); }
+  .sa-toolbar-tools .sa-select-value.is-placeholder { color: var(--text-secondary); }
+  @media (hover: hover) { .sa-toolbar-tools .sa-select-trigger:has(.is-placeholder):hover:not(:disabled, .is-open) { border-color: var(--border-strong); } }
+
+  /* ── Tables: one row height, figures on one edge ──────────── */
+  .sa-table th, .sa-dict-head { height: 38px; min-height: 38px; font-weight: 500; }
+  .sa-table-empty { padding-block: 0; }
+  .sa-moves .sa-table td { padding-block: var(--space-2); font-size: var(--t-14); }
+  /* The second figure in a row stays under the first, and a state is a word at the weight of the overview's. */
+  .sa-table td > .sa-stock { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; }
+  :is(.sa-table td .sa-sr, .sa-badge) { font-weight: 500; }
+  /* Blue is what you can press, and this arrow isn't. */
+  .sa-move.is-out svg { color: var(--text-tertiary); }
+  /* A row keeps its height: a name that needs a second line takes it from the quiet line under it. Phones keep both. */
+  @media (min-width: 601px) {
+    .sa-table .sa-thumbed > span:has(> .sa-cell-primary) { max-height: calc(2 * var(--l-20)); overflow: hidden; }
+    .app-filters-end { margin-inline-end: var(--space-3); }
+  }
+
+  /* ── One row on every list: a name, a quiet line under it, and the figure at the end leads ── */
+  :is(.sa-table .sa-cell-primary, .sa-fault-title, .sa-dict-product-name, .sa-dict-inbox-name, .sa-doc-title) { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; }
+  :is(.sa-fault-meta, .sa-fault-product, .sa-dict-product-codes, .sa-dict-alias-meta, .sa-dict-inbox-meta, .sa-doc-meta) { font-size: var(--t-13); line-height: var(--l-18); font-weight: 400; color: var(--text-tertiary); }
+
+  /* ── The 3D rail keeps its look; only what the tighter shell squeezed gives way ── */
+  .m3d-summary dd { font-weight: 600; }
+  .m3d-line-place { white-space: nowrap; }
+  @media (max-width: 1239px) { .m3d-summary { column-gap: var(--space-3); } }
+  /* The head stands where it stands on every other page, so nothing jumps on the way to or from the warehouse. */
+  @media (min-width: 1100px) and (max-width: 1339px) {
+    .app-main:has(.m3d-page) .sa-topbar { padding-inline: var(--space-6); }
+    .sa-page.m3d-page { --m3d-gutter: var(--space-6); }
+  }
+
+  /* ── The rail: the same white sheet and blue row, closer ──── */
+  .sa-brand { height: var(--topbar); padding-inline: var(--space-5); font-size: var(--t-16); line-height: var(--l-22); font-weight: 600; }
+  .sa-nav { padding: 0 var(--space-3); gap: 1px; }
+  .sa-nav-foot { padding: var(--space-3); gap: 1px; }
+  .sa-nav-item { height: 38px; font-size: var(--t-14); gap: 10px; }
+  .sa-nav-item > svg { width: 18px; height: 18px; }
+  .sa-nav-item .sa-badge { font-size: var(--t-13); }
+
+  /* ── Motion: short and plain. A page settles, nothing jumps ── */
+  .app-content .sa-page > * { animation: sa-settle var(--dur-2) linear backwards; }
+  .app-content .sa-page > :nth-child(n) { animation-delay: 0ms; }
+  .app-panelHost:not([data-closing]) { animation-duration: var(--dur-3); }
+
+  /* ── Figures: quiet, so the one that matters can lead ─────── */
+  .sa-stat { min-height: 0; gap: 2px; padding: var(--space-4) var(--inset); }
+  .sa-stat-label { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-tertiary); }
+  .sa-stat-value { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.01em; }
+  .sa-stat-unit { font-size: var(--t-14); }
+  .sa-stat-foot { padding-top: 2px; font-size: var(--t-13); line-height: var(--l-18); font-weight: 400; }
+
+  /* ── Worklist ─────────────────────────────────────────────── */
+  .sa-attention-item { min-height: 64px; gap: var(--space-3); padding-block: 10px; }
+}
+
+@keyframes sa-settle { from { opacity: 0; } }

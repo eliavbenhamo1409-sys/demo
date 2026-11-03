@@ -18,6 +18,11 @@ html[data-theme^="merhav"] {
   opacity: clamp(0, calc(1 - var(--lift, 0) * 2.6), 1);
 }
 
+/* What the door closes over when the page leaves. Nothing in it moves. What a dock leaves uncovered fades as the door lands, because a cut there is a blink. */
+.mh-ghost { position: absolute; inset: 0; height: auto; min-height: 0; opacity: 1; animation: mh-ghost-out 200ms var(--ease) calc(var(--dur-plate) - 200ms) both; }
+.mh-ghost * { transition: none !important; animation: none !important; pointer-events: none !important; }
+@keyframes mh-ghost-out { to { opacity: 0; } }
+
 /* ── The figures. They stand on the world itself: no card, no panel ── */
 .mh-ov-figures {
   position: absolute;
@@ -77,8 +82,8 @@ html[data-theme^="merhav"] {
 }
 .mh-ov-answers a:first-child { border-top: 1px solid var(--border-base); }
 .mh-ov-answers a:hover { padding-inline-start: 6px; }
-.mh-ov-answers dt { font-size: var(--t-14); color: var(--text-secondary); }
-.mh-ov-answers dd { margin: 0; font-size: var(--t-14); font-weight: 500; }
+.mh-ov-answers span { font-size: var(--t-14); color: var(--text-secondary); }
+.mh-ov-answers b { font-size: var(--t-14); font-weight: 500; }
 
 /* ── The floor line: the worries, the week in three figures, the day in ticks ── */
 .mh-ov-floor {
@@ -94,8 +99,8 @@ html[data-theme^="merhav"] {
 .mh-ov-week > div { min-width: 0; }
 .mh-ov-week dt { font-size: var(--t-13); color: var(--text-tertiary); }
 .mh-ov-week dd { margin: 0; font-size: clamp(22px, 1.9vw, 34px); line-height: 1.2; font-weight: 300; letter-spacing: -0.02em; }
-.mh-ov-week .mh-figure-sign { font-size: 0.56em; margin-top: 0.3em; }
-.mh-ov-week .mh-ov-before { font-size: var(--t-13); line-height: var(--l-18); letter-spacing: 0; font-weight: 400; color: var(--text-quiet); }
+.mh-ov-week .mh-figure-sign { font-size: max(var(--t-13), 0.56em); margin-top: 0.3em; }
+.mh-ov-week .mh-ov-before { font-size: var(--t-13); line-height: var(--l-18); letter-spacing: 0; font-weight: 400; color: var(--text-tertiary); }
 
 .mh-day { position: relative; height: 40px; }
 .mh-day-line { position: absolute; inset: 14px 0 auto; height: 1px; background: var(--border-strong); }
@@ -103,9 +108,9 @@ html[data-theme^="merhav"] {
   position: absolute;
   top: 8px;
   transform: translateX(-50%);
-  font-size: 12px;
+  font-size: var(--t-13);
   line-height: 16px;
-  color: var(--text-quiet);
+  color: var(--text-secondary);
 }
 .mh-day-hour:first-of-type { transform: none; }
 .mh-day-hour:last-of-type { transform: translateX(-100%); }
@@ -133,8 +138,8 @@ html[data-theme^="merhav"] {
 }
 .mh-tick.is-in::before { background: var(--qty-in); top: 2px; height: 8px; }
 .mh-tick.is-out::before { background: var(--danger-text); top: 9px; height: 8px; }
-.mh-tick:hover::before { height: 12px; }
-.mh-tick.is-in:hover::before { top: -2px; }
+.mh-tick:is(:hover, :focus-visible)::before { height: 12px; }
+.mh-tick.is-in:is(:hover, :focus-visible)::before { top: -2px; }
 
 .mh-day-tip {
   position: absolute;
@@ -173,6 +178,11 @@ html[data-theme^="merhav"] {
 
 .mh-rows { list-style: none; margin: 0; padding: 0; }
 .mh-rows > li { position: relative; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-subtle); }
+/* A row with no key keeps the key's room, so the last word of every row stands in one column. */
+.mh-rows:has(> li > .sa-btn) { --mh-key: calc(var(--t-14) * 6.6); }
+.mh-rows:has(> li > .sa-btn-icon) { --mh-key: var(--control-sm); }
+.mh-rows > li > .sa-btn:not(.sa-btn-icon) { flex: none; width: var(--mh-key); padding-inline: 0; }
+.mh-rows:has(> li > .sa-btn) > li:not(:has(> .sa-btn))::after { content: ""; flex: none; width: var(--mh-key); }
 .mh-row {
   flex: 1;
   min-width: 0;
@@ -195,8 +205,14 @@ html[data-theme^="merhav"] {
 .mh-row-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mh-row-word { font-size: var(--t-14); font-weight: 500; white-space: nowrap; }
 .mh-row-fig { font-size: var(--t-16); font-weight: 500; white-space: nowrap; }
-.mh-row-end { display: flex; flex-direction: column; align-items: flex-end; }
+/* The pair holds one width and stands on its start, so ones stand under ones whatever the unit. */
+.mh-row-fig:has(small) { flex: none; width: 6.4em; }
+.mh-row-fig small { margin-inline-start: 5px; font-size: var(--t-13); font-weight: 400; color: var(--text-tertiary); }
+/* One width on every row, so the money stands ones under ones and its word under it. */
+.mh-row-end { flex: none; display: flex; flex-direction: column; align-items: flex-start; width: calc(var(--t-16) * 6); }
 .mh-row-state { font-size: var(--t-13); line-height: var(--l-18); }
 .mh-empty { padding: 18px 0; color: var(--text-tertiary); }
 
-[data-theme^="merhav"] .sa-thumb { width: 40px; height: 40px; border-radius: var(--radius-md); object-fit: cover; background: var(--bg-muted); flex: none; }
+[data-theme^="merhav"] .sa-thumb { width: var(--mh-thumb); height: var(--mh-thumb); border-radius: var(--radius-md); object-fit: cover; background: var(--bg-muted); flex: none; }
+/* No photo keeps the column and draws nothing: an empty frame is a tile with nothing on it. */
+[data-theme^="merhav"] span.sa-thumb { background: none; box-shadow: none; }

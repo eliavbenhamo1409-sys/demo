@@ -6,7 +6,7 @@
  * controls and the tags stand in the world, and whatever this page turns on it turns off again on the way out.
  */
 
-import { Suspense, useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type ReactElement } from "react";
+import { Suspense, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type ReactElement, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
@@ -25,12 +25,13 @@ import { useMovementHistory } from "@/components/map3d/use-history";
 import { ValueRail } from "@/components/map3d/ValueRail";
 import type { MapView } from "@/components/map3d/view";
 import { ViewSwitch } from "@/components/map3d/ViewSwitch";
+import { STATE_NUM } from "@/components/map3d/words";
 import { worthOf } from "@/components/map3d/worth";
 import "@/components/map3d/map3d.css";
 import "@/components/map3d/map3d-aluminium.css";
 import { Button, cx, Notice, Tabs } from "@/components/ui";
 import { fmtDateTime, fmtQty } from "@/lib/format";
-import { DISPATCH_ZONE } from "@/lib/map3d/layout";
+import { DISPATCH_ZONE, levelY } from "@/lib/map3d/layout";
 import { blockAt, buildMapModel, emptySpot } from "@/lib/map3d/model";
 import { placeKey, resolvePlace } from "@/lib/map3d/place";
 import { routeBetween } from "@/lib/map3d/route";
@@ -62,8 +63,7 @@ const MARK_MARGIN = 0.45;
 const WORTH_TAGS = 5;
 /** An unknown quantity draws as an empty shelf, so this one word stays on the model at any date. */
 const PAST_UNKNOWN = "לא ידוע";
-/** A little past the rig's flight, so nothing changes under it. */
-const PLAN_FLIGHT_MS = 740;
+const FAULT_WORD = "תקלה";
 /** A movement's way across the floor is drawn for a row you stop on, not for each row the pointer crosses. */
 const TRACE_DWELL_MS = 140;
 
@@ -74,6 +74,55 @@ const WALKABLE = "button.m3d-line:not(:disabled), button.m3d-shelf, .m3d-row > .
 
 /** The walk's letters. The arrows are no search. */
 const WALK_LETTERS = new Set(["KeyW", "KeyA", "KeyS", "KeyD"]);
+
+/** What is worst first, then what stands lowest. */
+const pressing = (view: LabelView) => (view.textClass === STATE_NUM.short ? -2 : view.textClass === STATE_NUM.out ? -1 : Number.parseInt(view.text ?? "", 10));
+
+/**
+ * From afar a rack speaks once: its name and the one word that matters most, on one tag. A figure on every shelf covered
+ * the names around it, and a figure with no name says nothing. A shelf that is pointed at still speaks for itself.
+ */
+function oneTagEach(views: readonly LabelView[], faults: ReadonlySet<string>): LabelView[] {
+  const speaks = (view: LabelView) => view.onShelf && view.attention && !view.name;
+  const worst = new Map<string, LabelView>();
+  for (const view of views) {
+    const rack = speaks(view) ? view.hit?.objectId : undefined;
+    if (!rack) continue;
+    const held = worst.get(rack);
+    if (!held || pressing(view) < pressing(held)) worst.set(rack, view);
+  }
+  return views.filter((view) => !speaks(view)).map((view) => {
+    const fault = faults.has(view.id) && !view.word;
+    const held = worst.get(view.id);
+    // One word: a fault speaks over a low shelf, and only what the orders are short of speaks over a fault.
+    const shelf = fault && held?.textClass !== STATE_NUM.short ? undefined : held;
+    if (!shelf && !fault) return view;
+    return { ...view, quiet: false, attention: true, more: fault ? undefined : view.more, text: shelf?.text ?? view.text, textClass: shelf?.textClass ?? view.textClass, word: fault && !shelf ? FAULT_WORD : view.word, wordClass: fault && !shelf ? STATE_NUM.out : view.wordClass };
+  });
+}
+
+/** How much of a shelf's height one tag takes close up. */
+const TAG_STEP = 0.2;
+
+/** Close up, products that share a shelf stack their tags over its middle, because side by side along it they cover each other. */
+function stackedTags(views: readonly LabelView[], rack: MapObject): LabelView[] {
+  const shelves = new Map<string, LabelView[]>();
+  for (const view of views) {
+    if (!view.onShelf || !view.at || !view.hit) continue;
+    const key = `${view.hit.level}/${view.hit.side ?? ""}`;
+    shelves.set(key, [...(shelves.get(key) ?? []), view]);
+  }
+  const step = (levelY(rack, 1) - levelY(rack, 0)) * TAG_STEP;
+  const moved = new Map<string, LabelView>();
+  for (const row of shelves.values()) {
+    if (row.length < 3) continue;
+    const middle = row.reduce((sum, view) => sum + (view.at?.x ?? 0), 0) / row.length;
+    row.forEach((view, i) => {
+      if (view.at) moved.set(view.id, { ...view, at: { ...view.at, x: middle, y: view.at.y + i * step } });
+    });
+  }
+  return views.map((view) => moved.get(view.id) ?? view);
+}
 
 interface Peek extends Aim {
   /** The row that points. Null: a figure, which points at many places. */
@@ -113,7 +162,7 @@ export function Warehouse(): ReactElement {
 function WarehouseInner(): ReactElement {
   const { state, stats, linesOf } = useData();
   const ui = useUi();
-  const { engine, failed, layout, model, flashes, world, placeOf, itemsOf, spotProduct, listen, setPageRoutes, setPastSlots, setAnchors, aimProduct, home } = useTwin();
+  const { engine, failed, layout, model, flashes, world, placeOf, itemsOf, listen, setPageRoutes, setPastSlots, setAnchors, aimProduct, home } = useTwin();
   const editor = useLayoutEditor(layout);
   const { rows: shelfRows } = useShelves();
   const params = useSearchParams();
@@ -123,7 +172,6 @@ function WarehouseInner(): ReactElement {
   const editing = editor.draft !== null;
   const objects = editor.draft ?? layout.objects;
 
-  const door = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLElement>(null);
   const stage = useMemo(() => ({ current: world }), [world]);
   const fullscreen = useFullscreen(stage);
@@ -144,7 +192,7 @@ function WarehouseInner(): ReactElement {
   const drawerAim = useMemo(() => (drawerProduct ? productAim(drawerProduct, itemsOf, model) : null), [drawerProduct, itemsOf, model]);
   const pointed = peek ?? drawerAim;
 
-  useEffect(() => { (window as unknown as { __engine: unknown }).__engine = engine; }, [engine]); // TEMP
+
   /* ───────── the ledger, as the map reads it ───────── */
   const worth = useMemo(() => worthOf(model), [model]);
 
@@ -311,39 +359,28 @@ function WarehouseInner(): ReactElement {
     engine.setInsets(wide ? NO_INSETS : { ...NO_INSETS, right: doorWidth(world) });
   }, [engine, world, wide]);
 
-  // The camera stops short of the whole floor beside the door, so the plan stands on a shorter canvas in the world's own
-  // colour. It is measured before the flight there is worked out, and on the way back it waits until the flight has landed.
   const plan = editing || viewMode === "top";
-  const [planWas, setPlanWas] = useState(plan);
-  const [planLeaving, setPlanLeaving] = useState(false);
-  if (plan !== planWas) {
-    setPlanWas(plan);
-    setPlanLeaving(!plan);
-  }
 
   useEffect(() => {
-    if (!planLeaving) return;
-    const timer = setTimeout(() => setPlanLeaving(false), PLAN_FLIGHT_MS);
-    return () => clearTimeout(timer);
-  }, [planLeaving]);
-
-  useEffect(() => {
-    if (plan) engine?.renderNow();
     engine?.setEditing(editing);
     if (!editing) engine?.setView(viewMode);
-  }, [engine, editing, viewMode, plan]);
+  }, [engine, editing, viewMode]);
+
+  // Set on the way out: a flight or a word still in the queue must not land on the next page.
+  const left = useRef(false);
 
   const speak = useEffectEvent(() => {
+    if (left.current) return;
     engine?.setSelection(selection);
     engine?.setEmphasis(emphasis);
   });
 
-  // The search hands the model back empty, after this page's effects, each time the ledger changes.
+  // After this commit's effects, so it has the last word.
   useEffect(() => {
     queueMicrotask(() => speak());
-  }, [engine, selection, emphasis, spotProduct]);
+  }, [engine, selection, emphasis]);
 
-  // It does the same when it closes, so what is open here comes back.
+  // This page talks to the engine itself, so the search can't hand any of it back: what is open here is said again as the plate goes.
   useEffect(() => {
     const watcher = new MutationObserver(() => {
       if (!document.querySelector(".mh-command")) window.setTimeout(() => speak());
@@ -379,7 +416,7 @@ function WarehouseInner(): ReactElement {
   }, [routes, marks, setPageRoutes]);
 
   const fly = useEffectEvent((id: string | null) => {
-    if (viewMode === "walk") return;
+    if (viewMode === "walk" || left.current) return;
     const object = objects.find((o) => o.id === id);
     engine?.flyTo(object ? { objectId: object.id, shelf: object.kind === "rack" && viewMode !== "top" } : null);
   });
@@ -392,9 +429,20 @@ function WarehouseInner(): ReactElement {
     queueMicrotask(() => fly(targetId));
   }, [engine, targetId]);
 
+  const drawerPlace = drawerAim?.hit?.objectId ?? null;
+  const drawerShelf = viewMode === "walk" || narrow ? null : drawerPlace;
+
+  // A product's shelf stands between the door and the drawer.
+  const toDrawer = useEffectEvent((place: string) => {
+    const panel = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--panel"));
+    engine?.setInsets({ ...NO_INSETS, right: doorWidth(world), left: panel });
+    engine?.flyTo({ objectId: place, shelf: true });
+  });
+
   const refit = useEffectEvent(() => {
     if (wide) engine?.setInsets(NO_INSETS);
-    fly(flown.current);
+    if (drawerShelf) toDrawer(drawerShelf);
+    else fly(flown.current);
   });
 
   // Twin fits the model to the door on a new window size, and what is open stays open.
@@ -413,23 +461,44 @@ function WarehouseInner(): ReactElement {
     };
   }, []);
 
-  const drawerPlace = drawerAim?.hit?.objectId ?? null;
   useEffect(() => {
-    if (!engine || !drawerPlace || viewMode === "walk") return;
-    const panel = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--panel"));
-    const beside = { ...NO_INSETS, right: doorWidth(world) };
-    engine.setInsets({ ...beside, left: panel });
-    engine.flyTo({ objectId: drawerPlace, shelf: true });
+    if (!engine || !drawerShelf) return;
+    toDrawer(drawerShelf);
     return () => {
-      engine.setInsets(beside);
+      engine.setInsets({ ...NO_INSETS, right: doorWidth(world) });
       queueMicrotask(() => fly(flown.current));
     };
-  }, [engine, world, drawerPlace, viewMode]);
+  }, [engine, world, drawerShelf]);
+
+  // A moved rack is work, and the rail stands right beside it: the way out asks the same question as ביטול.
+  const askToLeave = useEffectEvent(() => editor.leave());
+  useEffect(() => {
+    if (!editor.dirty) return;
+    const onClick = (e: MouseEvent) => {
+      if (!(e.target instanceof Element) || !e.target.closest(".mh-rail a, .mh-bar a")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      askToLeave();
+    };
+    document.addEventListener("click", onClick, { capture: true });
+    return () => document.removeEventListener("click", onClick, { capture: true });
+  }, [editor.dirty]);
 
   /* ───────── keys ───────── */
-  // The row that opened a card is gone with the list, so the keyboard carries on from the rail.
+  // The row that opened a card is gone with the list, so the keyboard carries on from the rail, and closing the card lands
+  // back on that row, by its place in the list. Never on arrival: Tab starts a new page at its top, not halfway down the list.
+  const cardWas = useRef(targetId);
+  const openedRow = useRef(-1);
   useEffect(() => {
-    if (document.activeElement === document.body) railRef.current?.focus({ preventScroll: true });
+    const was = cardWas.current;
+    cardWas.current = targetId;
+    const rail = railRef.current;
+    const lost = document.activeElement === document.body || document.activeElement === rail;
+    if (was === targetId || !rail || !lost) return;
+    const back = targetId === null ? rail.querySelectorAll<HTMLElement>(WALKABLE)[openedRow.current] : undefined;
+    if (targetId === null) openedRow.current = -1;
+    if (back) back.focus();
+    else rail.focus({ preventScroll: true });
   }, [targetId]);
 
   const onEscape = useEffectEvent((e: KeyboardEvent) => {
@@ -473,10 +542,14 @@ function WarehouseInner(): ReactElement {
   const closeView = selectedObject?.kind === "rack" && viewMode !== "top" && viewMode !== "walk" ? selectedObject : null;
   const labels = useMemo(() => {
     const views = labelViews({ objects, model, past: past?.stock ?? null, money: valueLens, faults: faultObjects, open: closeView, shelf: hover ?? pointed?.hit ?? null });
+    if (!past && !valueLens) return closeView ? stackedTags(views, closeView) : oneTagEach(views, faultObjects);
     // Thirty figures on stems would hide what they stand on. The rest wait for a pointer, and the rail lists them all.
     const largest = new Set(valueLens ? worth.places.slice(0, WORTH_TAGS).map((place) => place.object.id) : []);
-    const speaks = (view: LabelView) => largest.has(view.id) || view.text === PAST_UNKNOWN;
-    return past || valueLens ? views.map((view) => (view.text && !speaks(view) ? { ...view, quiet: true, more: view.text, text: undefined } : view.text && past ? { ...view, quiet: true } : view)) : views;
+    const calm = (view: LabelView): LabelView => {
+      if (!view.text || largest.has(view.id)) return view;
+      return view.text === PAST_UNKNOWN ? { ...view, quiet: true } : { ...view, quiet: true, more: view.text, text: undefined };
+    };
+    return views.map(calm);
   }, [objects, model, past, valueLens, faultObjects, closeView, hover, pointed, worth.places]);
 
   // Labels writes the engine's anchors itself. Through this they go by Twin, beside the point the line ends at.
@@ -488,8 +561,8 @@ function WarehouseInner(): ReactElement {
   const [reachEl, setReachEl] = useState<HTMLElement | null>(null);
   const reached = peek ? peek.hit : closeView && selectedBlock ? selection : null;
   const point = useMemo(() => (reached ? pointOf(reached, objects) : null), [reached, objects]);
-  const peekedRow = peek?.row;
-  const rowOf = useCallback(() => peekedRow ?? railRef.current?.querySelector(".m3d-shelfblock.is-open > .m3d-shelf") ?? null, [peekedRow]);
+  const peekedRow = peek ? peek.row : undefined;
+  const rowOf = useCallback(() => (peekedRow === undefined ? (railRef.current?.querySelector(".m3d-shelfblock.is-open > .m3d-shelf") ?? null) : peekedRow), [peekedRow]);
   useEffect(() => {
     setAnchors(point && reachEl ? [...tagAnchors, { el: reachEl, ...point }] : tagAnchors);
   }, [tagAnchors, point, reachEl, setAnchors]);
@@ -527,10 +600,20 @@ function WarehouseInner(): ReactElement {
   const onRailKey = (e: ReactKeyboardEvent<HTMLElement>) => {
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || viewMode === "walk") return;
     const rows = [...e.currentTarget.querySelectorAll<HTMLElement>(WALKABLE)];
-    const at = rows.findIndex((row) => row === e.target);
-    if (at < 0 && e.target !== e.currentTarget) return;
+    const on = rows.findIndex((row) => row === e.target);
+    if (on < 0 && e.target !== e.currentTarget) return;
     e.preventDefault();
-    rows[e.key === "ArrowDown" ? at + 1 : Math.max(at - 1, 0)]?.focus();
+    rows[e.key === "ArrowDown" ? on + 1 : Math.max(on - 1, 0)]?.focus();
+  };
+
+  // The search walks the model too: the result you stand on lights its shelf before it is picked.
+  const peekResult = (e: SyntheticEvent<HTMLElement>) => {
+    const item = e.target instanceof Element && e.type === "pointerover" ? e.target.closest(".sa-menu-item") : e.currentTarget.querySelector('.m3d-results [aria-selected="true"]');
+    if (!item && e.type === "pointerover") return;
+    const code = item?.querySelector(".app-resultSub bdi")?.textContent;
+    const product = code ? state.products.find((p) => p.sku === code) : undefined;
+    const aim = product ? productAim(product.id, itemsOf, model) : null;
+    setPeek(aim ? { ...aim, row: null } : null);
   };
 
   const route = peek?.route;
@@ -553,6 +636,9 @@ function WarehouseInner(): ReactElement {
 
   /* ───────── the way out: סקירה finds the model as it was ───────── */
   const restore = useEffectEvent((on: MapEngine) => {
+    left.current = true;
+    // History can leave from a full screen, and the world alone would stay up over a page it isn't on.
+    if (document.fullscreenElement) void document.exitFullscreen();
     on.setEditing(false);
     on.setLayout(layout.objects);
     on.setSelection(null);
@@ -568,10 +654,16 @@ function WarehouseInner(): ReactElement {
 
   useEffect(() => {
     if (!engine) return;
+    left.current = false;
     return () => restore(engine);
   }, [engine]);
 
   /* ───────── the rail ───────── */
+  // A new list starts at its head, before a card scrolls to the shelf it was opened on.
+  useLayoutEffect(() => {
+    railRef.current?.scrollTo({ top: 0 });
+  }, [targetId, tab]);
+
   const map = useMemo<MapView>(
     () => ({ objects, model, trail, now, recent: recent.rows, ledger, placeOf, select, selectProduct }),
     [objects, model, trail, now, recent.rows, ledger, placeOf, select, selectProduct],
@@ -620,19 +712,11 @@ function WarehouseInner(): ReactElement {
     else setChosenView("orbit");
   };
 
-  const tabs = TAB_VALUES.map((value) => ({
-    value,
-    label: TAB_LABEL[value],
-    count: value === "orders" && stats.openOrders > 0 ? stats.openOrders : undefined,
-  }));
+  // No count on the tab: the figure over it already says how many.
+  const tabs = TAB_VALUES.map((value) => ({ value, label: TAB_LABEL[value] }));
 
   const placeCount = new Set(model.slots.map((slot) => slot.objectId)).size;
-  const sub =
-    at !== null ? (
-      <>מצב המלאי ב-<span className="sa-num">{fmtDateTime(new Date(at).toISOString())}</span></>
-    ) : (
-      <><span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>
-    );
+  const sub = at !== null ? "מצב המלאי ב-" : <><span className="sa-num">{fmtQty(state.products.length)}</span> מוצרים ב-<span className="sa-num">{fmtQty(placeCount)}</span> מיקומים</>;
 
   // The same rows the rail lists under דורש טיפול, so the figure and the list can't disagree.
   const needing = useMemo(() => {
@@ -651,11 +735,12 @@ function WarehouseInner(): ReactElement {
   const pointFigure = (value: RailTab | null) => setPeek(value ? { ids: figureIds(value), hit: null, row: null } : null);
 
   return (
-    <div ref={door} className="mh-wh" data-walk={walking || undefined} data-plan={plan || planLeaving || undefined} inert={walking}>
+    <div className="mh-wh" data-walk={walking || undefined} inert={walking}>
+      {selectedObject ? <h1 className="sa-sr">מחסן</h1> : null}
       <header className="mh-wh-head" hidden={selectedObject !== null}>
         <div className="mh-wh-title">
           <h1 className="sa-page-title">מחסן</h1>
-          {(layout.editable || (window as unknown as { __edit?: boolean }).__edit /* TEMP */) && !editing && !coarse ? (
+          {layout.editable && !editing && !coarse ? (
             <Button variant="secondary" icon="edit" disabled={at !== null} onClick={startEditing}>עריכת פריסה</Button>
           ) : null}
         </div>
@@ -663,38 +748,46 @@ function WarehouseInner(): ReactElement {
 
         {at === null && !editing ? (
           <div className="mh-wh-figures">
-            <button type="button" className="mh-wh-figure" onClick={() => onTab("status")} onPointerEnter={() => pointFigure("status")} onPointerLeave={() => pointFigure(null)}>
+            <button type="button" className="mh-wh-figure" onClick={() => onTab("status")} onPointerEnter={() => pointFigure("status")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("status")} onBlur={() => pointFigure(null)}>
               <span className="mh-label">{needing.count === 0 ? "הכול תקין" : "דורשים טיפול"}</span>
               <Figure className={cx(needing.count === 0 ? "mh-tone-ok" : needing.danger ? "mh-tone-out" : "mh-tone-warn")} text={fmtQty(needing.count)} />
             </button>
-            <button type="button" className="mh-wh-figure" onClick={() => onTab("orders")} onPointerEnter={() => pointFigure("orders")} onPointerLeave={() => pointFigure(null)}>
+            <button type="button" className="mh-wh-figure" onClick={() => onTab("orders")} onPointerEnter={() => pointFigure("orders")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("orders")} onBlur={() => pointFigure(null)}>
               <span className="mh-label">הזמנות פתוחות</span>
               <Figure text={fmtQty(stats.openOrders)} />
             </button>
-            <button type="button" className="mh-wh-figure" onClick={() => onTab("value")} onPointerEnter={() => pointFigure("value")} onPointerLeave={() => pointFigure(null)}>
+            <button type="button" className="mh-wh-figure" onClick={() => onTab("value")} onPointerEnter={() => pointFigure("value")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("value")} onBlur={() => pointFigure(null)}>
               <span className="mh-label">{worth.unpriced > 0 ? `במחירון, ${fmtQty(worth.unpriced)} ללא מחיר` : "שווי במחירון"}</span>
               <Figure sign="₪" text={fmtQty(Math.round(worth.total))} />
             </button>
           </div>
         ) : null}
+
+        {/* A date is the one figure of the past, and its wheels turn as the ruler is dragged. */}
+        {at !== null ? <Figure className="mh-wh-when" text={fmtDateTime(new Date(at).toISOString())} /> : null}
       </header>
 
       {editing ? <EditBar editor={editor} /> : selectedObject ? null : <Tabs variant="line" tabs={tabs} value={tab} onChange={onTab} />}
 
-      <aside
+      <section
         ref={railRef}
         className="m3d-rail"
         tabIndex={-1}
-        aria-label="פרטי המחסן"
+        role={selectedObject || editing ? undefined : "tabpanel"}
+        aria-label={selectedObject || editing ? "פרטי המחסן" : TAB_LABEL[tab]}
         onFocus={onRailFocus}
         onBlur={() => peekRow(null)}
         onKeyDown={onRailKey}
         onPointerOver={onRailOver}
         onPointerLeave={() => peekRow(null)}
-        onClickCapture={() => peekRow(null)}
+        onClickCapture={(e) => {
+          peekRow(null);
+          const row = e.target instanceof Element ? e.target.closest(WALKABLE) : null;
+          if (row && !selectedObject) openedRow.current = [...e.currentTarget.querySelectorAll(WALKABLE)].indexOf(row);
+        }}
       >
         {rail()}
-      </aside>
+      </section>
 
       {!selectedObject && !walking && !editing ? <BackHome /> : null}
 
@@ -721,7 +814,7 @@ function WarehouseInner(): ReactElement {
               {reachEl && reached ? <Reach key={`${reached.objectId}/${reached.level}/${reached.side ?? ""}/${peek ? "peek" : "open"}`} world={world} rail={railRef} row={rowOf} anchor={reachEl} /> : null}
               {failed ? <Notice className="m3d-fail" title="המפה לא זמינה בדפדפן הזה">הרשימה ממשיכה לעבוד</Notice> : null}
               {!failed && !editing ? (
-                <div className="m3d-corner">
+                <div className="m3d-corner" onKeyUp={peekResult} onPointerOver={peekResult} onPointerLeave={() => setPeek(null)} onBlur={() => setPeek(null)} onClickCapture={() => setPeek(null)}>
                   <MapSearch placeOf={placeOf} onPick={onSearchPick} />
                   <div className="m3d-views">
                     {leaveWord ? <Button variant="primary" size="sm" icon="x" onClick={leave}>{leaveWord}</Button> : null}

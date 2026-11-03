@@ -27,7 +27,7 @@ function watch(node: Element, sight: Sight): () => void {
 
 interface WireSpec {
   id: string;
-  /** Stays the same while a new name goes from its temporary id to its real one. */
+  /** Stays the same while a new name goes from its temporary id to its real one, and changes the moment it seats. */
   mark: string;
   seated: boolean;
 }
@@ -54,7 +54,7 @@ function Wires({ owner, wires }: { owner: RefObject<HTMLElement | null>; wires: 
     if (!svg || !band) return;
     // Only a wire that really just appeared draws itself; a wire seen before simply stands.
     const seen = known.current;
-    const fresh = seen ? new Set(wires.filter((w) => !seen.has(w.mark)).map((w) => w.mark)) : NONE;
+    const fresh = seen ? new Set(wires.filter((w) => w.seated && !seen.has(w.mark)).map((w) => w.mark)) : NONE;
     known.current = new Set([...(seen ?? []), ...wires.map((w) => w.mark)]);
     const measure = () => {
       const frame = svg.getBoundingClientRect();
@@ -134,7 +134,7 @@ function BandInner({ product, aliases, supplierName, open, onOpen, onClose, onOp
 
   const ordered = useMemo(() => bySupplier(aliases), [aliases]);
   const wires = useMemo<WireSpec[]>(
-    () => [...ordered.map((a) => ({ id: a.id, mark: `${a.supplier_id}:${a.external_name}`, seated: a.status !== "pending" })), ...(open ? [{ id: "new", mark: "new", seated: true }] : [])],
+    () => [...ordered.map((a) => ({ id: a.id, mark: `${a.supplier_id}:${a.external_name}:${a.status}`, seated: a.status !== "pending" })), ...(open ? [{ id: "new", mark: "new", seated: true }] : [])],
     [ordered, open],
   );
 
@@ -153,6 +153,7 @@ function BandInner({ product, aliases, supplierName, open, onOpen, onClose, onOp
 
       <div className="mh-cat-band-wire">
         {near && wires.length > 0 ? <Wires owner={band} wires={wires} /> : null}
+        {wires.length === 0 ? <button type="button" className="mh-cat-port" onClick={() => onOpen(product.id)} aria-label={`הוספת שם עבור ${product.name}`} title="הוספת שם"><i /></button> : null}
       </div>
 
       <div className="mh-cat-band-names">
@@ -166,7 +167,7 @@ function BandInner({ product, aliases, supplierName, open, onOpen, onClose, onOp
           return (
             <div key={a.id} className="mh-cat-name" data-name={a.id} data-supplier={a.supplier_id}>
               <i className="mh-cat-port-mark" data-port aria-hidden="true" />
-              <button type="button" className="mh-cat-name-open" onClick={() => onOpenName(a)} aria-label={`שיוך "${a.external_name}" של ${sup}`}>
+              <button type="button" className="mh-cat-name-open" onClick={() => onOpenName(a)}>
                 <span className="mh-cat-name-text"><bdi>{a.external_name}</bdi></span>
                 {a.external_sku || facts.length > 0 ? (
                   <span className="mh-cat-name-meta">
@@ -175,6 +176,7 @@ function BandInner({ product, aliases, supplierName, open, onOpen, onClose, onOp
                     {facts.join(" · ")}
                   </span>
                 ) : null}
+                <span className="sa-sr">, שיוך של {sup}</span>
               </button>
               {first ? <button type="button" className="mh-cat-name-sup" data-sup={a.supplier_id} onClick={() => onSupplier(a.supplier_id)}>{sup}</button> : <span />}
               <span className="mh-cat-name-end">

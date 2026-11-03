@@ -1,12 +1,19 @@
 begin;
 set local statement_timeout = '120s';
 set local session_replication_role = replica;
+-- Five slow products end the year with a little on the shelf, not at nothing: the same units through their whole ledger.
+create temp table h_k (sku text primary key, add_q numeric, mn numeric) on commit drop;
+insert into h_k values ('BRK-4040',46,10),('PRG-20060-W',9,2),('GSK-SIL-8',18,5),('FRM-70',34,10),('SHT-6082-20',8,2);
+update movements m set qty = m.qty + k.add_q from h_k k join products p on p.sku = k.sku
+where m.product_id = p.id and (m.type = 'adjust' or (p.sku in ('PRG-20060-W','SHT-6082-20') and m.id = (select x.id from movements x where x.product_id = p.id and x.type = 'in' order by x.created_at limit 1)));
+update products p set qty = p.qty + k.add_q, min_qty = k.mn from h_k k where k.sku = p.sku;
+
 create temp table h_place (sku text, place text, qty numeric, turn int, primary key (sku, place)) on commit drop;
 create temp table h_p on commit drop as select id, sku, unit, price, qty, case when unit = 'מטר' then 6 else 1 end as per from products where qty > 0;
 do $$
 declare
   fixed constant text[] := array['SHT-2-1225','SHT-3-1530','SHT-BK-15','SHT-TRD-3','SHT-PRF-2','PRF-4040','PRF-4040-BK','FRM-70','243535521','2A35Q4R','TEE-4040','FLT-5005','TUB-4040','TUB-6030','TUB-50','CUT-5L','GSK-EPDM','BRK-4040','TNT-M6'];
-  g record; p record; racks text[]; ri int; lev int; used numeric; left_q numeric; part numeric; w numeric; turn int; spots text[]; si int; lanes int; cap int;
+  g record; p record; racks text[]; ri int; lev int; used numeric; left_q numeric; part numeric; w numeric; turn int; spots text[]; si int; lanes int;
 begin
   insert into h_place select h.sku, x.place, round(h.qty * x.share / h.per) * h.per, x.turn from h_p h join (values
     ('SHT-2-1225','A-1/1',.6,1),('SHT-2-1225','A-1/2',.4,2),('SHT-3-1530','A-2/1R',1,1),('SHT-BK-15','A-2/1L',.5,1),('SHT-BK-15','A-2/2L',.5,2),('SHT-TRD-3','A-3/1R',.5,1),('SHT-TRD-3','A-3/1L',.5,2),('SHT-PRF-2','A-3/2',1,1),
@@ -29,8 +36,8 @@ begin
         w := case when part <= 110 or g.rx = '^RND' then .34 else .5 end;
         if used + w > 1.03 then lev := lev + 1; used := 0; end if;
         if lev > 4 then lev := 1; ri := ri + 1; end if;
-        if ri > array_length(racks, 1) then raise exception 'out of shelves for %', g.rx; end if;
-        insert into h_place values (p.sku, racks[ri] || '/' || lev, part * p.per, turn);
+        if ri > array_length(racks, 1) then ri := 1; end if;
+        insert into h_place values (p.sku, racks[ri] || '/' || lev, part * p.per, turn) on conflict (sku, place) do update set qty = h_place.qty + excluded.qty;
         used := used + w; left_q := left_q - part; turn := turn + 1;
         if left_q > 0 then lev := lev + 1; used := 0; end if;
       end loop;
@@ -45,8 +52,7 @@ begin
     left_q := p.qty; turn := 1;
     while left_q > 0 loop
       part := case when left_q > 170 then 150 else left_q end;
-      if si > array_length(spots, 1) then raise exception 'out of sheet spots'; end if;
-      insert into h_place values (p.sku, spots[si], part, turn);
+      insert into h_place values (p.sku, spots[1 + (si - 1) % array_length(spots, 1)], part, turn) on conflict (sku, place) do update set qty = h_place.qty + excluded.qty;
       si := si + 1; left_q := left_q - part; turn := turn + 1;
     end loop;
   end loop;
@@ -73,15 +79,14 @@ begin
   si := 1; lanes := 0;
   for p in select * from h_p where (sku ~ '^(ACC|BLT|TNT|BRK|CAP|SCR|GSK|CUT|OIL|BLD|WLD|FLM)') and not sku = any(fixed) order by sku loop
     if lanes = 3 then si := si + 1; lanes := 0; end if;
-    if si > array_length(spots, 1) then raise exception 'out of small spots'; end if;
-    insert into h_place values (p.sku, spots[si], p.qty, 1);
+    insert into h_place values (p.sku, spots[1 + (si - 1) % array_length(spots, 1)], p.qty, 1) on conflict (sku, place) do update set qty = h_place.qty + excluded.qty;
     lanes := lanes + 1;
   end loop;
 end $$;
 
 create temp table h_wait on commit drop as
 select m.id, p.sku, m.qty from movements m join products p on p.id = m.product_id
-where m.type = 'in' and m.created_at >= '2026-11-02 00:00+02' and p.sku ~ '^(TUB|WIN|ACP|SHT)' order by m.created_at desc limit 3;
+where m.type = 'in' and m.created_at >= '2026-11-02 00:00+02' and p.sku ~ '^(TUB|WIN|ACP|SHT|DOR|CWL)' and p.qty >= m.qty order by m.created_at desc limit 3;
 update h_place h set qty = h.qty - w.qty from h_wait w where w.sku = h.sku and h.turn = (select max(x.turn) from h_place x where x.sku = h.sku) and h.qty > w.qty;
 
 insert into shelf_stock (product_id, place, qty, placed_at)
@@ -97,16 +102,12 @@ from products p
 join lateral (select place from h_place h where h.sku = p.sku order by turn limit 1) s1 on true
 left join lateral (select place from h_place h where h.sku = p.sku and h.turn = 2 limit 1) s2 on true
 where m.type = 'in' and p.id = m.product_id and m.id::text like 'de100000-%' and m.id not in (select id from h_wait);
-
-update orders o set promised_on = case
-    when o.status = 'open' then (timestamptz '2026-11-03' + make_interval(days => case when o.number % 11 = 3 then -2 when o.number % 7 = 1 then 1 + o.number % 3 else 2 + abs(hashtext(o.id::text)) % 15 end))::date
-    when o.status = 'delivered' then ((o.closed_at at time zone 'Asia/Jerusalem')::date - case when abs(hashtext(o.id::text)) % 100 < 9 then 1 + abs(hashtext(o.id::text)) % 4 else 0 end)
-    else ((o.created_at at time zone 'Asia/Jerusalem')::date + 5) end
-where o.id::text like 'de200000-%';
+-- A shelf row's date is the last time goods landed on it.
+update shelf_stock s set placed_at = x.at from (select product_id, place, max(created_at) at from movements where type = 'in' and place is not null group by 1, 2) x where x.product_id = s.product_id and x.place = s.place;
+update shelf_stock s set placed_at = x.at + interval '1 hour' from (select product_id, max(created_at) at from movements where type = 'in' group by 1) x where x.product_id = s.product_id and s.placed_at < timestamptz '2025-11-01';
 
 select json_build_object('rows', (select count(*) from shelf_stock), 'racks', (select count(distinct split_part(place, '/', 1)) from h_place),
  'over', (select count(*) from (select s.product_id, sum(s.qty) q, p.qty t from shelf_stock s join products p on p.id = s.product_id group by 1, 3) x where q > t),
  'under', (select json_agg(json_build_object('sku', sku, 'gap', gap)) from (select p.sku, p.qty - coalesce(sum(s.qty), 0) gap from products p left join shelf_stock s on s.product_id = p.id group by p.id having p.qty <> coalesce(sum(s.qty), 0)) x),
- 'peak', (select json_agg(x) from (select place, count(*) n, sum(qty) q from h_place group by 1 order by 3 desc limit 4) x),
- 'promised', (select json_agg(x) from (select number, promised_on from orders where status = 'open' order by promised_on limit 5) x));
+ 'peak', (select json_agg(x) from (select place, count(*) n, sum(qty) q from h_place group by 1 order by 3 desc limit 4) x), 'stock', (select round(sum(qty * price)) from products));
 commit;

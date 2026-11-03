@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Fields, Input, Notice, Select } from "@/components/ui";
 import { removeWithoutReceipt, useSuperAdminPhone } from "@/lib/exit-pass";
 import { useData } from "@/lib/store";
-import { fmtQty } from "@/lib/format";
+import { fmtQty, fmtUnit } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { CodeDialog } from "./CodeDialog";
 import { FormPanel } from "./FormPanel";
@@ -32,7 +32,7 @@ export function AdjustForm({ ctx }: { ctx: ActionContext }) {
   const lowers = delta < 0;
 
   const done = () => {
-    if (selected) notify({ tone: "success", title: `הספירה של ${selected.name} עודכנה ל-${fmtQty(qty)} ${selected.unit}` });
+    if (selected) notify({ tone: "success", title: `הספירה של ${selected.name} עודכנה ל-${fmtQty(qty)} ${fmtUnit(qty, selected.unit)}` });
     close();
   };
 
@@ -78,7 +78,7 @@ export function AdjustForm({ ctx }: { ctx: ActionContext }) {
               columns={3}
               items={[
                 { label: "מק\"ט", value: selected.sku, num: true },
-                { label: "במלאי כעת", value: `${fmtQty(selected.qty)} ${selected.unit}`, num: true },
+                { label: "במלאי כעת", value: `${fmtQty(selected.qty)} ${fmtUnit(selected.qty, selected.unit)}`, num: true },
                 { label: "מיקום", value: selected.location ?? undefined },
               ]}
             />

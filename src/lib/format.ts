@@ -17,10 +17,29 @@ export function fmtPrice(n: number | null | undefined): string {
   return `₪${priceFmt.format(n)}`;
 }
 
+/** "₪8.02M" / "₪412K" / "₪9,840": a sum read at a glance. The exact figure belongs in the row's details. */
+export function fmtCompact(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  const size = Math.abs(n);
+  if (size >= 1_000_000) return `₪${(n / 1_000_000).toFixed(2)}M`;
+  if (size >= 10_000) return `₪${Math.round(n / 1_000)}K`;
+  return `₪${priceFmt.format(Math.round(n))}`;
+}
+
+/** A unit after its quantity. Of the units in use only אריזה has a plural of its own; "4 מטר" is how the trade says it. */
+export function fmtUnit(qty: number, unit: string | undefined): string | undefined {
+  return unit === "אריזה" && Math.abs(qty) !== 1 ? "אריזות" : unit;
+}
+
 export function fmtSigned(n: number, type: "in" | "out" | "fault" | "adjust"): string {
   if (type === "in") return `+${fmtQty(n)}`;
   if (type === "out") return `−${fmtQty(n)}`;
   return fmtQty(n);
+}
+
+/** The order behind a stock record, "הזמנה 1001". A supplier's document number stays in the data and off the screens. */
+export function orderRef(reference: string | null | undefined): string | null {
+  return reference?.startsWith("הזמנה ") ? reference : null;
 }
 
 /** Keeps "1250×2500" in its written order inside a Hebrew line, where the bidi rules would flip it. */
@@ -149,6 +168,19 @@ export function fmtAge(iso: string, now: number = Date.now()): string {
   if (days < 60) return "לפני חודש";
   if (days < 90) return "לפני חודשיים";
   return `לפני ${Math.floor(days / 30)} חודשים`;
+}
+
+/** How long something stayed open, rounded once for every screen that says it. Null inside one minute: nothing worth saying. */
+export function fmtElapsed(fromIso: string, toIso: string): { n: number; unit: string } | null {
+  const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  const min = Math.round(ms / 60000);
+  if (min < 1) return null;
+  if (min < 60) return { n: min, unit: min === 1 ? "דקה" : "דקות" };
+  const h = Math.round(min / 60);
+  if (h < 24) return { n: h, unit: h === 1 ? "שעה" : "שעות" };
+  const d = Math.round(h / 24);
+  return { n: d, unit: d === 1 ? "יום" : "ימים" };
 }
 
 /** Time only when today, else short date + time. For table "when" columns. */

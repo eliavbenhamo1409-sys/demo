@@ -65,7 +65,7 @@ export function SupplierItemForm({ ctx }: { ctx: ActionContext }) {
   return (
     <FormPanel
       title="שם של ספק"
-      subtitle="איך הספק קורא למוצר שלך"
+      subtitle="השם של המוצר אצל הספק"
       onClose={close}
       onSubmit={submit}
       submitLabel="שמירה"

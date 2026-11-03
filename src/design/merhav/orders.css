@@ -19,9 +19,8 @@
 .mh-ord .sa-toolbar { min-height: 46px; column-gap: 20px; }
 .mh-ord .sa-tabs { gap: clamp(14px, 2.4cqi, 28px); }
 .mh-ord .sa-tab { height: 46px; align-items: baseline; gap: 7px; padding-top: 6px; font-size: var(--t-14); }
-.mh-ord-tab-n { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; }
-.mh-ord-tab-n:not([class*="mh-tone"]) { color: var(--text-primary); }
-.mh-ord-tab-n.mh-tone-short { font-weight: 400; }
+.mh-ord-tab-n { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; color: var(--text-primary); }
+.mh-ord-tab-n.mh-tone-short { color: var(--short); font-weight: 400; }
 .mh-ord .sa-toolbar-tools .sa-select { flex: 0 1 clamp(108px, 12cqi, 164px); min-width: 96px; }
 
 /* ── The horizon. It scrolls away with the list and leaves its ruled scale behind, with the carriage on it ── */
@@ -174,8 +173,11 @@ span.mh-hz-day .mh-hz-word, span.mh-hz-day .mh-hz-date { color: var(--text-quiet
 .mh-ord-daysum { grid-column: 3 / -1; font-size: var(--t-13); color: var(--text-tertiary); white-space: nowrap; }
 .mh-ord-daysum .ltr { font-size: var(--t-15); font-weight: 500; color: var(--text-primary); }
 
-.mh-ord-row { position: relative; display: grid; grid-template-columns: var(--cols); gap: 16px; width: 100%; }
+/* The keyboard stops a row under the scale that sticks: its dates and the heads under them. */
+.mh-ord-row { position: relative; display: grid; grid-template-columns: var(--cols); gap: 16px; width: 100%; scroll-margin-top: calc(var(--hz-label) + 40px); }
 .mh-ord.is-closed .mh-rows > li { content-visibility: auto; contain-intrinsic-size: auto 60px; }
+/* Safari stops scrolling to a focused row among rows it hasn't drawn, so a keyboard walking the list gets them all drawn. */
+.mh-ord.is-closed:has(.mh-ord-row:focus-visible) .mh-rows > li { content-visibility: visible; }
 .mh-ord-row:hover { padding-inline-start: 0; }
 .mh-ord-row::before {
   content: "";
@@ -208,14 +210,17 @@ span.mh-hz-day .mh-hz-word, span.mh-hz-day .mh-hz-date { color: var(--text-quiet
 .mh-ord-more { flex: none; font-size: var(--t-13); color: var(--text-tertiary); }
 .mh-ord-worth { font-size: calc(var(--t-17) + 1px); line-height: var(--l-24); font-weight: 300; letter-spacing: -0.01em; text-align: right; white-space: nowrap; }
 .mh-ord-cover { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
-.mh-ord-word { font-size: var(--t-17); line-height: var(--l-23); font-weight: 500; }
+/* The usual word stays calm, so the one that isn't can be found down the column. */
+.mh-ord-word { font-size: var(--t-15); line-height: var(--l-22); font-weight: 400; }
 .mh-ord-word.mh-tone-short { font-weight: 600; }
 .mh-ord-word.is-delivered { color: var(--success-text); }
 .mh-ord-word.is-cancelled { color: var(--text-tertiary); }
 .mh-ord-promised { font-size: var(--t-14); }
 
-/* The racks an order draws on, named where they stand. */
+/* The racks an order draws on, named where they stand. Beside the dock racks stand close, so a tag sits low on its own: taller stems only collide. */
 .mh-ord-tag { pointer-events: none; cursor: default; animation: mh-fade var(--dur-2) var(--ease) both; }
+.mh-ord-tag .mh-tag-body { bottom: 8px; gap: 5px; padding: 0 5px 1px; }
+.mh-ord-tag::after { height: 8px; }
 
 .mh-ord-showing { margin: 0; padding: 12px 0 0; font-size: var(--t-13); color: var(--text-tertiary); }
 .mh-ord .sa-empty { padding-block: 56px; }

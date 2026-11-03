@@ -9,7 +9,7 @@ const round = (n: number) => Math.round(n * 10) / 10;
 /** How far a wire runs out of the product's port before it may turn. */
 const BEND = 28;
 /** What keeps a turn clear of the supplier's port. */
-const CLEAR = 20;
+const CLEAR = 36;
 /** The gap a waiting wire stops short of: not seated yet. */
 const GAP = 22;
 
@@ -25,20 +25,26 @@ export interface WireShape {
   loose: number | null;
 }
 
-/** One product to its names: a yard ladder, so no two wires of a product ever cross and each one can be followed by eye. */
+/**
+ * One product to its names: a yard ladder, so no two wires of a product ever cross and each one can be followed by eye.
+ * When the diagonal runs out of channel it carries on as one straight spine, so a product with many names stays as
+ * exact as a product with two.
+ */
 export function ladder(width: number, top: number, ports: readonly Port[]): WireShape[] {
   const room = Math.max(width - BEND - CLEAR, 0);
+  const turn = width - BEND;
   return ports.map(({ y, seated }) => {
     const drop = y - top;
     const run = Math.min(drop, room);
-    const foot = round(width - BEND - run);
+    const foot = round(turn - run);
     if (!seated) {
       // Short of the turn, so it can never read as joined to a sibling's wire on the same line.
       const end = Math.max(round(foot - GAP), 0);
       return { y, d: `M0 ${y}H${end}`, loose: end };
     }
-    const d = drop === 0 ? `M0 ${y}H${width}` : `M0 ${y}H${foot}L${width - BEND} ${top}H${width}`;
-    return { y, d, loose: null };
+    if (drop === 0) return { y, d: `M0 ${y}H${width}`, loose: null };
+    const spine = drop > room ? `V${round(top + room)}` : "";
+    return { y, d: `M0 ${y}H${foot}${spine}L${turn} ${top}H${width}`, loose: null };
   });
 }
 
@@ -68,28 +74,41 @@ export interface Panel {
   categories: Jack[];
   suppliers: Jack[];
   trunks: Trunk[];
+  /** The height of one row. Many groups stand closer, so the panel never pushes the list off the screen. */
+  line: number;
   height: number;
 }
 
-const LINE = 32;
+/** One row of the panel, and the least a row may shrink to when there are many groups. */
+const LINE = 34;
+const LINE_MIN = 24;
+const LINE_ROOM = 12;
 const EDGE = 26;
 const PASSES = 8;
 
-const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / Math.max(values.length, 1);
-
 /** Each side settles opposite the groups it talks to, so lines run side by side instead of across. */
-function settle(categories: readonly string[], suppliers: readonly string[], links: readonly Link[]): { categories: string[]; suppliers: string[] } {
+export function settle(categories: readonly string[], suppliers: readonly string[], links: readonly Link[]): { categories: string[]; suppliers: string[] } {
   let cats = [...categories];
   let sups = [...suppliers];
-  const pull = (own: string, side: "category" | "supplierId", other: "category" | "supplierId", at: ReadonlyMap<string, number>) =>
-    mean(links.filter((l) => l[side] === own).flatMap((l) => Array<number>(l.names).fill(at.get(l[other]) ?? 0)));
+  // The weighted middle of a group's links on the far side.
+  const pull = (keyOf: (l: Link) => string, farOf: (l: Link) => string, at: ReadonlyMap<string, number>) => {
+    const sums = new Map<string, { weight: number; names: number }>();
+    for (const l of links) {
+      const sum = sums.get(keyOf(l)) ?? { weight: 0, names: 0 };
+      sum.weight += l.names * (at.get(farOf(l)) ?? 0);
+      sum.names += l.names;
+      sums.set(keyOf(l), sum);
+    }
+    return (key: string) => {
+      const sum = sums.get(key);
+      return sum ? sum.weight / sum.names : 0;
+    };
+  };
   for (let pass = 0; pass < PASSES; pass += 1) {
-    const catAt = new Map(cats.map((c, i) => [c, i]));
-    const supScore = new Map(sups.map((s) => [s, pull(s, "supplierId", "category", catAt)]));
-    sups = [...sups].sort((a, b) => (supScore.get(a) ?? 0) - (supScore.get(b) ?? 0));
-    const supAt = new Map(sups.map((s, i) => [s, i]));
-    const catScore = new Map(cats.map((c) => [c, pull(c, "category", "supplierId", supAt)]));
-    cats = [...cats].sort((a, b) => (catScore.get(a) ?? 0) - (catScore.get(b) ?? 0));
+    const supScore = pull((l) => l.supplierId, (l) => l.category, new Map(cats.map((c, i) => [c, i])));
+    sups = [...sups].sort((a, b) => supScore(a) - supScore(b));
+    const catScore = pull((l) => l.category, (l) => l.supplierId, new Map(sups.map((s, i) => [s, i])));
+    cats = [...cats].sort((a, b) => catScore(a) - catScore(b));
   }
   return { categories: cats, suppliers: sups };
 }
@@ -99,9 +118,9 @@ function settle(categories: readonly string[], suppliers: readonly string[], lin
  * shorter side keeps its order and takes the rows that cost its lines the least.
  */
 function seat(keys: readonly string[], rows: number, cost: (key: string, row: number) => number): number[] {
-  const first = (keys.length > 0 ? [0] : []).flatMap(() => Array.from({ length: rows }, (_, row) => cost(keys[0], row)));
-  const table: number[][] = [first];
-  const from: number[][] = [first.map(() => -1)];
+  if (keys.length === 0) return [];
+  const table = [Array.from({ length: rows }, (_, row) => cost(keys[0], row))];
+  const from = [Array<number>(rows).fill(-1)];
   for (let i = 1; i < keys.length; i += 1) {
     const line = Array<number>(rows).fill(Number.POSITIVE_INFINITY);
     const back = Array<number>(rows).fill(-1);
@@ -119,7 +138,7 @@ function seat(keys: readonly string[], rows: number, cost: (key: string, row: nu
     from.push(back);
   }
   const seats = Array<number>(keys.length).fill(0);
-  let row = (table[keys.length - 1] ?? []).reduce((low, value, i, all) => (value < all[low] ? i : low), 0);
+  let row = table[keys.length - 1].reduce((low, value, i, all) => (value < all[low] ? i : low), 0);
   for (let i = keys.length - 1; i >= 0; i -= 1) {
     seats[i] = row;
     row = from[i][row];
@@ -127,17 +146,17 @@ function seat(keys: readonly string[], rows: number, cost: (key: string, row: nu
   return seats;
 }
 
-export function panel(categories: readonly string[], suppliers: readonly string[], links: readonly Link[], width: number): Panel {
-  const order = settle(categories, suppliers, links);
-  const rows = Math.max(order.categories.length, order.suppliers.length, 1);
-  const longCategories = order.categories.length >= order.suppliers.length;
-  const long = longCategories ? order.categories : order.suppliers;
-  const short = longCategories ? order.suppliers : order.categories;
+export function panel(categories: readonly string[], suppliers: readonly string[], links: readonly Link[], width: number, least = LINE_MIN): Panel {
+  const rows = Math.max(categories.length, suppliers.length, 1);
+  const line = Math.max(LINE - Math.max(rows - LINE_ROOM, 0), least);
+  const longCategories = categories.length >= suppliers.length;
+  const long = longCategories ? categories : suppliers;
+  const short = longCategories ? suppliers : categories;
   const longAt = new Map(long.map((key, i) => [key, i]));
   const across = (key: string, row: number) =>
     links.reduce((sum, l) => sum + ((longCategories ? l.supplierId : l.category) === key ? l.names * Math.abs(row - (longAt.get(longCategories ? l.category : l.supplierId) ?? 0)) : 0), 0);
   const shortSeats = seat(short, rows, across);
-  const yOf = (row: number) => LINE * row + LINE / 2 + 0.5;
+  const yOf = (row: number) => line * row + Math.floor(line / 2) + 0.5;
   const longJacks = long.map((key, i) => ({ key, y: yOf(i) }));
   const shortJacks = short.map((key, i) => ({ key, y: yOf(shortSeats[i]) }));
   const catJacks = longCategories ? longJacks : shortJacks;
@@ -156,5 +175,5 @@ export function panel(categories: readonly string[], suppliers: readonly string[
     return { ...link, key: linkKey(link.category, link.supplierId), d, weight: link.names / busiest };
   });
 
-  return { categories: catJacks, suppliers: supJacks, trunks, height: rows * LINE };
+  return { categories: catJacks, suppliers: supJacks, trunks, line, height: rows * line };
 }

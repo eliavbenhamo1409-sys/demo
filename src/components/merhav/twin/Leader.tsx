@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type ReactElement } from "react";
 import { createPortal } from "react-dom";
-import { useTwin } from "./Twin";
+import { useAimed, useTwin } from "./Twin";
 
 const BEND = 28;
 
@@ -12,7 +12,8 @@ const BEND = 28;
  * that point's transform, which is the one signal that the picture moved.
  */
 export function Leader(): ReactElement | null {
-  const { world, aimEl, aimFrom, aimed } = useTwin();
+  const { world, aimEl, aimFrom } = useTwin();
+  const aimed = useAimed();
   const path = useRef<SVGPathElement>(null);
   const dot = useRef<SVGCircleElement>(null);
 

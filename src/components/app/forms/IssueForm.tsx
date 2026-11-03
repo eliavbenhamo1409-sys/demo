@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Input, Notice, Select } from "@/components/ui";
 import { removeWithoutReceipt } from "@/lib/exit-pass";
 import { available, useData } from "@/lib/store";
-import { fmtQty } from "@/lib/format";
+import { fmtQty, fmtUnit } from "@/lib/format";
 import { useUi, type ActionContext } from "../ui-state";
 import { CodeDialog } from "./CodeDialog";
 import { FormPanel } from "./FormPanel";
@@ -25,7 +25,6 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
   const [qty, setQty] = useState(1);
   const [customer, setCustomer] = useState("");
   const [workerId, setWorkerId] = useState(ctx.workerId ?? "");
-  const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [proving, setProving] = useState(false);
 
@@ -48,7 +47,7 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
   };
 
   const done = () => {
-    if (selected) notify({ tone: "success", title: `הוצאו ${fmtQty(qty)} ${selected.unit} של ${selected.name}` });
+    if (selected) notify({ tone: "success", title: `הוצאו ${fmtQty(qty)} ${fmtUnit(qty, selected.unit)} של ${selected.name}` });
     close();
   };
 
@@ -66,13 +65,11 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
     }
     void form.run(async () => {
       const name = customer.trim();
-      const number = reference.trim() || null;
-      const documentId = await proof.save({ customer: name, reference: number, workerId: workerId || null });
+      const documentId = await proof.save({ customer: name, workerId: workerId || null });
       await issue({
         productId,
         qty,
         workerId: workerId || null,
-        reference: number,
         note: [`ללקוח: ${name}`, note.trim()].filter(Boolean).join(" · "),
         documentId,
       });
@@ -97,7 +94,7 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
             <span className="sa-error" role="alert">{form.errors.product}</span>
           ) : selected ? (
             <span className="sa-hint">
-              במלאי <span className="sa-mono ltr">{fmtQty(selected.qty)}</span> {selected.unit}
+              במלאי <span className="sa-mono ltr">{fmtQty(selected.qty)}</span> {fmtUnit(selected.qty, selected.unit)}
               {selected.reserved > 0 ? <> · משוריין <span className="sa-mono ltr">{fmtQty(selected.reserved)}</span></> : null}
             </span>
           ) : null}
@@ -105,12 +102,12 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
         <QtyField label="כמות" value={qty} onChange={(n) => { setQty(n); form.clearField("qty"); }} unit={unit || undefined} min={1} error={form.errors.qty} required />
         {overStock && selected ? (
           <Notice tone="warning" title="הכמות גדולה מהמלאי">
-            במלאי <span className="sa-mono ltr">{fmtQty(selected.qty)}</span> {selected.unit} בלבד. ההוצאה תאפס את המלאי.
+            במלאי <span className="sa-mono ltr">{fmtQty(selected.qty)}</span> {fmtUnit(selected.qty, selected.unit)} בלבד. ההוצאה תאפס את המלאי.
           </Notice>
         ) : null}
         {intoHeld && selected ? (
           <Notice tone="warning" title="חלק מהכמות משוריין">
-            משוריין להזמנות פתוחות: <span className="sa-mono ltr">{fmtQty(selected.reserved)}</span> {selected.unit}
+            משוריין להזמנות פתוחות: <span className="sa-mono ltr">{fmtQty(selected.reserved)}</span> {fmtUnit(selected.reserved, selected.unit)}
           </Notice>
         ) : null}
         <hr className="sa-form-break" />
@@ -118,7 +115,6 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
         <ReceiptField proof={proof} disabled={form.busy} />
         <hr className="sa-form-break" />
         <Select label="עובד" options={workOpts} value={workerId} onChange={onWorker} allLabel="ללא" block />
-        <Input label="מספר תעודה" optional mono placeholder="תעודת משלוח / הזמנה" value={reference} onChange={(e) => setReference(e.target.value)} />
         <Input label="הערה" optional multiline value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={submitOnEnter} />
       </FormPanel>
 
@@ -134,7 +130,6 @@ export function IssueForm({ ctx }: { ctx: ActionContext }) {
               why: [proof.why.trim(), note.trim()].filter(Boolean).join(" · "),
               workerId: workerId || null,
               customer: customer.trim(),
-              reference: reference.trim() || null,
             });
             await reload();
           }}

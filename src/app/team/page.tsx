@@ -10,7 +10,7 @@ import { dayKey, normalizeName, useData, type Agent, type Worker } from "@/lib/s
 import { useUi } from "@/components/app/ui-state";
 import { SparkBars } from "@/components/app/Viz";
 import { Button, Count, EmptyState, PageHead, Showing, Table, Tabs, Toolbar, type TableColumn } from "@/components/ui";
-import { fmtQty, fmtRelative } from "@/lib/format";
+import { fmtAge, fmtQty } from "@/lib/format";
 
 type Tab = "active" | "inactive" | "agents";
 
@@ -103,7 +103,7 @@ export default function TeamPage() {
         className: TEAM_NAME_CELL,
         render: (w) => (
           <>
-            <span className={w.active ? "sa-cell-primary sa-row-lead sa-truncate block" : "sa-cell-primary sa-row-lead sa-truncate block sa-team-inactive"} title={w.name}>{w.name}</span>
+            <span className={w.active ? "sa-cell-primary sa-truncate block" : "sa-cell-primary sa-truncate block sa-team-inactive"} title={w.name}>{w.name}</span>
             <span className="sa-cell-sub sa-truncate">{w.role}</span>
           </>
         ),
@@ -139,21 +139,11 @@ export default function TeamPage() {
         className: "whitespace-nowrap",
         render: (w) => {
           const last = activity.get(w.id)?.last;
-          return last ? fmtRelative(last) : <span className="text-ink-3">—</span>;
+          return last ? fmtAge(last) : <span className="text-ink-3">—</span>;
         },
       },
-      {
-        key: "actions",
-        title: <span className="sa-sr">פעולות</span>,
-        width: "96px",
-        render: (w) => (
-          <span className="sa-row-actions" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm" icon="edit" onClick={() => edit(w)}>עריכה</Button>
-          </span>
-        ),
-      },
     ],
-    [activity, edit],
+    [activity],
   );
 
   const tabs = [
@@ -168,7 +158,9 @@ export default function TeamPage() {
         <Button variant="secondary" onClick={() => ui.openAction("new-worker")}>עובד חדש</Button>
       </EmptyState>
     ) : q ? (
-      <EmptyState title="לא נמצאו עובדים" hint={<>עבור „{query.trim()}”</>} />
+      <EmptyState title="לא נמצאו עובדים" hint={<>עבור „{query.trim()}”</>}>
+        <Button variant="secondary" onClick={() => setQuery("")}>ניקוי סינון</Button>
+      </EmptyState>
     ) : tab === "inactive" ? (
       <EmptyState title="כל העובדים פעילים" hint="עובד שהושבת יופיע כאן" />
     ) : (
@@ -201,7 +193,7 @@ export default function TeamPage() {
       />
 
       {onAgents ? (
-        <AgentsTable query={query} />
+        <AgentsTable query={query} onClear={() => setQuery("")} />
       ) : (
         <Table<Worker>
           caption="רשימת העובדים"
@@ -223,7 +215,7 @@ export default function TeamPage() {
 }
 
 /** Every agent, active first, with what they ordered. Inactive agents stay listed: their orders are still here. */
-function AgentsTable({ query }: { query: string }) {
+function AgentsTable({ query, onClear }: { query: string; onClear: () => void }) {
   const { state } = useData();
   const ui = useUi();
 
@@ -263,7 +255,7 @@ function AgentsTable({ query }: { query: string }) {
         className: TEAM_NAME_CELL,
         render: (a) => (
           <>
-            <span className={a.active ? "sa-cell-primary sa-row-lead sa-truncate block" : "sa-cell-primary sa-row-lead sa-truncate block sa-team-inactive"} title={a.name}>{a.name}</span>
+            <span className={a.active ? "sa-cell-primary sa-truncate block" : "sa-cell-primary sa-truncate block sa-team-inactive"} title={a.name}>{a.name}</span>
             <span className="sa-cell-sub sa-truncate">
               {a.active ? null : a.phone ? "לא פעיל · " : "לא פעיל"}
               {a.phone ? <bdi>{a.phone}</bdi> : null}
@@ -280,21 +272,11 @@ function AgentsTable({ query }: { query: string }) {
         className: "whitespace-nowrap",
         render: (a) => {
           const last = orders.get(a.id)?.last;
-          return last ? fmtRelative(last) : <span className="text-ink-3">—</span>;
+          return last ? fmtAge(last) : <span className="text-ink-3">—</span>;
         },
       },
-      {
-        key: "actions",
-        title: <span className="sa-sr">פעולות</span>,
-        width: "96px",
-        render: (a) => (
-          <span className="sa-row-actions" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm" icon="edit" onClick={() => edit(a)}>עריכה</Button>
-          </span>
-        ),
-      },
     ];
-  }, [orders, edit]);
+  }, [orders]);
 
   const empty =
     state.agents.length === 0 ? (
@@ -302,7 +284,9 @@ function AgentsTable({ query }: { query: string }) {
         <Button variant="secondary" onClick={() => ui.openAction("new-agent")}>סוכן חדש</Button>
       </EmptyState>
     ) : (
-      <EmptyState title="לא נמצאו סוכנים" hint={<>עבור „{query.trim()}”</>} />
+      <EmptyState title="לא נמצאו סוכנים" hint={<>עבור „{query.trim()}”</>}>
+        <Button variant="secondary" onClick={onClear}>ניקוי סינון</Button>
+      </EmptyState>
     );
 
   return (

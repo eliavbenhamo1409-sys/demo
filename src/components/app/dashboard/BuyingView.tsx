@@ -6,7 +6,7 @@ import { dayKey, useData, type Movement } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { EmptyState, Table, type TableColumn } from "@/components/ui";
-import { fmtDayWord, fmtName, fmtPrice, fmtQty } from "@/lib/format";
+import { fmtDayWord, fmtName, fmtPrice, fmtQty, fmtUnit } from "@/lib/format";
 import { change, movedShares, rolling, topAndRest, worthOf } from "@/lib/control-room";
 import { runway, type Runway } from "@/lib/snapshot";
 import { ChartCard, Columns, hue, Ring, type ColumnSeries, type Slice } from "./Charts";
@@ -33,12 +33,12 @@ const shareOf = (part: number[], whole: number[]) => part.map((v, i) => (whole[i
 
 type Delivery = { id: string; supplierId: string | null; at: string; lines: number; worth: number };
 
-/** The goods in as the documents they came on, newest first as the rows are. A document with no number is told apart by its day. */
+/** The goods in as the documents they came on, newest first as the rows are. A delivery with no document is told apart by its day. */
 function deliveriesIn(rows: Movement[], worth: (m: Movement) => number): Delivery[] {
   const found = new Map<string, Delivery>();
   for (const m of rows) {
     if (m.type !== "in") continue;
-    const id = `${m.supplier_id}|${m.reference ?? dayKey(m.created_at)}`;
+    const id = `${m.supplier_id}|${m.document_id ?? m.reference ?? dayKey(m.created_at)}`;
     const seen = found.get(id);
     if (seen) {
       seen.lines += 1;
@@ -87,7 +87,7 @@ function ToOrder({ list, rows }: { list: Runway[]; rows: Movement[] }): ReactEle
                   <span className="dash-task-title">{fmtName(p.name)}</span>
                   <span className="dash-task-meta">{supplier(p.primary_supplier_id ?? lastFrom.get(p.id))?.name ?? NO_SUPPLIER}</span>
                 </span>
-                <span className="dash-buying-qty">{fmtQty(Math.ceil(2 * p.min_qty - free))} {p.unit}</span>
+                <span className="dash-buying-qty">{fmtQty(Math.ceil(2 * p.min_qty - free))} {fmtUnit(Math.ceil(2 * p.min_qty - free), p.unit)}</span>
               </button>
             </li>
           ))}

@@ -5,14 +5,6 @@
 .mh-app[data-route="map"] { --mh-clear: var(--mh-side); }
 .mh-app[data-route="map"] .mh-stage { overflow-x: clip; }
 
-/* The plan on its shorter canvas, and what stands on it in the same box. 0.84 keeps the camera inside its reach. */
-.mh-app:has(.mh-wh[data-plan]) .mh-world {
-  --mh-plan: min(100dvh, calc((100vw - var(--mh-rail) - var(--mh-clear)) * 0.84));
-  .mh-twin, .mh-wh-tags { position: absolute; inset: calc((100dvh - var(--mh-plan)) / 2) 0 auto; height: var(--mh-plan); }
-  .mh-wh-tags { display: block; pointer-events: none; }
-}
-.mh-app:has(.mh-wh[data-plan]) .mh-world:fullscreen { --mh-plan: 100dvh; }
-
 /* A walk is stepping into the model: the door slides away with all it holds, and the rail stays. */
 .mh-app:has(.mh-wh[data-walk]) { --mh-clear: 0px; }
 .mh-app:has(.mh-wh[data-walk]) .mh-door { --door-x: 100%; }
@@ -53,6 +45,9 @@
 }
 .mh-wh-figure .mh-label { letter-spacing: 0; font-weight: 400; white-space: nowrap; }
 .mh-wh-figure:hover .mh-label { color: var(--text-primary); }
+/* Stands where the three figures stood, at their height, so nothing under it moves. */
+.mh-wh-when { display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 2px; font-size: clamp(36px, 3.1vw, 50px); font-weight: 200; letter-spacing: -0.03em; }
+.mh-wh-when .mh-figure-sep { white-space: pre; }
 
 [data-theme^="merhav"] {
   .mh-wh > .sa-tabs { flex: none; margin-top: 16px; gap: clamp(16px, 1.5vw, 24px); }
@@ -65,6 +60,8 @@
     margin-inline: calc(var(--mh-gutter) * -1);
     padding: 0 var(--mh-gutter) 40px;
     scrollbar-width: thin;
+    /* A row the keyboard reaches stops under the head that sticks here, never behind it. */
+    scroll-padding-top: 44px;
   }
 
   /* ── The ledger ── */
@@ -82,6 +79,7 @@
     font-weight: 400;
     color: var(--text-tertiary);
   }
+  .m3d-ledger:has(> .is-past) > .m3d-group { display: none; }
   .m3d-group { padding: 20px 0 6px; font-size: var(--t-15); line-height: var(--l-21); font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
   .m3d-count { margin-inline-start: 8px; font-size: var(--t-14); font-weight: 400; color: var(--text-tertiary); }
 
@@ -95,7 +93,7 @@
   .m3d-line-product { gap: 10px; }
   .m3d-line-name { font-size: var(--t-14); line-height: var(--l-20); }
   .m3d-line-unit { font-size: var(--t-13); line-height: var(--l-18); }
-  .m3d-line-place { font-size: var(--t-14); }
+  .m3d-line-place { font-size: var(--t-14); white-space: nowrap; }
   .m3d-line-place.is-none { color: var(--text-quiet); }
   .m3d-line-qty { font-size: 18px; line-height: 24px; font-weight: 400; letter-spacing: -0.01em; }
   .m3d-line-percent, .m3d-move-qty { font-size: 18px; line-height: 24px; font-weight: 400; letter-spacing: -0.01em; }
@@ -119,12 +117,16 @@
   :is(.m3d-line, .m3d-row, .m3d-shelf):is(:hover, .is-lit)::before { transform: scaleY(1); }
   .m3d-line:disabled::before { display: none; }
 
+  /* Every column stands on its start, as its head does, so ones stand under ones. */
+  .m3d-ledger .m3d-num { text-align: start; }
+  .m3d-line-share { align-items: flex-start; }
+
   /* A scale, not a battery: how far along the minimum, with the minimum cut across it. */
   .m3d-line-share .sa-meter { direction: ltr; width: 100%; height: 4px; border-radius: 0; background: var(--bg-muted); overflow: visible; }
-  .sa-meter > i { border-radius: 0; background: var(--text-primary); }
-  .sa-meter.is-low > i { background: var(--warning); }
-  .sa-meter.is-out > i { background: var(--danger); }
-  .sa-meter::after { inset-block: -3px; width: 1px; margin-inline-start: 0; background: var(--text-primary); }
+  .m3d-line-share .sa-meter > i { border-radius: 0; background: var(--text-primary); }
+  .m3d-line-share .sa-meter.is-low > i { background: var(--warning); }
+  .m3d-line-share .sa-meter.is-out > i { background: var(--danger); }
+  .m3d-line-share .sa-meter::after { inset-block: -3px; width: 1px; margin-inline-start: 0; background: var(--text-primary); }
 
   /* ── Rows outside the ledger ── */
   .m3d-list { flex: none; }
@@ -136,7 +138,6 @@
   .m3d-move-meta { margin-block-start: 0; gap: 6px; }
   .m3d-move-meta .sa-move svg { display: none; }
   .m3d-move-meta > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sa-order-line { position: relative; }
 
   .m3d-empty { padding-block: 18px; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-tertiary); }
   .m3d-section { flex: none; gap: 0; }
@@ -193,7 +194,8 @@
   .m3d-form-sizes { gap: 10px 12px; }
 
   /* ── In the world: nothing here has a frame, and what stands on the model keeps clear of the door ── */
-  .mh-world > .m3d-labels { z-index: 1; }
+  /* The door is on its way when the page arrives, so what stands in the world comes up behind it, once. */
+  .mh-world :is(.m3d-labels, .m3d-corner, .m3d-ruler) { animation: mh-fade var(--dur-3) var(--dur-3) var(--ease) both; }
   .mh-world .m3d-fail { top: 24px; inset-inline: calc(var(--mh-clear) + 24px) auto; }
   .mh-world .m3d-corner { top: 20px; inset-inline: calc(var(--mh-clear) + 24px) 24px; align-items: flex-start; transition: inset-inline-start var(--dur-plate) var(--spring-plate); }
   .mh-world .m3d-walkhint { bottom: 72px; inset-inline: calc(var(--mh-clear) + 24px) auto; color: var(--text-secondary); }
@@ -203,7 +205,7 @@
   .m3d-views { height: var(--control-md); border-radius: var(--radius-md); background: var(--bg-raised); box-shadow: var(--shadow-md); }
   .m3d-bar .sa-search .sa-input:hover:not(:disabled) { box-shadow: var(--shadow-md); }
   .m3d-bar .sa-search .sa-input:focus { background: var(--bg-raised); box-shadow: inset 0 -2px 0 var(--accent), var(--shadow-lift); }
-  .m3d-results { border: 0; border-radius: var(--radius-lg); background: var(--bg-raised); box-shadow: var(--shadow-lift); animation: mh-settle var(--dur-press) var(--spring-press) both; }
+  .m3d-results { inset-inline-end: -72px; border: 0; border-radius: var(--radius-lg); background: var(--bg-raised); box-shadow: var(--shadow-lift); animation: mh-settle var(--dur-press) var(--spring-press) both; }
 
   /* One small plate on the model: the way out when there is one, the whole screen, and how to look. */
   .m3d-views { gap: 14px; padding-inline: 14px; }
@@ -214,7 +216,6 @@
   .m3d-views .sa-appearance-opt { height: 100%; }
 
   /* The tags: the same ones as on סקירה, standing on a stem. */
-  .m3d-labels { transition: none; }
   .m3d-label { transition: opacity var(--dur-2) var(--ease); }
   .m3d-tag {
     bottom: 24px;
@@ -243,12 +244,20 @@
   }
   .m3d-tag-code { font-weight: 600; color: var(--text-primary); }
   .m3d-tag-more { font-weight: 400; color: var(--text-secondary); }
+  .m3d-label.is-quiet .m3d-tag { padding: 3px 9px 4px; background: var(--bg-raised); box-shadow: var(--shadow-lift); font-size: var(--t-13); line-height: var(--l-18); }
   .m3d-label.is-selected .m3d-tag { box-shadow: 0 0 0 1.5px var(--accent), var(--shadow-lift); }
 
   /* A place with nothing to say keeps its name, on the model itself. */
   .m3d-label.is-quiet:not(.is-attention, .is-hover, .is-selected, .is-shelf)::after { display: none; }
   .m3d-label.is-quiet:not(.is-attention, .is-hover, .is-selected, .is-shelf) .m3d-tag { bottom: 4px; padding: 0 5px; background: color-mix(in srgb, var(--bg-surface) 74%, transparent); box-shadow: none; }
   .m3d-label.is-quiet:not(.is-attention, .is-hover, .is-selected, .is-shelf) .m3d-tag-code { font-weight: 500; color: var(--text-secondary); }
+
+  /* From afar what needs a hand stands flush on its rack like the names around it, so one tag never covers the next.
+     A stem is for what is pointed at. */
+  .m3d-label:is(.is-attention, :not(.is-quiet)) { z-index: 1; }
+  .m3d-label:is(.is-hover, .is-selected) { z-index: 2; }
+  .m3d-label:is(.is-attention, :not(.is-quiet)):not(.is-shelf, .is-hover, .is-selected)::after { display: none; }
+  .m3d-label:is(.is-attention, :not(.is-quiet)):not(.is-shelf, .is-hover, .is-selected) .m3d-tag { bottom: 4px; gap: 5px; padding: 1px 6px 2px; }
 
   /* A name lying on the floor needs no stem. */
   .m3d-label.is-flat::after { display: none; }
@@ -332,3 +341,8 @@
 
 /* Fullscreen is the world alone: nothing to keep clear of. */
 .mh-world:fullscreen { --mh-clear: 0px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-wh, [data-theme^="merhav"] .mh-world :is(.m3d-corner, .m3d-ruler), [data-theme^="merhav"] .m3d-label { transition: none; }
+  [data-theme^="merhav"] :is(.m3d-card, .m3d-results, .m3d-labels, .m3d-corner, .m3d-ruler) { animation: none; }
+}

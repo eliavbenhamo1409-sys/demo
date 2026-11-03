@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { cx, Notice, Spinner } from "@/components/ui";
-import { fmtName, fmtQty } from "@/lib/format";
+import { fmtName, fmtQty, fmtUnit } from "@/lib/format";
 import { countOf, type CountInfo } from "@/lib/map3d/metrics";
 import { useData } from "@/lib/store";
 import type { MapView } from "./view";
@@ -71,7 +71,7 @@ export function CountRail({ map }: { map: MapView }) {
               <span className="m3d-line-text">
                 <span className="m3d-line-name">{fmtName(product.name)}</span>
                 {info.faultQty > 0 ? (
-                  <span className="m3d-line-unit"><span className="ltr">{fmtQty(info.faultQty)}</span> {product.unit} בתקלה מאז הספירה</span>
+                  <span className="m3d-line-unit"><span className="ltr">{fmtQty(info.faultQty)}</span> {fmtUnit(info.faultQty, product.unit)} בתקלה מאז הספירה</span>
                 ) : null}
               </span>
             </span>
@@ -83,7 +83,7 @@ export function CountRail({ map }: { map: MapView }) {
               {info.unexplained !== 0 ? (
                 <>
                   <span className="m3d-line-qty ltr">{signed(info.unexplained)}</span>
-                  <span className="m3d-line-unit">{product.unit}</span>
+                  <span className="m3d-line-unit">{fmtUnit(info.unexplained, product.unit)}</span>
                 </>
               ) : (
                 <span className="m3d-line-unit">—</span>

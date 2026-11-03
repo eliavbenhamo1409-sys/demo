@@ -72,6 +72,7 @@ function PhoneField({ countries, country, number, error, busy, inputRef, onCount
         <Select
           options={options}
           value={country.iso}
+          shown={`${LRM}+${country.dial}`}
           minWidth={0}
           disabled={busy}
           searchPlaceholder="חיפוש לפי מדינה או קידומת"
@@ -320,6 +321,7 @@ export function LoginScreen(): ReactElement {
 
   return (
     <main className="app-login">
+      <div className="app-login-art" aria-hidden="true" />
       <div className="app-login-column">
         <p className="app-login-brand">ניהול מלאי</p>
         <div ref={sheetRef} className="app-login-sheet">
@@ -331,36 +333,37 @@ export function LoginScreen(): ReactElement {
 
             <form className="app-login-form" onSubmit={submit}>
               {step === "credentials" || step === "first-time" ? (
-                <PhoneField
-                  countries={countries}
-                  country={country}
-                  number={number}
-                  error={errors.phone}
-                  busy={busy}
-                  inputRef={phoneRef}
-                  onCountry={(c) => {
-                    setCountry(c);
-                    edited("phone");
-                  }}
-                  onNumber={(n) => {
-                    setNumber(n);
-                    edited("phone");
-                  }}
-                />
-              ) : null}
-
-              {step === "credentials" ? (
-                <PasswordField
-                  inputRef={passwordRef}
-                  autoComplete="current-password"
-                  value={password}
-                  readOnly={busy}
-                  error={errors.password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    edited("password");
-                  }}
-                />
+                <div className="app-login-fields">
+                  <PhoneField
+                    countries={countries}
+                    country={country}
+                    number={number}
+                    error={errors.phone}
+                    busy={busy}
+                    inputRef={phoneRef}
+                    onCountry={(c) => {
+                      setCountry(c);
+                      edited("phone");
+                    }}
+                    onNumber={(n) => {
+                      setNumber(n);
+                      edited("phone");
+                    }}
+                  />
+                  {step === "credentials" ? (
+                    <PasswordField
+                      inputRef={passwordRef}
+                      autoComplete="current-password"
+                      value={password}
+                      readOnly={busy}
+                      error={errors.password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        edited("password");
+                      }}
+                    />
+                  ) : null}
+                </div>
               ) : null}
 
               {step === "code" ? (
@@ -380,7 +383,7 @@ export function LoginScreen(): ReactElement {
               ) : null}
 
               {step === "new-password" ? (
-                <>
+                <div className="app-login-fields">
                   {/* Tells a password manager which user this new password belongs to. */}
                   <input type="text" name="phone" autoComplete="username" value={number} readOnly hidden />
                   <PasswordField
@@ -395,7 +398,7 @@ export function LoginScreen(): ReactElement {
                       edited("password");
                     }}
                   />
-                </>
+                </div>
               ) : null}
 
               {notice ? <Notice tone="danger">{notice}</Notice> : null}

@@ -232,7 +232,7 @@ function Horizon({ slots, today, at, hot, onSlab, onDay, onOpen, onJump }: Horiz
         const name = slot.day ? fmtWeekday(slot.day) : word;
         const label = (
           <>
-            <span className="mh-hz-word">{word}</span>
+            <span className="mh-hz-word">{word}</span>{" "}
             <span className="mh-hz-date">{slotDate(slot)}</span>
           </>
         );
@@ -253,7 +253,8 @@ function Horizon({ slots, today, at, hot, onSlab, onDay, onOpen, onJump }: Horiz
                 className="mh-hz-day"
                 dir="rtl"
                 tabIndex={i === stop ? 0 : -1}
-                aria-label={`${name}, ${fmtQty(slot.rows.length)} הזמנות`}
+                // Starts with the words on the key, so a voice can press it by what it reads.
+                aria-label={[`${word} ${slotDate(slot) ?? ""}`.trim(), name !== word && name, slot.rows.length === 1 ? "הזמנה אחת" : `${fmtQty(slot.rows.length)} הזמנות`].filter(Boolean).join(", ")}
                 onPointerEnter={day}
                 onFocus={day}
                 onBlur={leave}
@@ -386,7 +387,7 @@ function RackTags({ tags }: { tags: readonly RackTag[] }): ReactElement | null {
     return () => setAnchors([]);
   }, [engine, tags, objects, setAnchors]);
 
-  if (!world || tags.length === 0) return null;
+  if (!world || !engine || tags.length === 0) return null;
   return createPortal(
     <div className="mh-tags" aria-hidden="true">
       {tags.map((tag) => (
@@ -671,7 +672,7 @@ function OrdersInner(): ReactElement {
         filters={<Select options={agentOptions} value={agentId} onChange={setAgentId} allLabel="כל הסוכנים" placeholder="סוכן" />}
         query={query}
         onQuery={setQuery}
-        placeholder="חיפוש לפי לקוח, הזמנה או טלפון"
+        placeholder="חיפוש לפי לקוח או הזמנה"
       />
 
       {rows.length > 0 ? (
@@ -691,7 +692,7 @@ function OrdersInner(): ReactElement {
 
       <RackTags tags={tags} />
 
-      <div ref={listRef} className="mh-ord-list">
+      <div ref={listRef} className="mh-ord-list" role="tabpanel" aria-label={shortLens ? "חסר" : TABS.find((t) => t.value === status)?.label}>
         {groups.map((group) => (
           <section key={group.key} data-day={group.key} className="mh-ord-day" aria-labelledby={`mh-ord-day-${group.key}`}>
             <header className="mh-ord-dayhead">

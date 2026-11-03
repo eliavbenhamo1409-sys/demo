@@ -1,4 +1,5 @@
-/* Merhav, in load order. globals.css imports this last, so it reaches its own style last. */
+/* Merhav, in load order. Shell.tsx imports this, and it stands behind Shell's own import(), so nobody else downloads it. */
+@import "./fonts.css";
 @import "./tokens.css";
 @import "./foundation.css";
 @import "./controls.css";

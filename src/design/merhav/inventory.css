@@ -37,6 +37,8 @@
   animation: mh-grow var(--dur-plate) var(--spring-plate) both;
   transition: opacity var(--dur-1) var(--ease), transform var(--dur-press) var(--spring-press);
 }
+/* In the dark the wall of stock steps back, or it outshouts everything on the plate. */
+[data-theme="merhav-dark"] .mh-sky::after { opacity: 0.6; }
 .mh-sky.is-low::after { background: var(--warning); opacity: 1; }
 .mh-sky.is-out::after { background: var(--danger); opacity: 1; min-height: 4px; }
 .mh-sky.is-short::after { background: var(--short); opacity: 1; min-height: 6px; }
@@ -62,7 +64,8 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.mh-lens-n { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; color: var(--text-primary); }
+.mh-lens-n { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; }
+:where(.mh-lens-n) { color: var(--text-primary); }
 .mh-lens-item:hover { color: var(--text-primary); }
 .mh-lens-item.is-on { color: var(--text-primary); font-weight: 500; }
 .mh-lens-item::after {
@@ -76,14 +79,20 @@
   transition: transform var(--dur-move) var(--spring-move);
 }
 .mh-lens-item.is-on::after { transform: scaleX(1); }
+/* What the pointer is on in the skyline stands on the title's line, where it moves nothing under it. */
+.mh-inv-head .mh-lens { position: static; }
 .mh-lens-peek {
-  margin-inline-start: auto;
-  display: inline-flex;
+  position: absolute;
+  top: 0;
+  inset-inline: 30% calc(var(--control-md) * 4);
+  height: calc(var(--mh-title) * 1.12);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   gap: 10px;
-  align-items: baseline;
-  max-width: 46%;
   font-size: var(--t-14);
   color: var(--text-primary);
+  pointer-events: none;
   animation: mh-fade var(--dur-1) var(--ease) both;
 }
 
@@ -92,7 +101,8 @@
 .mh-inv-tools .sa-select { flex: 0 0 auto; width: 156px; min-width: 0; }
 .mh-inv-tools .sa-select .sa-select-trigger { background: transparent; box-shadow: inset 0 -1px 0 var(--border-strong); border-radius: 0; font-size: var(--t-14); }
 
-/* The ledger. One grid for the head and every row, so a column is a real column. */
+/* The ledger. One grid for the head and every row, so a column is a real column. A figure stands on its column's start
+   with its unit after it, so ones stand under ones whatever the unit. */
 .mh-led { --cols: minmax(0, 1fr) 84px minmax(110px, 150px) 124px; margin-top: 16px; }
 .mh-led-head {
   position: sticky;
@@ -120,7 +130,6 @@
   cursor: pointer;
 }
 .mh-led-head button:hover { color: var(--text-primary); }
-.mh-led-head .is-qty { justify-self: end; }
 
 .mh-led-list { list-style: none; margin: 0; padding: 0; }
 .mh-led-row {
@@ -141,7 +150,11 @@
   cursor: pointer;
   content-visibility: auto;
   contain-intrinsic-size: auto var(--row);
+  /* The keyboard stops a row under the head that sticks, never behind it. */
+  scroll-margin-top: 60px;
 }
+/* Safari stops scrolling to a focused row among rows it hasn't drawn, so a keyboard walking the list gets them all drawn. */
+.mh-led-list:has(.mh-led-row:focus-visible) .mh-led-row { content-visibility: visible; }
 /* The same carriage as the rail, in the gutter of the row you are on. */
 .mh-led-row::before {
   content: "";
@@ -158,9 +171,9 @@
 .mh-led-row:hover::before, .mh-led-row.is-selected::before { transform: scaleY(1); }
 .mh-led-row.is-selected { background: linear-gradient(to left, var(--accent-soft), transparent 80%); }
 .mh-led-row .is-name { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.mh-led-row .is-place { display: flex; flex-direction: column; font-size: var(--t-14); font-weight: 500; }
+.mh-led-row .is-place { display: flex; flex-direction: column; align-items: flex-start; font-size: var(--t-14); font-weight: 500; }
 .mh-led-row .is-gauge { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.mh-led-row .is-qty { display: flex; flex-direction: column; align-items: flex-end; text-align: end; min-width: 0; }
+.mh-led-row .is-qty { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
 .mh-led-fig { display: inline-flex; align-items: baseline; gap: 5px; font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -0.01em; }
 .mh-led-fig small { font-size: var(--t-13); font-weight: 400; color: var(--text-tertiary); letter-spacing: 0; }
 .mh-led-row .mh-row-state { color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

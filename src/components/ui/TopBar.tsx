@@ -14,6 +14,7 @@ export interface TopBarProps {
   onSearchChange?: (q: string) => void;
   /** Rendered inside the search wrapper (e.g. a results popover). */
   searchSlot?: React.ReactNode;
+  onSearchFocus?: () => void;
   /** Keyboard handler for the search region (arrows / Enter / Escape). */
   onSearchKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   /** Extra nodes at the very end of the bar (e.g. a connection note). */
@@ -28,11 +29,12 @@ function cx(...parts: (string | false | null | undefined)[]): string {
 export function TopBar({
   actions,
   onSearch,
-  searchPlaceholder = 'חיפוש לפי מוצר, מק"ט או ספק',
+  searchPlaceholder = "חיפוש מוצר, הזמנה, לקוח או פעולה",
   className,
   searchValue,
   onSearchChange,
   searchSlot,
+  onSearchFocus,
   onSearchKeyDown,
   end,
 }: TopBarProps) {
@@ -44,6 +46,7 @@ export function TopBar({
           value={searchValue}
           onChange={onSearchChange}
           onSubmit={onSearch}
+          onFocus={onSearchFocus}
         />
         {searchSlot}
       </div>

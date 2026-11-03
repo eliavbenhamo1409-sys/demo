@@ -6,7 +6,7 @@ create temp table t_lines on commit drop as select l.product_id, l.qty, o.create
 create index on t_lines (created_at);
 do $$
 declare
-  d date; day_start timestamptz; day_end timestamptz; s jsonb; st jsonb; m record; n int := 0;
+  d date; day_start timestamptz; day_end timestamptz; s jsonb; st jsonb; m record;
 begin
   for d in select generate_series(date '2025-11-02', date '2026-11-02', interval '1 day')::date loop
     day_start := d::timestamp at time zone 'Asia/Jerusalem';
@@ -17,7 +17,6 @@ begin
       elsif m.type = 'adjust' then update t_q set qty = m.qty where product_id = m.product_id;
       end if;
     end loop;
-    -- The shelf as it stood that night, the few that needed a hand.
     select coalesce(jsonb_agg(r order by r.state = 'low', r.state = 'out', r.name), '[]'::jsonb) into st from (
       select p.id as product_id, p.name, p.unit, t.qty, least(coalesce(h.q, 0), t.qty) as reserved, p.min_qty, case when t.qty <= 0 then 'out' else 'low' end as state
       from products p join t_q t on t.product_id = p.id
@@ -27,8 +26,7 @@ begin
     s := jsonb_set(day_summary(d), '{stock}', st);
     insert into day_closings (day, summary, closed_at) values (d, s, ((d + 1)::timestamp + interval '5 minutes') at time zone 'Asia/Jerusalem')
     on conflict (day) do update set summary = excluded.summary, closed_at = excluded.closed_at;
-    n := n + 1;
   end loop;
 end $$;
-select count(*) days, min(day) a, max(day) b, pg_size_pretty(sum(pg_column_size(summary))) size, (select jsonb_array_length(summary->'moved') from day_closings where day = '2026-10-29') moved_lines, (select jsonb_array_length(summary->'stock') from day_closings where day = '2026-10-29') stock_lines from day_closings;
+select count(*) days, max(day) last_day, (select jsonb_array_length(summary->'moved') from day_closings where day = '2026-10-29') moved_lines from day_closings;
 commit;

@@ -6,7 +6,7 @@ import { dayKey, stockState, useData, type Movement, type Order, type OrderLine,
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { EmptyState } from "@/components/ui";
-import { fmtAge, fmtDate, fmtName, fmtPrice, fmtQty } from "@/lib/format";
+import { fmtAge, fmtDate, fmtName, fmtPrice, fmtQty, fmtUnit } from "@/lib/format";
 import { change, movedShares, topAndRest, WINDOW_DAYS } from "@/lib/control-room";
 import { movedWorth, runway, shelfWorth, type Runway } from "@/lib/snapshot";
 import { Area, Bars, ChartCard, Ring, type Hue, type Slice } from "./Charts";
@@ -120,7 +120,7 @@ function runwayFigure(r: Runway): { text: string; loud?: boolean } {
 
 function runwayMeta({ product: p, free }: Runway): string {
   const min = p.min_qty > 0 ? `מינימום ${fmtQty(p.min_qty)}` : "";
-  const stock = p.qty <= 0 ? "" : free <= 0 ? `על המדף ${fmtQty(p.qty)} ${p.unit}` : `זמין ${fmtQty(free)} ${p.unit}`;
+  const stock = p.qty <= 0 ? "" : free <= 0 ? `על המדף ${fmtQty(p.qty)} ${fmtUnit(p.qty, p.unit)}` : `זמין ${fmtQty(free)} ${fmtUnit(free, p.unit)}`;
   return [stock, min].filter(Boolean).join(" · ") || p.sku;
 }
 
@@ -187,7 +187,7 @@ function StandingStill({ room }: { room: Room }): ReactElement {
     <ChartCard
       title="מלאי שלא זז"
       subtitle={`${STILL_DAYS} יום בלי הוצאה · ${money(stuck)} במחירון`}
-      table={{ head: ["מוצר", "על המדף", "שווי"], rows: top.map((s) => [fmtName(s.product.name), `${fmtQty(s.product.qty)} ${s.product.unit}`, worthOrDash(s.worth)]) }}
+      table={{ head: ["מוצר", "על המדף", "שווי"], rows: top.map((s) => [fmtName(s.product.name), `${fmtQty(s.product.qty)} ${fmtUnit(s.product.qty, s.product.unit)}`, worthOrDash(s.worth)]) }}
     >
       {top.length === 0 ? (
         <EmptyState title="אין מלאי שלא זז" />
@@ -200,7 +200,7 @@ function StandingStill({ room }: { room: Room }): ReactElement {
             key: s.product.id,
             label: fmtName(s.product.name),
             value: s.worth,
-            sub: `${fmtQty(s.product.qty)} ${s.product.unit} · ${s.lastOut ? `הוצאה אחרונה ${fmtAge(s.lastOut, room.now)}` : "ללא הוצאות"}`,
+            sub: `${fmtQty(s.product.qty)} ${fmtUnit(s.product.qty, s.product.unit)} · ${s.lastOut ? `הוצאה אחרונה ${fmtAge(s.lastOut, room.now)}` : "ללא הוצאות"}`,
             lead: <ProductThumb product={s.product} small />,
             onOpen: () => openProduct(s.product.id),
           }))}

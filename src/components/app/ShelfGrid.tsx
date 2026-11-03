@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cx, Tabs } from "@/components/ui";
-import { fmtQty } from "@/lib/format";
+import { fmtQty, fmtUnit } from "@/lib/format";
 import { fitsHalf, shortName, type ObjectStock, type ShelfBlock } from "@/lib/map3d/model";
 import { formatPlace, levelsOf, resolvePlace, SIDE_WORD } from "@/lib/map3d/place";
 import type { MapObject, ShelfSide } from "@/lib/map3d/types";
@@ -25,7 +25,7 @@ function spotText(blocks: readonly ShelfBlock[], product: Pick<Product, "id"> | 
   const own = here.find((block) => block.product.id === product?.id);
   if (own) {
     const qty = own.items.filter((item) => item.level === level && (side === null || item.side === null || item.side === side)).reduce((sum, item) => sum + item.qty, 0);
-    return `כבר כאן · ${fmtQty(qty)} ${own.product.unit}`;
+    return `כבר כאן · ${fmtQty(qty)} ${fmtUnit(qty, own.product.unit)}`;
   }
   return here.map((block) => shortName(block.product.name)).join(" · ");
 }

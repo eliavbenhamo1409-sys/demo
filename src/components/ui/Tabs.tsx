@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
 import { Badge } from "./Badge";
 import { cx } from "./cx";
 import { Icon, type IconName } from "./Icon";
@@ -21,6 +21,16 @@ export function Tabs({ tabs, value: valueProp, defaultValue, onChange, variant =
   const [valueState, setValueState] = useState(defaultValue ?? tabs[0]?.value ?? "");
   const value = valueProp !== undefined ? valueProp : valueState;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const activeIndex = tabs.findIndex((t) => t.value === value);
+
+  // A row of tabs that scrolls sideways keeps the chosen one in view, also when a link lands on the last. Only the row moves, never the page.
+  useEffect(() => {
+    const tab = refs.current[activeIndex];
+    const row = tab?.parentElement;
+    if (!tab || !row || row.scrollWidth <= row.clientWidth) return;
+    const t = tab.getBoundingClientRect(), r = row.getBoundingClientRect();
+    row.scrollBy({ left: t.left + t.width / 2 - (r.left + r.width / 2) });
+  }, [activeIndex]);
 
   const activate = (v: string, focusIdx?: number) => {
     setValueState(v);

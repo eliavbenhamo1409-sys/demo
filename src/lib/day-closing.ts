@@ -3,6 +3,7 @@
 /**
  * סגירת יום: reads one warehouse day. An ended day comes from the closing the nightly job stored,
  * so it stays what it was; today comes from the same database function and follows the store.
+ * A manager's signature sits beside that record and never changes it.
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -33,6 +34,9 @@ export type DaySummary = {
   stock: DayStock[] | null;
   actions: DayAction[];
 };
+/** What stood open at the signature. */
+export type DayOpenItems = { faults: number; requests: number; names: number };
+export type DaySignoff = { day: string; signed_by: string; note: string | null; open_items: DayOpenItems; signed_at: string };
 
 /** Lets a burst of realtime rows settle into one read. */
 const QUIET_MS = 400;
@@ -51,6 +55,12 @@ export const isDay = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(valu
 export const shiftDay = (day: string, offset: number): string => new Date(noon(day) + offset * 86_400_000).toISOString().slice(0, 10);
 
 export const fmtClosingDay = (day: string): string => dayWords.format(noon(day));
+
+/** The last hour of a day in Israel, whichever way the clocks stand: what an ended day's ages are counted from, so they stay as they were. */
+export const dayEnd = (day: string): number => Date.parse(`${day}T20:59:00Z`);
+
+/** The database takes a signature for today and yesterday only. */
+export const canSign = (day: string): boolean => day >= shiftDay(israelToday(), -1);
 
 async function readDay(day: string, live: boolean): Promise<DaySummary> {
   const sb = supabase();
@@ -101,6 +111,50 @@ export function useDaySummary(day: string) {
   }, []);
 
   return { summary, failed: !summary && failedDay === day, retry };
+}
+
+/** Who signed a day: undefined until read, null while nobody has. `sign` throws the database's own message. */
+export function useDaySignoff(day: string) {
+  const [loaded, setLoaded] = useState<{ day: string; signoff: DaySignoff | null } | null>(null);
+  const [failedDay, setFailedDay] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let current = true;
+    void supabase().from("day_signoffs").select("*").eq("day", day).maybeSingle().then(({ data, error }) => {
+      if (!current) return;
+      if (error) {
+        setFailedDay(day);
+        return;
+      }
+      setLoaded({ day, signoff: data as unknown as DaySignoff | null });
+      setFailedDay(null);
+    });
+    return () => {
+      current = false;
+    };
+  }, [day, attempt]);
+
+  const signoff = loaded?.day === day ? loaded.signoff : undefined;
+  const retry = useCallback(() => {
+    setFailedDay(null);
+    setAttempt((n) => n + 1);
+  }, []);
+
+  const sign = useCallback(
+    async (why?: string) => {
+      const { data, error } = await supabase().rpc("sign_day", { target: day, why });
+      if (error) {
+        // Another manager may have signed first: read the day again, so the card says so.
+        retry();
+        throw new Error(error.message);
+      }
+      setLoaded({ day, signoff: data as unknown as DaySignoff });
+    },
+    [day, retry],
+  );
+
+  return { signoff, failed: signoff === undefined && failedDay === day, retry, sign };
 }
 
 /** The first day that has a closing; nothing to go back to before it. */

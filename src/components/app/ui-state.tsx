@@ -5,6 +5,7 @@
  * these; the AppShell renders the hosts (ActionDrawer, ProductPanel…).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { Movement } from "@/lib/store";
 
 export type ActionKind =
   | "receive"        // קליטת סחורה
@@ -42,6 +43,9 @@ export type OpenPanel =
   | { type: "action"; kind: ActionKind; ctx: ActionContext }
   | { type: "product"; id: string; tab?: "details" | "history" }
   | { type: "order"; id: string }
+  | { type: "fault"; id: string }
+  // The row itself: a movement older than the store's latest 400 has nowhere else to come from.
+  | { type: "movement"; movement: Movement }
   | null;
 
 export type Toast = { id: number; tone: "success" | "danger" | "neutral"; title: string; text?: string };
@@ -51,8 +55,10 @@ type Ui = {
   openAction: (kind: ActionKind, ctx?: ActionContext) => void;
   openProduct: (id: string, tab?: "details" | "history") => void;
   openOrder: (id: string) => void;
+  openFault: (id: string) => void;
+  openMovement: (movement: Movement) => void;
   close: () => void;
-  /** The way out for the scrim, the X and Escape: a dirty action panel asks first. */
+  /** The way out for the scrim, the X and Escape: a form or a fault's note with something typed asks first. */
   requestClose: () => void;
   /** The panel is on its way out; it unmounts when the exit ends. */
   closing: boolean;
@@ -83,13 +89,15 @@ export function UiProvider({ children }: { children: ReactNode }) {
   const openAction = useCallback((kind: ActionKind, ctx: ActionContext = {}) => open({ type: "action", kind, ctx }), [open]);
   const openProduct = useCallback((id: string, tab?: "details" | "history") => open({ type: "product", id, tab }), [open]);
   const openOrder = useCallback((id: string) => open({ type: "order", id }), [open]);
+  const openFault = useCallback((id: string) => open({ type: "fault", id }), [open]);
+  const openMovement = useCallback((movement: Movement) => open({ type: "movement", movement }), [open]);
   const close = useCallback(() => {
     dirty.current = false;
     setAskingClose(false);
     setClosing(true);
   }, []);
   const requestClose = useCallback(() => {
-    if (panel?.type === "action" && dirty.current) setAskingClose(true);
+    if ((panel?.type === "action" || panel?.type === "fault") && dirty.current) setAskingClose(true);
     else close();
   }, [panel, close]);
   const markDirty = useCallback(() => {
@@ -113,8 +121,8 @@ export function UiProvider({ children }: { children: ReactNode }) {
     if (t.tone !== "danger") setTimeout(() => dismiss(id), 4000);
   }, [dismiss]);
   const value = useMemo(
-    () => ({ panel, openAction, openProduct, openOrder, close, requestClose, closing, markDirty, askingClose, keepOpen, toasts, notify, dismiss }),
-    [panel, openAction, openProduct, openOrder, close, requestClose, closing, markDirty, askingClose, keepOpen, toasts, notify, dismiss],
+    () => ({ panel, openAction, openProduct, openOrder, openFault, openMovement, close, requestClose, closing, markDirty, askingClose, keepOpen, toasts, notify, dismiss }),
+    [panel, openAction, openProduct, openOrder, openFault, openMovement, close, requestClose, closing, markDirty, askingClose, keepOpen, toasts, notify, dismiss],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

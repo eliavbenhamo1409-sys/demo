@@ -8,7 +8,7 @@
  * signed URLs as the shared page.
  */
 
-import { memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type RefObject } from "react";
+import { memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormPanel } from "@/components/app/forms/FormPanel";
@@ -19,7 +19,7 @@ import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, EmptyState, Fields, Input, Modal, SearchBar, Select, Showing, SidePanel, type FieldItem, type SelectOption } from "@/components/ui";
 import { documentDownloadUrl, useDocumentUrls } from "@/lib/documents";
 import { faultPhotoUrl } from "@/lib/fault-photos";
-import { daysAgo, fmtFull, fmtName, fmtQty, fmtSigned, fmtTime } from "@/lib/format";
+import { daysAgo, fmtFull, fmtName, fmtQty, fmtSigned, fmtTime, orderRef } from "@/lib/format";
 import { dayKey, normalizeName, useData, type DocumentRecord, type Fault, type Movement } from "@/lib/store";
 
 type Kind = "in" | "out" | "fault";
@@ -179,9 +179,9 @@ function DocumentationInner(): ReactElement {
       <h1 className="sa-page-title">תיעוד</h1>
 
       <div className="mh-docs-bar">
-        <div className="mh-lens" role="tablist" aria-label="סוג רשומה">
+        <div className="mh-lens" role="group" aria-label="סוג רשומה">
           {lens.map((item) => (
-            <button key={item.key} type="button" role="tab" aria-selected={tab === item.key} className={cx("mh-lens-item", tab === item.key && "is-on")} onClick={() => setTab(item.key)}>
+            <button key={item.key} type="button" aria-pressed={tab === item.key} className={cx("mh-lens-item", tab === item.key && "is-on")} onClick={() => setTab(item.key)}>
               <span className="mh-lens-n ltr">{fmtQty(item.count)}</span>
               <span className="mh-lens-word">{item.word}</span>
             </button>
@@ -190,26 +190,26 @@ function DocumentationInner(): ReactElement {
         <div className="mh-docs-tools">
           {workerOptions.length > 0 ? <Select options={workerOptions} value={workerId} onChange={setWorkerId} allLabel="כל העובדים" placeholder="עובד" /> : null}
           <div className="mh-docs-search">
-            <SearchBar kbd={false} value={query} onChange={setQuery} placeholder="חיפוש לפי שם, מספר תעודה או עובד" />
+            <SearchBar kbd={false} value={query} onChange={setQuery} placeholder="חיפוש לפי שם או עובד" />
             {q || workerId ? <span className="mh-docs-found" role="status"><span className="ltr">{fmtQty(visible.length)}</span> {visible.length === 1 ? "רשומה" : "רשומות"}</span> : null}
           </div>
         </div>
       </div>
 
-      {visible.length > 0 ? <Archive entries={visible} filter={`${tab}|${q}|${workerId}`} showKind={tab === "all"} /> : <div className="mh-docs-empty">{empty}</div>}
+      <Archive entries={visible} filter={`${tab}|${q}|${workerId}`} showKind={tab === "all"} empty={empty} />
     </div>
   );
 }
 
 /* ───────── the plate of sheets ───────── */
 
-function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: string; showKind: boolean }): ReactElement {
+function Archive({ entries, filter, showKind, empty }: { entries: Entry[]; filter: string; showKind: boolean; empty: ReactNode }): ReactElement {
   const [shown, setShown] = useState(PAGE_SIZE);
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
   const [now] = useState(() => Date.now());
+  const [liftedFrom, setLiftedFrom] = useState<DOMRect | null>(null);
   const wall = useRef<HTMLDivElement>(null);
-  const liftedFrom = useRef<DOMRect | null>(null);
   const goal = useRef<string | null>(null);
 
   // A new filter starts from the newest sheet. The signed URLs stay, so narrowing never blanks a photo.
@@ -219,9 +219,9 @@ function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: stri
     setShown(PAGE_SIZE);
   }
   useEffect(() => {
-    const top = wall.current?.getBoundingClientRect().top ?? 0;
+    const top = wall.current?.getBoundingClientRect().top;
     const bar = document.querySelector(".mh-docs-bar")?.getBoundingClientRect().height ?? 0;
-    if (top < bar) window.scrollBy({ top: top - bar });
+    if (top !== undefined && top < bar) window.scrollBy({ top: top - bar });
   }, [filter]);
 
   const days = useMemo(() => byDay(entries), [entries]);
@@ -245,7 +245,7 @@ function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: stri
   const leafOf = useCallback((key: string) => wall.current?.querySelector<HTMLElement>(`[data-leaf="${CSS.escape(key)}"]`) ?? null, []);
 
   const pickUp = useCallback((key: string, leaf: HTMLElement) => {
-    liftedFrom.current = leaf.querySelector(".mh-docs-paper")?.getBoundingClientRect() ?? null;
+    setLiftedFrom(leaf.querySelector(".mh-docs-paper")?.getBoundingClientRect() ?? null);
     setOpenKey(key);
   }, []);
 
@@ -262,6 +262,7 @@ function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: stri
 
   const close = useCallback(() => {
     if (!openKey) return;
+    leafOf(openKey)?.scrollIntoView({ block: "nearest" });
     setClosing(true);
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.setTimeout(() => {
@@ -311,8 +312,13 @@ function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: stri
   // When days hold a sheet or so each, as most searches do, they stand side by side and the plate stays full.
   const sparse = entries.length < days.length * 2;
 
+  if (entries.length === 0) return <div className="mh-docs-empty">{empty}</div>;
+
   return (
     <div className={cx("mh-docs-body", days.length >= SCALE_MIN_DAYS && "has-scale")}>
+      {/* Before the wall for the keyboard, beside it for the eye: the way through the archive can't wait behind every sheet in it. */}
+      {days.length >= SCALE_MIN_DAYS ? <Scale days={days} onGo={go} /> : null}
+
       <div ref={wall} className={cx("mh-docs-wall", sparse && "is-sparse")}>
         {onPage.map((day) => {
           const ago = daysAgo(day.at, now);
@@ -326,9 +332,10 @@ function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: stri
                 <span className="mh-docs-month">{monthFmt.format(date)}{year === new Date(now).getFullYear() ? "" : ` ${year}`}</span>
               </h2>
               <ul className="mh-docs-leaves">
-                {day.entries.map((e) => (
-                  <Leaf key={e.key} entry={e} src={photo(e)} showKind={showKind} lifted={e.key === openKey} onPick={pickUp} />
-                ))}
+                {day.entries.map((e) => {
+                  const src = photo(e);
+                  return <Leaf key={e.key} entry={e} src={src} showKind={showKind} lifted={e.key === openKey && Boolean(src)} onPick={pickUp} />;
+                })}
               </ul>
             </section>
           );
@@ -341,8 +348,6 @@ function Archive({ entries, filter, showKind }: { entries: Entry[]; filter: stri
           </div>
         ) : null}
       </div>
-
-      {days.length >= SCALE_MIN_DAYS ? <Scale days={days} onGo={go} /> : null}
 
       {open ? (
         <Reader
@@ -378,6 +383,7 @@ const Leaf = memo(function Leaf({ entry, src, showKind, lifted, onPick }: LeafPr
   const note = fault && !src ? entry.title : null;
   const item = product(fault?.product_id);
   const heading = note ? item?.name ?? KIND_LABEL[entry.kind] : entry.title;
+  const order = orderRef(doc?.reference);
   return (
     <li>
       <button type="button" className={cx("mh-docs-leaf", lifted && "is-lifted")} data-leaf={entry.key} onClick={(e) => onPick(entry.key, e.currentTarget)}>
@@ -395,7 +401,7 @@ const Leaf = memo(function Leaf({ entry, src, showKind, lifted, onPick }: LeafPr
         <span className="mh-docs-name" title={heading}>{fmtName(heading)}</span>
         <span className="mh-docs-line">
           {showKind && heading !== KIND_LABEL[entry.kind] ? <><span className={KIND_TONE[entry.kind]}>{KIND_WORD[entry.kind]}</span> · </> : null}
-          {doc?.reference ? <><bdi>{doc.reference}</bdi> · </> : null}
+          {order ? <><bdi>{order}</bdi> · </> : null}
           {fault ? <><span className={fault.status === "resolved" ? "mh-tone-ok" : "mh-tone-warn"}>{fault.status === "resolved" ? "טופלה" : "פתוחה"}</span> · </> : null}
           <span className="ltr">{fmtTime(entry.at)}</span>
         </span>
@@ -419,18 +425,24 @@ function Scale({ days, onGo }: { days: Day[]; onGo: (day: Day) => void }): React
     return days.map((day) => ({ day, y: daysAgo(day.at, newest) / span, reach: Math.log1p(day.entries.length) / Math.log1p(most) }));
   }, [days]);
 
-  // A month's word stands at its newest day, and gives way when the next would touch it.
+  const ticks = useMemo(() => marks.map(({ day, y, reach }) => <i key={day.key} className="mh-docs-tick" style={{ top: `${y * 100}%`, "--reach": reach } as CSSProperties} />), [marks]);
+
+  // A month's word stands at the middle of its days, so a month that has barely begun can't take the place of the one before it.
   const months = useMemo(() => {
-    const words: { key: string; word: string; y: number }[] = [];
-    const year = new Date(days[0].at).getFullYear();
-    let seen = "";
+    const spans = new Map<string, { first: number; last: number; at: string }>();
     for (const { day, y } of marks) {
       const key = day.key.slice(0, 7);
-      if (key === seen) continue;
-      seen = key;
+      const span = spans.get(key);
+      if (span) span.last = y;
+      else spans.set(key, { first: y, last: y, at: day.at });
+    }
+    const year = new Date(days[0].at).getFullYear();
+    const words: { key: string; word: string; y: number }[] = [];
+    for (const [key, { first, last, at }] of spans) {
+      const y = (first + last) / 2;
       const held = words[words.length - 1];
       if (held && y - held.y < 0.036) continue;
-      const date = new Date(day.at);
+      const date = new Date(at);
       words.push({ key, word: `${monthFmt.format(date)}${date.getFullYear() === year ? "" : ` ${date.getFullYear()}`}`, y });
     }
     return words;
@@ -478,19 +490,20 @@ function Scale({ days, onGo }: { days: Day[]; onGo: (day: Day) => void }): React
     return best;
   };
 
+  const here = Math.min(current, days.length - 1);
+
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const month = (from: number, step: number) => {
-      const key = days[from].key.slice(0, 7);
-      let i = from;
-      while (days[i + step] && days[i + step].key.slice(0, 7) === key) i += step;
+    const month = (step: number) => {
+      const key = days[here].key.slice(0, 7);
+      let i = here;
+      while (days[i + step]?.key.startsWith(key)) i += step;
       return i + step;
     };
-    const steps: Record<string, number> = { ArrowDown: current + 1, ArrowUp: current - 1, PageDown: month(current, 1), PageUp: month(current, -1), Home: 0, End: days.length - 1 };
-    const to = steps[e.key];
-    if (to === undefined) return;
+    const steps: Record<string, () => number> = { ArrowDown: () => here + 1, ArrowUp: () => here - 1, PageDown: () => month(1), PageUp: () => month(-1), Home: () => 0, End: () => days.length - 1 };
+    const step = steps[e.key];
+    if (!step) return;
     e.preventDefault();
-    const day = days[Math.max(0, Math.min(days.length - 1, to))];
-    onGo(day);
+    onGo(days[Math.max(0, Math.min(days.length - 1, step()))]);
   };
 
   const peeking = peek === null ? null : marks[peek];
@@ -504,8 +517,8 @@ function Scale({ days, onGo }: { days: Day[]; onGo: (day: Day) => void }): React
       aria-orientation="vertical"
       aria-valuemin={0}
       aria-valuemax={days.length - 1}
-      aria-valuenow={current}
-      aria-valuetext={dateWord(days[current]?.at)}
+      aria-valuenow={here}
+      aria-valuetext={dateWord(days[here].at)}
       onKeyDown={onKeyDown}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -523,10 +536,10 @@ function Scale({ days, onGo }: { days: Day[]; onGo: (day: Day) => void }): React
       onPointerLeave={() => setPeek(null)}
     >
       <div ref={rule} className="mh-docs-rule" aria-hidden="true">
-        {marks.map(({ day, y, reach }) => <i key={day.key} className="mh-docs-tick" style={{ top: `${y * 100}%`, "--reach": reach } as CSSProperties} />)}
+        {ticks}
         {months.map((m) => <span key={m.key} className="mh-docs-monthmark" style={{ top: `${m.y * 100}%` }}>{m.word}</span>)}
         {peeking ? <i className="mh-carriage is-ghost mh-docs-carriage" style={{ top: `${peeking.y * 100}%` }} /> : null}
-        <i className="mh-carriage mh-docs-carriage" style={{ top: `${(marks[current]?.y ?? 0) * 100}%` }} />
+        <i className="mh-carriage mh-docs-carriage" style={{ top: `${marks[here].y * 100}%` }} />
         {peeking ? (
           <span className="mh-docs-peek" style={{ top: `${peeking.y * 100}%` }}>
             {dateWord(peeking.day.at)} · <span className="ltr">{fmtQty(peeking.day.entries.length)}</span> {peeking.day.entries.length === 1 ? "רשומה" : "רשומות"}
@@ -537,8 +550,7 @@ function Scale({ days, onGo }: { days: Day[]; onGo: (day: Day) => void }): React
   );
 }
 
-const dateWord = (iso?: string) => {
-  if (!iso) return "";
+const dateWord = (iso: string) => {
   const date = new Date(iso);
   return `${date.getDate()} ב${monthFmt.format(date)}`;
 };
@@ -548,7 +560,8 @@ const dateWord = (iso?: string) => {
 interface ReaderProps {
   entry: Entry;
   src: string | null;
-  from: RefObject<DOMRect | null>;
+  /** Where the sheet lay on the plate. */
+  from: DOMRect | null;
   closing: boolean;
   leafOf: (key: string) => HTMLElement | null;
   onClose: () => void;
@@ -561,7 +574,7 @@ interface ReaderProps {
 
 function Reader({ entry, src, from, closing, leafOf, onClose, onWalk, prev, next, place, total }: ReaderProps): ReactElement {
   const host = useRef<HTMLDivElement>(null);
-  const held = useRef<HTMLElement>(null);
+  const held = useRef<HTMLAnchorElement>(null);
 
   // A step through the archive moves the sheet the way it went.
   const [turn, setTurn] = useState({ place, way: "" });
@@ -579,10 +592,8 @@ function Reader({ entry, src, from, closing, leafOf, onClose, onWalk, prev, next
   // The sheet leaves the plate from where it lay.
   useLayoutEffect(() => {
     const sheet = held.current;
-    const start = from.current;
-    from.current = null;
-    if (!sheet || !start) return;
-    aim(sheet, start);
+    if (!sheet || !from) return;
+    aim(sheet, from);
     sheet.classList.add("is-lifting");
   }, [from]);
 
@@ -614,27 +625,29 @@ function Reader({ entry, src, from, closing, leafOf, onClose, onWalk, prev, next
   };
 
   const label = `${KIND_LABEL[entry.kind]}: ${entry.title}`;
-  const words = entry.fault && !src ? entry.title : null;
+  // A report with no photo has nothing to stand beside it, so the door stops at the record.
+  const bare = Boolean(entry.fault) && !src;
 
   return createPortal(
     <>
       <div className="sa-scrim app-scrim" data-closing={closing || undefined} onClick={onClose} aria-hidden />
-      <div ref={host} className="app-panelHost mh-docs-reader" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onKeyDown={onKeyDown}>
+      <div ref={host} className={cx("app-panelHost mh-docs-reader", bare && "is-bare")} data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onKeyDown={onKeyDown}>
         <div className="mh-docs-side">
           <Details key={entry.key} entry={entry} onClose={onClose} onWalk={onWalk} prev={prev} next={next} place={place} total={total} />
         </div>
-        <div className="mh-docs-stage">
-          {src ? (
-            <a ref={(el) => { held.current = el; }} key={src} className={cx("mh-docs-held", turn.way)} href={src} target="_blank" rel="noreferrer" aria-label="פתיחת התמונה בגודל מלא">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={label} decoding="sync" />
-            </a>
-          ) : words ? (
-            <p ref={(el) => { held.current = el; }} className="mh-docs-held is-note">{words}</p>
-          ) : (
-            <span className="sa-skeleton mh-docs-wait" aria-label="טוען תמונה" />
-          )}
-        </div>
+        {bare ? null : (
+          <div className="mh-docs-stage">
+            {src ? (
+              // Safari's Tab passes over a plain link, and this is the stop that closes the dialog's round.
+              <a ref={held} key={src} className={cx("mh-docs-held", turn.way)} href={src} target="_blank" rel="noreferrer" tabIndex={0} aria-label="פתיחת התמונה בגודל מלא">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt={label} decoding="sync" />
+              </a>
+            ) : (
+              <span className="sa-skeleton mh-docs-wait" role="status" aria-label="טוען תמונה" />
+            )}
+          </div>
+        )}
       </div>
     </>,
     document.body,
@@ -722,11 +735,12 @@ function Details({ entry, onClose, onWalk, prev, next, place, total }: DetailsPr
 
   const reporter = worker(entry.workerId)?.name;
   const faultProduct = product(fault?.product_id);
-  // The supplier or customer is the title over these. A reference may hold a word ("הזמנה 1001"), so it keeps its own direction.
+  const order = orderRef(doc?.reference);
+  // The supplier or customer is the title over these. An order's name holds a word ("הזמנה 1001"), so it keeps its own direction.
   const fields: FieldItem[] = doc
     ? [
         { label: "עובד", value: reporter },
-        ...(doc.reference ? [{ label: "מספר תעודה", value: <bdi>{doc.reference}</bdi> }] : []),
+        ...(order ? [{ label: "מקור", value: <bdi>{order}</bdi> }] : []),
       ]
     : [
         { label: "מוצר", value: faultProduct?.name ?? (fault?.product_id ? "מוצר שנמחק" : "ללא מוצר") },
@@ -757,8 +771,8 @@ function Details({ entry, onClose, onWalk, prev, next, place, total }: DetailsPr
         headActions={
           total > 1 ? (
             <span className="mh-docs-walk">
-              <Button variant="ghost" size="sm" iconOnly icon="chevron-right" title="הקודמת" disabled={!prev} onClick={() => prev && onWalk(prev)} />
-              <Button variant="ghost" size="sm" iconOnly icon="chevron-left" title="הבאה" disabled={!next} onClick={() => next && onWalk(next)} />
+              <Button variant="ghost" size="sm" iconOnly icon="chevron-right" title="הרשומה הקודמת" disabled={!prev} onClick={() => prev && onWalk(prev)} />
+              <Button variant="ghost" size="sm" iconOnly icon="chevron-left" title="הרשומה הבאה" disabled={!next} onClick={() => next && onWalk(next)} />
               <span className="mh-docs-place"><span className="ltr">{fmtQty(place)}</span> מתוך <span className="ltr">{fmtQty(total)}</span></span>
             </span>
           ) : null
@@ -823,7 +837,6 @@ function EntryForm({ entry, onClose }: { entry: Entry; onClose: () => void }): R
 
   const [supplierId, setSupplierId] = useState(doc?.supplier_id ?? "");
   const [customer, setCustomer] = useState(doc?.customer ?? "");
-  const [reference, setReference] = useState(doc?.reference ?? "");
   const [description, setDescription] = useState(fault?.description ?? "");
   const [productId, setProductId] = useState(fault?.product_id ?? "");
 
@@ -834,8 +847,7 @@ function EntryForm({ entry, onClose }: { entry: Entry; onClose: () => void }): R
     }
     void form.run(async () => {
       if (doc) {
-        const party = doc.kind === "in" ? { supplier_id: supplierId || null } : { customer: customer.trim() || null };
-        await updateDocument(doc.id, { ...party, reference: reference.trim() || null });
+        await updateDocument(doc.id, doc.kind === "in" ? { supplier_id: supplierId || null } : { customer: customer.trim() || null });
       } else if (fault) {
         await updateFault(fault, { description: description.trim(), product_id: productId || null });
       }
@@ -867,15 +879,10 @@ function EntryForm({ entry, onClose }: { entry: Entry; onClose: () => void }): R
           />
           <Select label="מוצר" options={productOptions(state.products)} value={productId} onChange={setProductId} allLabel="ללא מוצר" block />
         </>
+      ) : doc?.kind === "in" ? (
+        <Select label="ספק" options={supplierOptions(state.suppliers)} value={supplierId} onChange={setSupplierId} placeholder="בחירת ספק" block />
       ) : (
-        <>
-          {doc?.kind === "in" ? (
-            <Select label="ספק" options={supplierOptions(state.suppliers)} value={supplierId} onChange={setSupplierId} placeholder="בחירת ספק" block />
-          ) : (
-            <Input label="לקוח" value={customer} onChange={(e) => setCustomer(e.target.value)} autoComplete="off" />
-          )}
-          <Input label="מספר תעודה" optional dir="auto" value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" spellCheck={false} />
-        </>
+        <Input label="לקוח" value={customer} onChange={(e) => setCustomer(e.target.value)} autoComplete="off" />
       )}
     </FormPanel>
   );

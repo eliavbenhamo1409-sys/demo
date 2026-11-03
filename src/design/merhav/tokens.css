@@ -20,12 +20,12 @@ html[data-theme^="merhav"] {
   --text-primary: #131614;
   --text-secondary: #3f4440;
   --text-tertiary: #5c615d;
-  --text-quiet: #7b807b;
+  --text-quiet: #636863;
   --text-disabled: #a4a7a1;
   --text-inverse: #f7f6f2;
 
   /* Rules are ink at a strength, so they sit right on every surface in both modes. */
-  --border-subtle: rgba(19, 22, 20, 0.07);
+  --border-subtle: rgba(19, 22, 20, 0.09);
   --border-base: rgba(19, 22, 20, 0.12);
   --border-strong: rgba(19, 22, 20, 0.22);
   --border-control: rgba(19, 22, 20, 0.44);
@@ -70,10 +70,10 @@ html[data-theme^="merhav"] {
   --radius-xl: 12px;
 
   /* Type. Numbers are the heroes, so they get their own voice. */
-  --font-sans: var(--mh-plex), "IBM Plex Sans Hebrew", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font-sans: "mh-plex", "IBM Plex Sans Hebrew", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-sans);
   --font-figure: var(--font-sans);
-  --t-12: 12.5px; --t-13: 13px; --t-14: 14px; --t-15: 15px; --t-16: 16px; --t-17: 17px;
+  --t-12: 13px; --t-13: 13px; --t-14: 14px; --t-15: 15px; --t-16: 16px; --t-17: 17px;
   --l-16: 17px; --l-18: 19px; --l-20: 21px; --l-21: 22px; --l-22: 23px; --l-23: 24px; --l-24: 25px;
 
   /* Sizes. */
@@ -107,7 +107,7 @@ html[data-theme^="merhav"] {
   --scene-column: #c9c6bc;
   --scene-door: #0f5a44;
   --scene-upright: #24282a;
-  --scene-shelf: #3a3f41;
+  --scene-shelf: #5f6669;
   --scene-shelf-edge: #0f5a44;
   --scene-machine: #115a45;
   --scene-machine-detail: #e9e7e0;
@@ -124,9 +124,9 @@ html[data-theme^="merhav"] {
   --scene-metal: 0.2;
   --scene-contact: 0.5;
   --scene-forklift: #115a45;
-  --scene-stock-natural: #c7ced2;
-  --scene-stock-black: #3a3f43;
-  --scene-stock-white: #eceae4;
+  --scene-stock-natural: #b6c0c7;
+  --scene-stock-black: #2a2e31;
+  --scene-stock-white: #f4f2ec;
   --scene-stock-bronze: #a6875c;
   --scene-stock-roll: #565c60;
   --scene-stock-canister: #7ea89a;
@@ -137,6 +137,10 @@ html[data-theme^="merhav"] {
   --mh-dock: clamp(320px, 31vw, 1040px);
   --mh-side: clamp(400px, 30vw, 560px);
   --mh-gutter: clamp(20px, 3vw, 64px);
+  --mh-title: clamp(30px, 2.6vw, 44px);
+  --mh-thumb: 40px;
+  /* A key beside a page's title stands on the title's own line, whatever stands under it. */
+  --mh-title-key: calc((var(--mh-title) * 1.12 - var(--control-md)) / 2);
 }
 
 html[data-theme="merhav-dark"] {
@@ -155,11 +159,11 @@ html[data-theme="merhav-dark"] {
   --text-primary: #eef0eb;
   --text-secondary: #c1c6bf;
   --text-tertiary: #9aa09a;
-  --text-quiet: #7c827c;
+  --text-quiet: #888e88;
   --text-disabled: #5b605b;
   --text-inverse: #101412;
 
-  --border-subtle: rgba(238, 240, 235, 0.07);
+  --border-subtle: rgba(238, 240, 235, 0.1);
   --border-base: rgba(238, 240, 235, 0.12);
   --border-strong: rgba(238, 240, 235, 0.2);
   --border-control: rgba(238, 240, 235, 0.4);
@@ -200,7 +204,7 @@ html[data-theme="merhav-dark"] {
   --scene-column: #333a35;
   --scene-door: #27876a;
   --scene-upright: #6d767a;
-  --scene-shelf: #566064;
+  --scene-shelf: #3f474a;
   --scene-shelf-edge: #2fae86;
   --scene-machine: #1f7259;
   --scene-machine-detail: #a9afa9;

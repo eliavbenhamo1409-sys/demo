@@ -7,7 +7,6 @@ import { useUi } from "@/components/app/ui-state";
 import { ProductThumb, StockMeter } from "@/components/app/Viz";
 import {
   Button,
-  Count,
   Dot,
   EmptyState,
   Icon,
@@ -20,7 +19,8 @@ import {
   type SelectOption,
   type TableColumn,
 } from "@/components/ui";
-import { fmtName, fmtQty, fmtRelative } from "@/lib/format";
+import { fmtCompact, fmtDayWord, fmtName, fmtQty, fmtUnit } from "@/lib/format";
+import { shelfWorth } from "@/lib/snapshot";
 
 type Tab = "products" | "low" | "out" | "reserved" | "short";
 type SortKey = "name" | "qty" | "updated_at";
@@ -61,11 +61,11 @@ function afterOrders(p: Product): string {
 /** The one real red, on the figures of a short product. Important because `sa-*` classes outrank utilities. */
 const SHORT_FIGURE = "text-short! font-semibold!";
 
-/** From 1100px a table clips instead of scrolling (minimal.css), so where seven columns don't fit עודכן goes rather than being cut off. A tablet gives up ספק too, so nothing hides behind a sideways scroll. */
-const HIDE_UPDATED = "min-[601px]:max-[1379px]:[&_:is(td,th):nth-child(7)]:hidden min-[601px]:max-[1099px]:[&_:is(td,th):nth-child(3)]:hidden";
+/** The figures stand beside the name and the details follow, so a narrower window gives up the last columns first: from 1100px a table clips instead of scrolling (minimal.css), and nothing may be cut off. Counts columns. */
+const NARROW_PRODUCTS = "min-[601px]:max-[1379px]:[&_:is(td,th):nth-child(7)]:hidden min-[601px]:max-[1239px]:[&_:is(td,th):nth-child(6)]:hidden min-[601px]:max-[1023px]:[&_:is(td,th):nth-child(5)]:hidden";
 
 /** Phones keep name and quantity only; the product panel has the rest. Counts columns. */
-const PHONE_PRODUCTS = "max-[600px]:[&_:is(td,th):not(:nth-child(1),:nth-child(4))]:hidden";
+const PHONE_PRODUCTS = "max-[600px]:[&_:is(td,th):not(:nth-child(1),:nth-child(2))]:hidden";
 
 /** On phones this cell takes what the quantity leaves, so a long name truncates instead of scrolling the table sideways. */
 const PHONE_MAIN_CELL = "max-[600px]:w-full max-[600px]:max-w-0";
@@ -79,7 +79,7 @@ export default function InventoryPage() {
 }
 
 function InventoryInner() {
-  const { state, stats, supplier } = useData();
+  const { state, supplier } = useData();
   const ui = useUi();
   const router = useRouter();
   const pathname = usePathname();
@@ -116,6 +116,7 @@ function InventoryInner() {
   );
 
   /* ───────── products ───────── */
+  const worth = useMemo(() => shelfWorth(state.products).total, [state.products]);
   const q = query.trim().toLowerCase();
 
   const baseProducts = useMemo(() => {
@@ -198,20 +199,6 @@ function InventoryInner() {
         ),
       },
       {
-        key: "location",
-        title: "מיקום",
-        muted: true,
-        render: (p) => <span className="sa-truncate block max-w-[120px]" title={p.location ?? undefined}>{p.location ?? "—"}</span>,
-      },
-      {
-        key: "supplier",
-        title: "ספק",
-        render: (p) => {
-          const name = supplier(p.primary_supplier_id)?.name;
-          return <span className="sa-truncate block max-w-[140px]" title={name}>{name ?? "—"}</span>;
-        },
-      },
-      {
         key: "qty",
         title: sortTitle("כמות", "qty"),
         mono: true,
@@ -225,7 +212,7 @@ function InventoryInner() {
                 {state ? <Dot tone={urgent ? "danger" : "warning"} className={`absolute start-[-14px] top-[7px] ${short ? "bg-short!" : ""}`} /> : null}
                 {state ? <span className="sa-sr">{state}</span> : null}
                 <span className={`sa-stock ltr min-w-[4ch] text-right ${short ? SHORT_FIGURE : urgent ? "text-danger-text" : isLow(p) ? "text-warning-text" : ""}`}>{fmtQty(p.qty)}</span>
-                <span className="sa-hint">{p.unit}</span>
+                <span className="sa-hint">{fmtUnit(p.qty, p.unit)}</span>
               </span>
               {/* Phones hide the reserved column. */}
               {isReserved(p) ? <span className={`sa-cell-sub min-[601px]:hidden! ${short ? SHORT_FIGURE : ""}`}>{short ? afterOrders(p) : `משוריין ${fmtQty(p.reserved)}`}</span> : null}
@@ -259,7 +246,22 @@ function InventoryInner() {
           </span>
         ),
       },
-      { key: "updated_at", title: sortTitle("עודכן", "updated_at"), muted: true, className: "whitespace-nowrap", render: (p) => fmtRelative(p.updated_at) },
+      {
+        key: "location",
+        title: "מיקום",
+        muted: true,
+        render: (p) => <span className="sa-truncate block max-w-[120px]" title={p.location ?? undefined}>{p.location ?? "—"}</span>,
+      },
+      {
+        key: "supplier",
+        title: "ספק",
+        muted: true,
+        render: (p) => {
+          const name = supplier(p.primary_supplier_id)?.name;
+          return <span className="sa-truncate block max-w-[140px]" title={name}>{name ?? "—"}</span>;
+        },
+      },
+      { key: "updated_at", title: sortTitle("עודכן", "updated_at"), muted: true, className: "whitespace-nowrap", render: (p) => fmtDayWord(p.updated_at) },
     ],
     [supplier, sortTitle],
   );
@@ -280,6 +282,12 @@ function InventoryInner() {
 
   const hasFilters = Boolean(q || category || supplierId);
 
+  const clearFilters = () => {
+    setQuery("");
+    setCategory("");
+    setSupplierId("");
+  };
+
   const productsEmpty =
     state.products.length === 0 ? (
       <EmptyState title="אין מוצרים" hint="אפשר להוסיף מוצר או לקלוט סחורה">
@@ -287,19 +295,27 @@ function InventoryInner() {
         <Button variant="secondary" onClick={() => ui.openAction("receive")}>קליטת סחורה</Button>
       </EmptyState>
     ) : q ? (
-      <EmptyState title="לא נמצאו מוצרים" hint={<>עבור <span className="sa-mono ltr">„{query.trim()}”</span></>} />
+      <EmptyState title="לא נמצאו מוצרים" hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
+        <Button variant="secondary" onClick={clearFilters}>ניקוי סינון</Button>
+      </EmptyState>
+    ) : hasFilters ? (
+      <EmptyState title="לא נמצאו מוצרים" hint="אפשר להסיר את הסינון">
+        <Button variant="secondary" onClick={clearFilters}>ניקוי סינון</Button>
+      </EmptyState>
     ) : (
       <EmptyState
-        title={tab === "low" ? "אין מוצרים מתחת למינימום" : tab === "out" ? "אין מוצרים שאזלו" : tab === "reserved" ? "אין מוצרים משוריינים" : tab === "short" ? "אין מוצרים שחסרים להזמנות" : "לא נמצאו מוצרים"}
-        hint={hasFilters ? "אפשר להסיר את הסינון" : undefined}
-      />
+        title={tab === "low" ? "אין מוצרים מתחת למינימום" : tab === "out" ? "אין מוצרים שאזלו" : tab === "reserved" ? "אין מוצרים משוריינים" : "אין מוצרים שחסרים להזמנות"}
+        hint={tab === "low" ? "המלאי מעל המינימום" : tab === "out" ? "לכל מוצר יש מלאי על המדף" : tab === "reserved" ? "מלאי שהזמנה פתוחה משריינת יופיע כאן" : "המדף מכסה את כל ההזמנות"}
+      >
+        <Button variant="secondary" onClick={() => setTab("products")}>כל המוצרים</Button>
+      </EmptyState>
     );
 
   return (
     <div className="sa-page">
       <PageHead
         title="מלאי"
-        sub={<Count n={stats.movementsToday} one="תנועה היום" many="תנועות היום" />}
+        sub={worth > 0 ? <>שווי <span className="ltr">{fmtCompact(worth)}</span> במחירון</> : undefined}
         actions={<Button variant="primary" icon="plus" onClick={() => ui.openAction("new-product")}>מוצר חדש</Button>}
       />
 
@@ -313,18 +329,18 @@ function InventoryInner() {
         }
         query={query}
         onQuery={setQuery}
-        placeholder='חיפוש לפי שם, מק"ט או ברקוד'
+        placeholder='חיפוש לפי שם או מק"ט'
       />
 
       <Table<Product>
         caption="רשימת מוצרים"
-        className={`sa-inventory-table ${HIDE_UPDATED} ${PHONE_PRODUCTS}`}
+        className={`sa-inventory-table ${NARROW_PRODUCTS} ${PHONE_PRODUCTS}`}
         columns={productColumns}
         data={products}
         selectedId={selectedId}
         empty={productsEmpty}
         onRowClick={(p) => ui.openProduct(p.id)}
-        footer={products.length < state.products.length ? <Showing shown={products.length} total={state.products.length} /> : undefined}
+        footer={products.length > 0 && products.length < state.products.length ? <Showing shown={products.length} total={state.products.length} /> : undefined}
       />
     </div>
   );

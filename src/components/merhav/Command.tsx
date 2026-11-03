@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
+import { Fragment, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { cx, Icon, type IconName } from "@/components/ui";
 import type { ActionItem } from "@/components/ui/ActionMenu";
@@ -25,7 +25,7 @@ export interface CommandSearch {
 const HIT_ICON: Record<CommandHit["kind"], IconName> = { product: "package", order: "inbox", supplier: "truck", supplier_item: "tag" };
 
 /** The same words as the rail. */
-const PAGE_WORD: Record<string, string> = { "/3d": "מחסן", "/suppliers": "קטלוג" };
+const PAGE_WORD: Record<string, string> = { "/3d": "מחסן" };
 
 const GROUP = { hit: null, action: "פעולות", page: "עמודים" } as const;
 
@@ -46,8 +46,8 @@ interface CommandProps {
 
 const inField = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select, [role="textbox"], [role="searchbox"], [role="combobox"]'));
 
-/** Whatever is open keeps the keyboard. A row that unfolds in place is not open in this sense, so it asks for a popup. */
-const holdsKeys = () => document.querySelector('dialog[open], [role="dialog"], [aria-modal="true"], [role="menu"], [role="listbox"], [aria-haspopup][aria-expanded="true"]') !== null;
+/** Whatever is open keeps the keyboard. A row that unfolds in place is not open in this sense, so it asks for a popup, and the movements' list is a listbox that simply stands on its page. */
+const holdsKeys = () => document.querySelector('dialog[open], [role="dialog"], [aria-modal="true"], [role="menu"], [role="listbox"]:not(.mh-mv-list), [aria-haspopup][aria-expanded="true"]') !== null;
 
 /** On foot through the model, the letters are steps. */
 const onFoot = () => document.querySelector(".m3d-walkhint") !== null;
@@ -62,7 +62,7 @@ const modelInView = (world: HTMLElement | null) => world !== null && getComputed
 export function Command({ open, onOpen, onClose, search, actions, onAction, pages }: CommandProps): ReactElement | null {
   const router = useRouter();
   const { linesOf } = useData();
-  const { world, itemsOf, spotProduct, spotObjects, aimProduct } = useTwin();
+  const { world, itemsOf, spotOver, aimProduct } = useTwin();
   const scrim = useRef<HTMLDivElement>(null);
   const plate = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -152,27 +152,29 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
     else list.current?.querySelector(".is-at")?.scrollIntoView({ block: "nearest" });
   }, [open, at]);
 
-  // The row you stand on answers on the model: its shelves light, and for a product the line runs out to it.
+  // The row you stand on answers on the model: its shelves light, and for a product the line runs out to it. Only for
+  // as long as you stand there: what the page had lit comes back with the plate gone.
   const standing = open && current?.type === "hit" ? current.hit : null;
   const standingKind = standing?.kind;
   const standingId = standing?.id;
+  const racksOf = useEffectEvent((orderId: string) => linesOf(orderId).flatMap((line) => itemsOf(line.product_id).map((item) => item.objectId)));
   useEffect(() => {
     if (!standingId || !modelInView(world)) return;
     if (standingKind === "product") {
       const row = list.current?.querySelector(".is-at")?.getBoundingClientRect();
       const edge = plate.current?.getBoundingClientRect().left;
-      spotProduct(standingId);
+      spotOver({ product: standingId });
       if (row && edge !== undefined) aimProduct(standingId, { x: edge, y: row.top + row.height / 2 });
       return () => {
-        spotProduct(null);
+        spotOver(null);
         aimProduct(null);
       };
     }
     if (standingKind === "order") {
-      spotObjects(linesOf(standingId).flatMap((line) => itemsOf(line.product_id).map((item) => item.objectId)));
-      return () => spotObjects(null);
+      spotOver({ ids: racksOf(standingId) });
+      return () => spotOver(null);
     }
-  }, [standingKind, standingId, world, spotProduct, spotObjects, aimProduct, itemsOf, linesOf]);
+  }, [standingKind, standingId, world, spotOver, aimProduct]);
 
   const run = (row: Row | undefined) => {
     if (!row) return;
@@ -206,7 +208,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
   const lead = (i: number) => {
     const group = GROUP[rows[i].type];
     const before = i > 0 ? GROUP[rows[i - 1].type] : null;
-    return group && group !== before ? <p key={`group-${group}`} className="mh-command-group" role="presentation">{group}</p> : null;
+    return group && group !== before ? <p className="mh-command-group" role="presentation">{group}</p> : null;
   };
 
   return createPortal(
@@ -233,6 +235,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
               setIndex(0);
             }}
             placeholder='מוצר, מק"ט, הזמנה או ספק'
+            aria-label="חיפוש"
             role="combobox"
             aria-expanded="true"
             aria-controls="mh-command-list"
@@ -243,45 +246,43 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
           />
           <button type="button" className="mh-command-close" onClick={onClose}>סגירה</button>
         </div>
-        <div ref={list} id="mh-command-list" className="mh-command-list" role="listbox">
-          {rows.length === 0 ? <p className="mh-command-empty">לא נמצאו תוצאות</p> : null}
+        {/* A listbox holds options and nothing else, so with none it steps aside and the empty word speaks for itself. */}
+        <div ref={list} id="mh-command-list" className="mh-command-list" role={rows.length > 0 ? "listbox" : undefined} aria-label={rows.length > 0 ? "תוצאות" : undefined}>
+          {rows.length === 0 ? <p className="mh-command-empty" role="status">לא נמצאו תוצאות</p> : null}
           {rows.map((row, i) => {
             const selected = i === at;
-            const common = {
-              id: `mh-command-${i}`,
-              role: "option",
-              tabIndex: -1,
-              "aria-selected": selected,
-              className: cx("mh-command-row", selected && "is-at"),
-              // Move, not enter: a list that scrolls under a resting pointer must not take the row from the keys.
-              onMouseMove: () => setIndex(i),
-              onClick: () => run(row),
-            } as const;
-            if (row.type === "hit") {
-              return [
-                lead(i),
-                <button key={`${row.hit.kind}:${row.hit.id}`} type="button" {...common}>
-                  <Icon name={HIT_ICON[row.hit.kind]} size={16} />
-                  <span className="mh-command-title">{row.hit.title}</span>
-                  <span className="mh-command-sub"><bdi>{row.hit.sub}</bdi></span>
-                </button>,
-              ];
-            }
-            if (row.type === "action") {
-              return [
-                lead(i),
-                <button key={row.item.key} type="button" {...common}>
-                  <Icon name={row.item.icon ?? "plus"} size={16} />
-                  <span className="mh-command-title">{row.item.label}</span>
-                </button>,
-              ];
-            }
-            return [
-              lead(i),
-              <button key={row.href} type="button" {...common}>
-                <span className="mh-command-title">{row.label}</span>
-              </button>,
-            ];
+            const key = row.type === "hit" ? `${row.hit.kind}:${row.hit.id}` : row.type === "action" ? row.item.key : row.href;
+            return (
+              <Fragment key={key}>
+                {lead(i)}
+                <button
+                  id={`mh-command-${i}`}
+                  type="button"
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={selected}
+                  className={cx("mh-command-row", selected && "is-at")}
+                  // Move, not enter: a list that scrolls under a resting pointer must not take the row from the keys.
+                  onMouseMove={() => setIndex(i)}
+                  onClick={() => run(row)}
+                >
+                  {row.type === "hit" ? (
+                    <>
+                      <Icon name={HIT_ICON[row.hit.kind]} size={16} />
+                      <span className="mh-command-title">{row.hit.title}</span>
+                      <span className="mh-command-sub"><bdi>{row.hit.sub}</bdi></span>
+                    </>
+                  ) : row.type === "action" ? (
+                    <>
+                      <Icon name={row.item.icon ?? "plus"} size={16} />
+                      <span className="mh-command-title">{row.item.label}</span>
+                    </>
+                  ) : (
+                    <span className="mh-command-title">{row.label}</span>
+                  )}
+                </button>
+              </Fragment>
+            );
           })}
         </div>
       </div>
