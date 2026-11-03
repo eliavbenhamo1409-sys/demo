@@ -80,6 +80,21 @@ body:has(.cg-root) { background: #ffffff; }
 .cg-search input::placeholder { color: var(--ink-3); opacity: 1; }
 .cg-search:focus-within { color: var(--ink); box-shadow: 0 1px 0 var(--ink); }
 
+/* ── Narrowing down: what the names say, as rows of chips under the bar ── */
+/* Not sticky, even where the bar is: three rows would hold half a phone. They scroll away with the page. */
+.cg-facets { border-bottom: 1px solid var(--rule); }
+.cg-facets__inner { max-width: calc(var(--wide) + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+.cg-facet { display: flex; align-items: center; gap: 24px; min-height: 54px; }
+.cg-facet + .cg-facet, .cg-facet + .cg-found { border-top: 1px solid var(--rule); }
+.cg-facet__label { flex: none; width: 48px; font-size: 13px; font-weight: 400; color: var(--ink-3); }
+.cg-facet__chips { flex: 1; min-width: 0; display: flex; gap: 8px; padding-block: 11px; overflow-x: auto; scrollbar-width: none; }
+.cg-facet__chips::-webkit-scrollbar { display: none; }
+.cg-chip { flex: none; display: inline-flex; align-items: center; min-height: 32px; padding: 0 13px; border: 1px solid var(--rule-2); font-size: 14px; font-weight: 400; color: var(--ink-2); white-space: nowrap; transition: border-color var(--soft), color var(--soft), background var(--soft); }
+@media (hover: hover) { .cg-chip:hover { border-color: var(--ink); color: var(--ink); } }
+.cg-chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+/* How many the rows left, and the one way back to everything. */
+.cg-found { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; font-size: 14px; font-weight: 400; color: var(--ink-3); }
+
 /* ── Product grid ───────────────────────────────────────────── */
 .cg-section { padding: clamp(32px, 3.6vw, 56px) var(--gutter) clamp(72px, 9vw, 128px); }
 .cg-grid { max-width: var(--wide); margin-inline: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(40px, 4.4vw, 72px) clamp(20px, 2.4vw, 40px); }
@@ -99,7 +114,11 @@ body:has(.cg-root) { background: #ffffff; }
 .cg-media.is-out img { opacity: 0.45; }
 .cg-media__out { position: absolute; inset-inline: 0; inset-block-start: 50%; transform: translateY(-50%); padding-block: 9px; background: var(--ink); color: var(--paper); font-size: 16px; font-weight: 500; line-height: 1.25; text-align: center; }
 
-.cg-empty { padding-block: clamp(56px, 8vw, 104px); text-align: center; color: var(--ink-3); font-size: 18px; font-weight: 300; }
+/* An empty list says why and offers the way on, like every other stop here. */
+.cg-empty { padding-block: clamp(56px, 8vw, 104px); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.cg-empty__title { font-size: 22px; font-weight: 300; line-height: 1.2; }
+.cg-empty__text { color: var(--ink-3); font-size: 15px; font-weight: 400; }
+.cg-empty .cg-btn { margin-top: 16px; }
 
 /* ── Product page ───────────────────────────────────────────── */
 .cg-product { padding: calc(var(--header) + clamp(28px, 3.6vw, 56px)) var(--gutter) clamp(80px, 10vw, 140px); }
@@ -275,6 +294,7 @@ html:has(.cg-notice[open]):not(:has(.cg-drawer.is-open)) { overflow: hidden; }
   .cg-nav a { padding-block: 10px; }
   .cg-crumbs a, .cg-product__cat { display: inline-flex; align-items: center; min-height: 44px; margin-block: -11px; }
   .cg-cat { padding-block: 10px; }
+  .cg-chip { min-height: 36px; }
 }
 
 /* ── Motion: things rise once, quietly ──────────────────────── */
@@ -315,6 +335,9 @@ html:has(.cg-notice[open]):not(:has(.cg-drawer.is-open)) { overflow: hidden; }
   .cg-order__status { grid-column: 3; grid-row: 1; }
   .cg-order__chev { grid-column: 4; grid-row: 1; }
   .cg-order__body { padding-inline-start: 70px; padding-inline-end: 0; }
+  .cg-facet { gap: 14px; min-height: 50px; }
+  .cg-facet__label { width: 40px; }
+  .cg-facet__chips { margin-inline-end: calc(-1 * var(--gutter)); padding-inline-end: var(--gutter); padding-block: 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -4,6 +4,7 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { available, useCatalog, type Product } from "@/lib/catalog";
+import { bareName, facetsOf } from "@/lib/catalog/facets";
 import { Notice, NoticeRow } from "@/components/catalog/Notice";
 import { openedFrom, ProductCard, ProductImage } from "@/components/catalog/ProductCard";
 import { Reveal } from "@/components/catalog/Reveal";
@@ -12,6 +13,16 @@ import { Stepper } from "@/components/catalog/Stepper";
 import { fmtName, fmtPrice, fmtQty } from "@/lib/catalog/format";
 
 const RELATED = 3;
+
+const collator = new Intl.Collator("he", { numeric: true });
+
+/** The catalogue narrowed to this product's category and kind: its siblings, one tap away. */
+function kindHref(category: string | null, kind: string): string {
+  const u = new URLSearchParams();
+  if (category) u.set("c", category);
+  u.set("type", kind);
+  return `/catalog?${u.toString()}`;
+}
 
 /** Why this product can't be promised, and what an agent can do about it. Under one unit left counts here too. */
 function nothingFree(p: Product): { title: string; text: string } {
@@ -68,11 +79,22 @@ function Detail({ product: p }: { product: Product }) {
     else router.push("/catalog");
   };
 
+  const kind = facetsOf(p.name).type;
+
+  // The same kind of thing in the sizes next to this one, then the rest of the category, then the catalogue.
   const related = useMemo(() => {
     const others = products.filter((x) => x.id !== p.id && available(x) > 0);
-    const near = others.filter((x) => x.category === p.category);
-    return [...near, ...others.filter((x) => x.category !== p.category)].slice(0, RELATED);
-  }, [products, p.id, p.category]);
+    const siblings = kind ? [...others.filter((x) => facetsOf(x.name).type === kind), p].sort((a, b) => collator.compare(a.name, b.name)) : [p];
+    const at = siblings.indexOf(p);
+    const nearest: Product[] = [];
+    for (let step = 1; nearest.length < siblings.length - 1; step++) {
+      if (siblings[at + step]) nearest.push(siblings[at + step]);
+      if (siblings[at - step]) nearest.push(siblings[at - step]);
+    }
+    const seen = new Set<string>();
+    const fresh = (xs: Product[]) => xs.filter((x) => !seen.has(x.id) && seen.add(x.id));
+    return [...fresh(nearest), ...fresh(others.filter((x) => x.category === p.category)), ...fresh(others)].slice(0, RELATED);
+  }, [products, p, kind]);
 
   return (
     <main className="cg-product">
@@ -82,6 +104,12 @@ function Detail({ product: p }: { product: Product }) {
         {p.category ? (
           <>
             <Link href={`/catalog?c=${encodeURIComponent(p.category)}`}>{p.category}</Link>
+            <span aria-hidden="true">/</span>
+          </>
+        ) : null}
+        {kind && kind !== bareName(p.name) ? (
+          <>
+            <Link href={kindHref(p.category, kind)}>{kind}</Link>
             <span aria-hidden="true">/</span>
           </>
         ) : null}
