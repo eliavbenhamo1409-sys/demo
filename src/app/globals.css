@@ -103,7 +103,8 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
     scrollbar-width: none;
     border-bottom: var(--hair) solid var(--border-base);
   }
-  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item {
+  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item,
+  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-fold > .sa-nav-fold-body > .sa-nav-item {
     width: auto;
     height: 40px;
     flex-shrink: 0;
@@ -113,7 +114,8 @@ body { background: var(--bg-canvas); color: var(--text-primary); font-family: va
     border-bottom: 1.5px solid transparent;
     white-space: nowrap;
   }
-  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { border-bottom-color: var(--border-inverse); }
+  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active,
+  .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-fold > .sa-nav-fold-body > .sa-nav-item.is-active { border-bottom-color: var(--border-inverse); }
   .sa-topbar { position: static; padding-inline: var(--space-4); }
 }
 

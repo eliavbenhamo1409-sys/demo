@@ -235,10 +235,10 @@
 /* Phones: the navigation is a row of tabs on a rule, as in the classic style. */
 @media (max-width: 899px) {
   [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav { padding: 0 var(--space-4); gap: var(--space-5); }
-  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item,
-  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { height: 44px; padding: 0; border-radius: 0; border-bottom-width: 3px; background: none; }
-  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active { color: var(--accent-text); border-bottom-color: var(--accent); }
-  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active > svg { color: inherit; }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item, [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active,
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-fold > .sa-nav-fold-body > .sa-nav-item, [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-fold > .sa-nav-fold-body > .sa-nav-item.is-active { height: 44px; padding: 0; border-radius: 0; border-bottom-width: 3px; background: none; }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active, [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-fold > .sa-nav-fold-body > .sa-nav-item.is-active { color: var(--accent-text); border-bottom-color: var(--accent); }
+  [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-item.is-active > svg, [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav > .sa-nav-fold > .sa-nav-fold-body > .sa-nav-item.is-active > svg { color: inherit; }
   [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot { padding: 0 var(--space-2); flex-direction: row; }
   [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item.is-active, [data-theme^="minimal"] .sa-shell > .sa-sidebar > .sa-nav-foot > .sa-nav-item.is-active > svg { color: var(--accent-text); }
   /* The name scrolls away, the tabs stay. */
