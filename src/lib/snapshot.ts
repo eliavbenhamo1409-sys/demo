@@ -3,7 +3,7 @@
  * what moved, and how long each product will hold. Every ₪ here is a sale price, so the screen
  * says במחירון. Quantities never add up across products; only their worth does.
  */
-import { available, stockState, type Movement, type Product } from "@/lib/store";
+import { available, orderTotal, stockState, type Movement, type Order, type OrderLine, type Product, type Supplier } from "@/lib/store";
 import type { StockState } from "@/lib/map3d/types";
 
 const DAY = 86_400_000;
@@ -48,6 +48,67 @@ export function movedWorth(rows: Movement[], type: "in" | "out", from: number, t
     if (t >= from && t < to) worth += m.qty * (product(m.product_id)?.price ?? 0);
   }
   return worth;
+}
+
+/** This week against the one before, as a whole percent; null with nothing to measure against. */
+export function pctChange(now: number, before: number): number | null {
+  if (before <= 0) return null;
+  return Math.round(((now - before) / before) * 100);
+}
+
+/** One part of a whole: who or what, and its ₪. */
+export type Share = { key: string; label: string; value: number };
+
+/** The key of the line that folds everything after the biggest few into one. */
+export const REST = "__rest";
+
+/** The biggest few of a whole, largest first, and the rest in one line, so a ring stays readable. */
+export function topShares(rows: Share[], keep = 5): Share[] {
+  const sorted = rows.filter((r) => r.value > 0).sort((a, b) => b.value - a.value);
+  if (sorted.length <= keep) return sorted;
+  const rest = sorted.slice(keep).reduce((sum, r) => sum + r.value, 0);
+  return [...sorted.slice(0, keep), { key: REST, label: "אחרים", value: rest }];
+}
+
+export const sumShares = (rows: Share[]): number => rows.reduce((sum, r) => sum + r.value, 0);
+
+const NO_CATEGORY = "ללא קטגוריה";
+
+/** What stands on the shelf in each category, במחירון. */
+export function worthByCategory(products: Product[]): Share[] {
+  const by = new Map<string, number>();
+  for (const p of products) {
+    if (p.price === null || p.qty <= 0) continue;
+    const label = p.category?.trim() || NO_CATEGORY;
+    by.set(label, (by.get(label) ?? 0) + p.qty * p.price);
+  }
+  return [...by].map(([label, value]) => ({ key: label, label, value }));
+}
+
+/** What each customer took, from the orders delivered since `from`, at the prices they were sold at. */
+export function salesByCustomer(orders: Order[], linesOf: (id: string) => OrderLine[], from: number): Share[] {
+  const by = new Map<string, number>();
+  for (const o of orders) {
+    if (o.status !== "delivered" || !o.closed_at || Date.parse(o.closed_at) < from) continue;
+    const total = orderTotal(linesOf(o.id));
+    if (total === null) continue;
+    const label = o.customer.trim();
+    by.set(label, (by.get(label) ?? 0) + total);
+  }
+  return [...by].map(([label, value]) => ({ key: label, label, value }));
+}
+
+/** What came in from each supplier since `from`, במחירון like every ₪ here. */
+export function inBySupplier(rows: Movement[], from: number, product: (id: string) => Product | undefined, supplier: (id: string | null) => Supplier | undefined): Share[] {
+  const by = new Map<string, Share>();
+  for (const m of rows) {
+    if (m.type !== "in" || Date.parse(m.created_at) < from) continue;
+    const key = m.supplier_id ?? "";
+    const share = by.get(key) ?? { key, label: supplier(m.supplier_id)?.name ?? "ללא ספק", value: 0 };
+    share.value += m.qty * (product(m.product_id)?.price ?? 0);
+    by.set(key, share);
+  }
+  return [...by.values()];
 }
 
 export type Runway = {

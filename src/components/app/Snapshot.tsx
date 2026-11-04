@@ -2,7 +2,8 @@
 
 /**
  * The overview, in the order an owner asks: what needs a person now, then the figures, then what is happening.
- * Three chapters, each a word on the desk and what the owner does there, so no sheet has to explain itself. Words and figures, no chart.
+ * Three chapters, each a word on the desk and what the owner does there, so no sheet has to explain itself. Words and figures,
+ * and since 2026-11-04 three rings under the figures, because the owner asked to see the business's shares at a glance.
  */
 import { useMemo, useState, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
@@ -10,8 +11,8 @@ import { available, orderTotal, useData, type Movement as MovementRow } from "@/
 import { useUi } from "@/components/app/ui-state";
 import { Button, Card, EmptyState, MovementQty, Showing } from "@/components/ui";
 import { byPromise, daysUntil, fmtAge, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL } from "@/lib/format";
-import type { Runway } from "@/lib/snapshot";
-import { ProductThumb } from "./Viz";
+import { REST, type Runway, type Share } from "@/lib/snapshot";
+import { percents, ProductThumb, Ring } from "./Viz";
 import "./overview.css";
 
 export type CheckTone = "ok" | "warn" | "bad" | "short" | "none";
@@ -123,6 +124,8 @@ export interface Figure {
   value: ReactNode;
   note?: ReactNode;
   href: string;
+  /** Colours the figure itself: green for what came in. */
+  tone?: CheckTone;
 }
 
 /** The figures after the worries: quiet, in one line, each a link to the page that explains it. */
@@ -132,11 +135,79 @@ export function FigureLine({ figures }: { figures: Figure[] }): ReactElement {
       {figures.map((f) => (
         <Link key={f.key} href={f.href} className="ov-figure">
           <span className="ov-figure-label">{f.label}</span>
-          <span className="ov-figure-n">{f.value}</span>
+          <span className={`ov-figure-n${f.tone ? ` is-${f.tone}` : ""}`}>{f.value}</span>
           {f.note ? <span className="ov-figure-note">{f.note}</span> : null}
         </Link>
       ))}
     </div>
+  );
+}
+
+export interface Pie {
+  key: string;
+  label: string;
+  sub: string;
+  /** Largest first; the last may be the fold of the rest. */
+  slices: Share[];
+  total: number;
+  /** Under the total in the middle: how many things make it up. */
+  caption: string;
+  href: string;
+  /** Said when there is nothing to draw. */
+  empty: string;
+  loading: boolean;
+}
+
+/** The palette's place for a part: handed out in order, never cycled, and the fold of the rest in grey. */
+const hueOf = (s: Share, i: number) => (s.key === REST ? "var(--pie-other)" : `var(--pie-${i + 1})`);
+
+/** One ring and its legend, largest part first with its share; pointing at a row or a part reads its share and its ₪ in the middle. */
+function PiePanel({ pie }: { pie: Pie }): ReactElement {
+  const [active, setActive] = useState<number | null>(null);
+  const slices = useMemo(() => pie.slices.map((s, i) => ({ ...s, color: hueOf(s, i) })), [pie.slices]);
+  const shares = useMemo(() => percents(pie.slices.map((s) => s.value)), [pie.slices]);
+  return (
+    <div className="ov-pie">
+      <Link href={pie.href} className="ov-pie-head">
+        <span className="ov-pie-label">{pie.label}</span>
+        <span className="ov-pie-sub">{pie.sub}</span>
+      </Link>
+      {pie.loading ? (
+        <div className="ov-pie-body" aria-hidden="true"><span className="ov-ring is-skeleton" /></div>
+      ) : pie.total <= 0 ? (
+        <p className="ov-pie-empty">{pie.empty}</p>
+      ) : (
+        <div className="ov-pie-body">
+          <Ring
+            slices={slices}
+            shares={shares}
+            total={pie.total}
+            caption={pie.caption}
+            active={active}
+            onActive={setActive}
+            label={`${pie.label}, ${pie.sub}: ${slices.map((s, i) => `${s.label} ${shares[i]}%`).join(", ")}`}
+          />
+          <ul className="ov-pie-legend">
+            {slices.map((s, i) => (
+              <li key={s.key} className={active === i ? "is-active" : undefined} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}>
+                <i style={{ background: s.color }} aria-hidden="true" />
+                <span className="ov-pie-name">{s.label}</span>
+                <span className="ov-pie-pct ltr">{shares[i]}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Three rings on one sheet under the figures: where the stock's worth stands, who bought, who supplied. */
+export function PieSheet({ pies }: { pies: Pie[] }): ReactElement {
+  return (
+    <Card flush className="ov-pies">
+      {pies.map((p) => <PiePanel key={p.key} pie={p} />)}
+    </Card>
   );
 }
 

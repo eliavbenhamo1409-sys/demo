@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { available, useData, type AttentionEntry } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
-import { Activity, AttentionBoard, FigureLine, OpenOrders, RunningOut, runwayFigure, runwayMeta, Section, type CheckTone, type Figure, type Lane, type LaneRow } from "@/components/app/Snapshot";
+import { Activity, AttentionBoard, FigureLine, OpenOrders, PieSheet, RunningOut, runwayFigure, runwayMeta, Section, type CheckTone, type Figure, type Lane, type LaneRow, type Pie } from "@/components/app/Snapshot";
 import { Notice, PageHead } from "@/components/ui";
 import { daysUntil, fmtAge, fmtCompact, fmtName, fmtQty, fmtToday } from "@/lib/format";
 import { useDismissedAlerts } from "@/lib/dismissed-alerts";
 import { DEFAULT_OBJECTS } from "@/lib/map3d/layout";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
-import { movedWorth, PACE_DAYS, runway, shelfWorth, type Runway } from "@/lib/snapshot";
+import { inBySupplier, movedWorth, PACE_DAYS, pctChange, runway, salesByCustomer, shelfWorth, sumShares, topShares, worthByCategory, type Runway } from "@/lib/snapshot";
 import { splitTheme, useTheme } from "@/lib/theme";
 import { ControlRoom } from "@/components/app/dashboard/ControlRoom";
 
@@ -23,8 +23,20 @@ const RUNNING_OUT = 5;
 
 const count = (n: number, one: string, many: string) => `${fmtQty(n)} ${n === 1 ? one : many}`;
 
+/** A week's figure against the week before, as a signed percent in its colour; with no week before to measure against, that week's sum. */
+function weekNote(now: number, before: number): ReactNode {
+  const change = pctChange(now, before);
+  if (change === null) return <>שבוע קודם <span className="ltr">{fmtCompact(before)}</span></>;
+  const sign = change > 0 ? "+" : change < 0 ? "−" : "";
+  return (
+    <>
+      <span className={`ltr ${change > 0 ? "is-up" : change < 0 ? "is-down" : ""}`}>{`${sign}${fmtQty(Math.abs(change))}%`}</span> משבוע קודם
+    </>
+  );
+}
+
 function OwnerOverview() {
-  const { state, stats, attention, product, linesOf } = useData();
+  const { state, stats, attention, product, supplier, linesOf } = useData();
   const { openAction, openFault, openProduct } = useUi();
   const { dismissed, dismiss } = useDismissedAlerts();
   const isLoading = state.status === "loading";
@@ -165,17 +177,33 @@ function OwnerOverview() {
       key: "out",
       label: "יצא השבוע",
       value: <span className="ltr">{fmtCompact(flow.outWeek)}</span>,
-      note: <>שבוע קודם <span className="ltr">{fmtCompact(flow.outWeekBefore)}</span></>,
+      note: weekNote(flow.outWeek, flow.outWeekBefore),
       href: "/movements?period=week",
     },
     {
       key: "in",
       label: "נכנס השבוע",
       value: <span className="ltr">{fmtCompact(flow.inWeek)}</span>,
-      note: <>שבוע קודם <span className="ltr">{fmtCompact(flow.inWeekBefore)}</span></>,
+      note: weekNote(flow.inWeek, flow.inWeekBefore),
       href: "/movements?period=week",
+      tone: "ok",
     },
   ];
+
+  /* ───────── the rings: a whole and its parts ───────── */
+  const pies = useMemo<Pie[]>(() => {
+    const stock = topShares(worthByCategory(state.products));
+    const sales = topShares(salesByCustomer(state.orders, linesOf, since));
+    const bought = topShares(inBySupplier(month, since, product, supplier));
+    const categories = new Set(state.products.filter((p) => p.price !== null && p.qty > 0).map((p) => p.category?.trim() || "")).size;
+    const delivered = state.orders.filter((o) => o.status === "delivered" && o.closed_at && Date.parse(o.closed_at) >= since).length;
+    const suppliers = new Set(month.filter((m) => m.type === "in" && Date.parse(m.created_at) >= since).map((m) => m.supplier_id ?? "")).size;
+    return [
+      { key: "stock", label: "שווי המלאי", sub: "לפי קטגוריה · במחירון", slices: stock, total: sumShares(stock), caption: count(categories, "קטגוריה", "קטגוריות"), href: "/inventory", empty: "אין מלאי עם מחיר", loading: isLoading },
+      { key: "sales", label: "מכירות", sub: "לפי לקוח · בחודש האחרון", slices: sales, total: sumShares(sales), caption: count(delivered, "הזמנה נמסרה", "הזמנות נמסרו"), href: "/orders?status=delivered", empty: "לא נמסרו הזמנות בחודש האחרון", loading: isLoading },
+      { key: "bought", label: "נכנס מספקים", sub: "לפי ספק · בחודש האחרון · במחירון", slices: bought, total: sumShares(bought), caption: count(suppliers, "ספק", "ספקים"), href: "/suppliers", empty: "לא נקלטה סחורה בחודש האחרון", loading: isLoading || monthLoading },
+    ];
+  }, [state.products, state.orders, month, since, linesOf, product, supplier, isLoading, monthLoading]);
 
   const quiet = lanes.every((l) => l.count === 0);
 
@@ -189,6 +217,7 @@ function OwnerOverview() {
 
       <Section label="המספרים" ask="רק לדעת · כל מספר פותח את הפירוט שלו">
         <FigureLine figures={figures} />
+        <PieSheet pies={pies} />
         {monthFailed ? (
           <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
             הסכומים מחושבים רק לפי מה שנטען

@@ -50,6 +50,11 @@
 .ov-figure-note .is-ok { color: var(--success-text); font-weight: 500; }
 .ov-figure-note .is-warn { color: var(--warning-text); font-weight: 500; }
 .ov-figure-note .is-short { color: var(--short); font-weight: 500; }
+/* The week against the week before: up in green, down in red, on the percent alone. */
+.ov-figure-note .is-up { color: var(--success-text); font-weight: 500; }
+.ov-figure-note .is-down { color: var(--danger-text); font-weight: 500; }
+/* What came in is green on the figure itself, as the owner asked. */
+.ov-figure-n.is-ok { color: var(--success-text); }
 @media (hover: hover) { .ov-figure:hover .ov-figure-n { color: var(--accent-text); } }
 /* The strip stands between sheets, so it takes their cut. */
 @supports (corner-shape: squircle) {
@@ -63,6 +68,51 @@
   /* Half a card is too narrow for a note in one line: it wraps, so its exception is never the part that gets cut. */
   .ov-figure-note { white-space: normal; text-wrap: pretty; }
   .ov-figure-note > span { white-space: nowrap; }
+}
+
+/* ── Three rings under the figures: where the stock's worth stands, who bought, who supplied ── */
+/* Five parts in a fixed order and the rest in grey. Both sets were checked for colour blindness and contrast on their sheet (dataviz validator, 2026-11-04). */
+.ov-pies { --pie-1: #0071e3; --pie-2: #eb6834; --pie-3: #1baf7a; --pie-4: #eda100; --pie-5: #e87ba4; --pie-other: var(--chart-other, #c7c7cc); }
+:root:is([data-theme="dark"], [data-theme="minimal-dark"]) .ov-pies { --pie-1: #0a84ff; --pie-2: #d95926; --pie-3: #199e70; --pie-4: #c98500; --pie-5: #d55181; --pie-other: var(--chart-other, #636366); }
+.ov-pies > .sa-card-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; }
+.ov-pie { container-type: inline-size; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--ov-inset); }
+.ov-pie + .ov-pie { border-inline-start: var(--hair) solid var(--border-subtle); }
+.ov-pie-head { display: flex; flex-direction: column; align-self: flex-start; color: inherit; text-decoration: none; border-radius: var(--radius-sm); }
+.ov-pie-head:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
+.ov-pie-label { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); }
+@media (hover: hover) { .ov-pie-head:hover .ov-pie-label { color: var(--accent-text); } }
+.ov-pie-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.ov-pie-empty { margin: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.ov-pie-body { display: flex; align-items: center; gap: var(--space-4); }
+/* A narrow panel stands the legend under the ring instead of beside it. */
+@container (max-width: 319px) {
+  .ov-pie-body { flex-direction: column; align-items: stretch; }
+  .ov-pie-body > .ov-ring { align-self: center; }
+}
+
+/* The ring: a 14px stroke, a 2px gap of sheet between parts, the total in the middle. It draws itself once, part by part. */
+.ov-ring { position: relative; flex-shrink: 0; width: 128px; height: 128px; }
+.ov-ring > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.ov-ring-hit { fill: none; stroke: transparent; stroke-width: 28px; pointer-events: stroke; }
+.ov-ring-arc { fill: none; stroke-width: 14px; pointer-events: none; stroke-dasharray: 1; animation: ov-ring-draw 480ms var(--ease) backwards; animation-delay: calc(var(--i, 0) * 50ms); transition: stroke-width var(--dur-1) linear, opacity var(--dur-1) linear; }
+.ov-ring-arc.is-active { stroke-width: 18px; }
+.ov-ring.has-active .ov-ring-arc:not(.is-active) { opacity: 0.5; }
+@keyframes ov-ring-draw { from { stroke-dashoffset: 1; } }
+.ov-ring-centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; pointer-events: none; }
+.ov-ring-total { font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); white-space: nowrap; }
+.ov-ring-caption { font-size: var(--t-12); line-height: var(--l-16); color: var(--text-tertiary); white-space: nowrap; }
+.ov-ring.is-skeleton { border-radius: 50%; border: 14px solid var(--bg-muted); }
+
+/* The legend: a dot in the part's colour, the name, and its share in ink at the far edge; the ₪ reads in the middle on hover, so no name has to give way to it. */
+.ov-pie-legend { flex: 1; min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.ov-pie-legend > li { display: flex; align-items: center; gap: var(--space-2); min-height: 24px; padding-inline: 6px; margin-inline: -6px; border-radius: var(--radius-sm); font-size: var(--t-13); line-height: var(--l-18); transition: background-color var(--dur-1) linear; }
+.ov-pie-legend > li.is-active { background: var(--bg-hover); }
+.ov-pie-legend i { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
+.ov-pie-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--text-primary); }
+.ov-pie-pct { flex-shrink: 0; min-width: 34px; text-align: end; font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+@media (max-width: 899px) {
+  .ov-pies > .sa-card-body { grid-template-columns: minmax(0, 1fr); }
+  .ov-pie + .ov-pie { border-inline-start: 0; border-top: var(--hair) solid var(--border-subtle); }
 }
 
 :is(.ov-fig-n, .ov-fig-word).is-ok { color: var(--success-text); }
@@ -114,4 +164,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .viz-spark > span { animation: none; }
+  .ov-ring-arc { animation: none; }
 }
