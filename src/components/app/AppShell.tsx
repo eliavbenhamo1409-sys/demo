@@ -17,7 +17,7 @@ import { PageHead } from "@/components/ui/PageHead";
 import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { MillShell } from "@/components/mill/MillShell";
 import { useMill } from "@/components/mill/use-mill";
-import { useMerhav, useMerhavShell } from "@/components/merhav/use-merhav";
+import { useMerhav, useMerhavShell, useMerhavVariant } from "@/components/merhav/use-merhav";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { findCommands, type CommandHit } from "./command-search";
@@ -106,6 +106,8 @@ function ShellInner({ children }: { children: ReactNode }) {
   const router = useRouter();
   const mill = useMill();
   const merhavShell = useMerhavShell(useMerhav());
+  // מרחב 2 gives תיעוד and צוות rows of their own, so the settings row is no longer their mark.
+  const fiveAreas = useMerhavVariant() === "merhav2";
   const { theme } = useTheme();
 
   /* ───────── sidebar ───────── */
@@ -332,7 +334,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const foot = (
     <>
-      <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={SETTINGS_PAGES.some((p) => p.key === active)} />
+      <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={!fiveAreas && SETTINGS_PAGES.some((p) => p.key === active)} />
       <NavItem icon="log-out" onClick={onLogOut}>יציאה</NavItem>
     </>
   );

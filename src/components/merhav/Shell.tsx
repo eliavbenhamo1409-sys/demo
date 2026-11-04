@@ -25,7 +25,11 @@ import { Leader } from "./twin/Leader";
 import { PanelFocus } from "./twin/PanelFocus";
 import { Tags } from "./twin/Tags";
 import { TwinProvider, type Door } from "./twin/Twin";
+import { useMerhavVariant } from "./use-merhav";
+import { AreaBar, Rail as FiveAreas } from "@/components/merhav2/Rail";
+import { allPages, pageWord } from "@/components/merhav2/areas";
 import "@/design/merhav/index.css";
+import "@/design/merhav2/index.css";
 
 export interface MerhavShellProps {
   items: RailItem[];
@@ -72,6 +76,7 @@ const OWN: Record<string, ComponentType<{ shared: ReactNode }>> = {
 export function MerhavShell({ items, active, foot, morePages, actions, onAction, search, offline, page, overlays }: MerhavShellProps): ReactElement {
   const { state } = useData();
   const pathname = usePathname();
+  const variant = useMerhavVariant();
   const [commandOpen, setCommandOpen] = useState(false);
   // An address with no page reaches here as "overview": it gets the shared 404 on a closed door, not סקירה under a wrong address.
   const known = pathname === "/" || active !== "overview";
@@ -138,12 +143,14 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
   const ready = state.status === "ready";
   const content = state.status === "loading" ? <div className="mh-calibrate" role="status" aria-label="טוען נתונים" /> : !ready || !Own ? page : <Own shared={page} />;
 
+  // מרחב 2 lists its pages by area; מרחב by its rail's order.
   const { areas, rest } = railOrder(items);
-  const pages = [...areas, ...rest].map((item) => ({ label: item.label, href: item.href })).concat(morePages);
+  const pages = variant === "merhav2" ? allPages() : [...areas, ...rest].map((item) => ({ label: item.label, href: item.href })).concat(morePages);
+  const TheRail = variant === "merhav2" ? FiveAreas : Rail;
 
   // Each page names its own browser tab, and a screen reader says that name as the page turns. Next writes the site's
   // one title back after every turn, so the name is held rather than set once.
-  const pageName = WORDS[active] ?? pages.find((p) => p.href === pathname)?.label;
+  const pageName = variant === "merhav2" ? (known ? pageWord(active) : undefined) : (WORDS[active] ?? pages.find((p) => p.href === pathname)?.label);
   useEffect(() => {
     if (!pageName) return;
     const name = `${pageName} · ניהול מלאי`;
@@ -159,7 +166,7 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
   return (
     <TwinProvider door={door}>
       {(world) => (
-        <div className="mh-app" data-door={door} data-route={active} data-drawer-left={drawerLeft || undefined}>
+        <div className="mh-app" data-door={door} data-route={active} data-variant={variant} data-drawer-left={drawerLeft || undefined}>
           <a
             className="mh-skip"
             href="#mh-main"
@@ -171,9 +178,10 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
             דילוג לתוכן
           </a>
           {/* Each of these is placed by its own layer, so this order is the keyboard's alone: the rail, the model's controls, the page. */}
-          <Rail
+          {/* An address no page owns marks no row: the rail gets no key to find. */}
+          <TheRail
             items={items}
-            active={active}
+            active={known ? active : ""}
             foot={foot}
             offline={offline}
             onSearch={() => openCommand()}
@@ -192,11 +200,14 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
           <Leader />
           <main ref={mainNode} id="mh-main" className="mh-stage" tabIndex={-1}>
             {door === "dock" ? <DoorHandle /> : null}
-            <div ref={pageNode} key={pathname} className="mh-page">{content}</div>
+            <div ref={pageNode} key={pathname} className="mh-page">
+              {variant === "merhav2" && known ? <AreaBar items={items} active={active} /> : null}
+              {content}
+            </div>
           </main>
           {overlays}
           <PanelKeys />
-          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} />
+          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={variant === "merhav2" ? {} : undefined} />
         </div>
       )}
     </TwinProvider>

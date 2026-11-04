@@ -42,6 +42,8 @@ interface CommandProps {
   actions: ActionItem[];
   onAction: (key: string) => void;
   pages: { label: string; href: string }[];
+  /** This style's words for pages the rail names differently; מרחב 2 passes none, its labels already carry the area's word. */
+  pageWords?: Record<string, string>;
 }
 
 const inField = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select, [role="textbox"], [role="searchbox"], [role="combobox"]'));
@@ -59,7 +61,7 @@ const modelInView = (world: HTMLElement | null) => world !== null && getComputed
  * The search is nowhere until it is wanted: anywhere in the admin, just start typing. One plate holds what the words
  * find and what can be done, and walking through the results lights their shelves on the model as you go.
  */
-export function Command({ open, onOpen, onClose, search, actions, onAction, pages }: CommandProps): ReactElement | null {
+export function Command({ open, onOpen, onClose, search, actions, onAction, pages, pageWords = PAGE_WORD }: CommandProps): ReactElement | null {
   const router = useRouter();
   const { linesOf } = useData();
   const { world, itemsOf, spotOver, aimProduct } = useTwin();
@@ -104,7 +106,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
   }, [open, onOpen, onClose]);
 
   const rows = useMemo<Row[]>(() => {
-    const named = pages.map((p) => ({ ...p, label: PAGE_WORD[p.href] ?? p.label, also: p.label }));
+    const named = pages.map((p) => ({ ...p, label: pageWords[p.href] ?? p.label, also: p.label }));
     const q = query.trim();
     if (q) {
       return [
@@ -114,7 +116,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
       ];
     }
     return [...actions.map((item): Row => ({ type: "action", item })), ...named.map(({ label, href }): Row => ({ type: "page", label, href }))];
-  }, [query, hits, actions, pages]);
+  }, [query, hits, actions, pages, pageWords]);
 
   const at = Math.min(index, Math.max(rows.length - 1, 0));
   const current = rows[at];

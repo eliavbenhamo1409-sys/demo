@@ -1,0 +1,43 @@
+/* מרחב 2: מרחב's world, door and pages, with five words on the rail and each area's pages in a line under its word.
+   Shell.tsx imports this after מרחב's own index.css, and every rule hooks on html[data-merhav2], the mark the theme store
+   sets only while מרחב 2 is chosen on the admin, so מרחב itself never sees a rule of it. */
+
+html[data-merhav2] {
+  /* ── The rail: an area is its word on the scale and the pages it holds under it ── */
+  .m2-area { display: flex; flex-direction: column; }
+  .m2-area[data-here] > .mh-nav-row { color: var(--text-primary); font-weight: 600; }
+  .m2-views { display: flex; flex-wrap: wrap; gap: 0 14px; padding: 0 0 10px; padding-inline-end: 26px; margin-top: -6px; }
+  .m2-view { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; color: var(--text-tertiary); font-size: var(--t-13); line-height: var(--l-18); text-decoration: none; transition: color var(--dur-2) var(--ease); }
+  .m2-view:hover { color: var(--text-primary); }
+  .m2-view[aria-current="page"] { color: var(--accent-text); font-weight: 600; }
+  .m2-view:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); border-radius: var(--radius-sm); }
+  .m2-view-count { font-size: var(--t-12); line-height: var(--l-16); color: var(--text-quiet); font-variant-numeric: tabular-nums; }
+  /* A tick for every area, none for its pages; the carriage rides between the words. */
+  .m2-nav .mh-nav-row::after { top: 50%; }
+  .m2-areabar { display: none; }
+}
+
+/* On a phone the five words stand on the bar; the area's pages stand over the page on one ruled line, the sheet keeps only the foot. */
+@media (max-width: 899px) {
+  html[data-merhav2] {
+    .mh-rail > .mh-nav { display: none; }
+    .m2-areabar { display: block; padding: 12px var(--mh-gutter) 0; }
+    .m2-seg { display: flex; gap: 22px; box-shadow: inset 0 -1px 0 var(--border-base); }
+    .m2-seg-item { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 40px; color: var(--text-tertiary); font-size: var(--t-15); line-height: var(--l-20); text-decoration: none; }
+    .m2-seg-item[aria-current="page"] { color: var(--text-primary); font-weight: 500; box-shadow: inset 0 -2px 0 var(--accent); }
+    .m2-seg-count { font-size: var(--t-13); color: var(--text-quiet); }
+    /* The bar holds the search, five words and עוד, so each stop takes a narrower share. */
+    .mh-stop { min-width: 40px; }
+    /* מחסן's ledger is cut to the window; the row over it takes its own height off the cut, or its last rows hide under the bar. */
+    .mh-page:has(> .m2-areabar) .mh-wh { height: calc(100dvh - var(--mh-band) - var(--mh-foot) - 52px); }
+  }
+}
+/* A touch tablet in landscape keeps the rail: a view word takes a finger's height like every other control there. */
+@media (hover: none) and (min-width: 900px) {
+  html[data-merhav2] .m2-view { min-height: 44px; }
+  html[data-merhav2] .m2-views { gap: 0 18px; padding-bottom: 4px; margin-top: -10px; }
+}
+@media (max-width: 420px) {
+  html[data-merhav2] .mh-bar-seek span { display: none; }
+  html[data-merhav2] .mh-bar-seek { padding-inline: var(--mh-gutter) 8px; }
+}
