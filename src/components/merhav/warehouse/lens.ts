@@ -5,7 +5,8 @@
 
 import { fmtName } from "@/lib/format";
 import { DISPATCH_ZONE, RECEIVING_ZONE, shelfAnchor } from "@/lib/map3d/layout";
-import { shelfLines, type MapItem, type MapModel, type ShelfBlock } from "@/lib/map3d/model";
+import { blockAt, shelfLines, type MapItem, type MapModel, type ShelfBlock } from "@/lib/map3d/model";
+import { blockSpot, type Spot } from "@/lib/map3d/piles";
 import { resolvePlace } from "@/lib/map3d/place";
 import { routeBetween } from "@/lib/map3d/route";
 import type { MapObject, MapRoute, PickHit } from "@/lib/map3d/types";
@@ -137,10 +138,14 @@ export function aimOf(row: Element, data: LensData): Aim | null {
 }
 
 /** The point on the model a line ends at. */
-export function pointOf(hit: PickHit, objects: readonly MapObject[]): { x: number; y: number; z: number } | null {
+export function pointOf(hit: PickHit, objects: readonly MapObject[], model?: MapModel): Spot | null {
   const object = objects.find((o) => o.id === hit.objectId);
   if (!object) return null;
-  // A shelf is reached at its near end, where the line crosses no tag.
-  if (hit.level !== null && object.kind === "rack") return { ...shelfAnchor(object, hit.level, hit.side ?? null, hit.through ?? hit.level), x: hit.side === "left" ? object.x : object.x + object.w / 2 };
+  if (hit.level !== null && object.kind === "rack") {
+    // The stock itself, where its tag stands. An empty shelf is reached at its near end, where the line crosses no tag.
+    const block = model ? blockAt(model, hit) : null;
+    const spot = block && model ? blockSpot(model, object, block) : null;
+    return spot ?? { ...shelfAnchor(object, hit.level, hit.side ?? null, hit.through ?? hit.level), x: hit.side === "left" ? object.x : object.x + object.w / 2 };
+  }
   return { x: object.x, y: object.kind === "zone" ? 0 : object.h, z: object.z };
 }

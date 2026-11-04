@@ -1,5 +1,5 @@
 import { Vector3, type PerspectiveCamera } from "three";
-import type { LabelAnchor } from "../types";
+import type { LabelAnchor, ScenePoint } from "../types";
 
 interface Glued {
   anchor: LabelAnchor;
@@ -14,6 +14,22 @@ const AWAY = -9999;
 
 const point = new Vector3();
 
+/** Of the faces a label may stand on, the one that looks most at the eye; a face seen from behind still loses to one seen edge-on. */
+function facing(anchor: LabelAnchor, eye: Vector3): ScenePoint {
+  if (!anchor.faces || anchor.faces.length === 0) return anchor;
+  let best: ScenePoint = anchor.faces[0];
+  let most = Number.NEGATIVE_INFINITY;
+  for (const face of anchor.faces) {
+    point.set(eye.x - face.x, eye.y - face.y, eye.z - face.z).normalize();
+    const look = face.nx * point.x + face.ny * point.y + face.nz * point.z;
+    if (look > most) {
+      most = look;
+      best = face;
+    }
+  }
+  return best;
+}
+
 /** Projects anchors to the stage's CSS pixels and writes only style.transform, in the tick, with no layout read. */
 export class Labels {
   private glued: Glued[] = [];
@@ -25,7 +41,8 @@ export class Labels {
   update(camera: PerspectiveCamera, width: number, height: number, pixelRatio: number): void {
     for (const label of this.glued) {
       const { anchor } = label;
-      point.set(anchor.x, anchor.y, anchor.z).project(camera);
+      const spot = facing(anchor, camera.position);
+      point.set(spot.x, spot.y, spot.z).project(camera);
       const hidden = Math.abs(point.z) > 1;
       const x = hidden ? AWAY : Math.round((((point.x + 1) / 2) * width + Number.EPSILON) * pixelRatio) / pixelRatio;
       const y = hidden ? AWAY : Math.round((((1 - point.y) / 2) * height + Number.EPSILON) * pixelRatio) / pixelRatio;

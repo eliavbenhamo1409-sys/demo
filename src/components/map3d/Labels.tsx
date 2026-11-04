@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { cx } from "@/components/ui";
+import type { Spot } from "@/lib/map3d/piles";
 import type { LabelAnchor, MapEngine, MapObject, PickHit } from "@/lib/map3d/types";
 
 export interface LabelView {
@@ -25,8 +26,8 @@ export interface LabelView {
   name?: string;
   shelf?: string;
   qty?: string;
-  /** Where it stands, when that isn't above its object. */
-  at?: { x: number; y: number; z: number };
+  /** Where it stands, when that isn't above its object: on a pile, the face the camera comes to face. */
+  at?: Spot;
   /** What a click on it selects. */
   hit?: PickHit;
 }
@@ -53,10 +54,13 @@ interface LabelsProps {
 }
 
 
+const pointKey = (p: { x: number; y: number; z: number }) => `${p.x},${p.y},${p.z}`;
+const spotKey = (at: Spot | undefined) => (at ? [pointKey(at), ...(at.faces ?? []).map(pointKey)].join(";") : "");
+
 /** React owns the content, the engine only moves each node. Labels leave the tab order: the rail is the keyboard path. */
 export function Labels({ engine, objects, views, flashes, selectedId, selectedKey, hoverId, emphasis, plan, onPick }: LabelsProps) {
   const nodes = useRef(new Map<string, HTMLDivElement>());
-  const spots = views.map((v) => `${v.id}:${v.at?.x}:${v.at?.y}:${v.at?.z}`).join("|");
+  const spots = views.map((v) => `${v.id}:${spotKey(v.at)}`).join("|");
 
   useEffect(() => {
     if (!engine) return;
@@ -82,6 +86,7 @@ export function Labels({ engine, objects, views, flashes, selectedId, selectedKe
         return (
           <div
             key={v.id}
+            data-key={v.id}
             ref={(el) => {
               if (el) nodes.current.set(v.id, el);
               else nodes.current.delete(v.id);

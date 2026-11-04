@@ -137,12 +137,25 @@ export interface PickHit {
   through?: number;
 }
 
-/** A DOM node the engine keeps glued to a point in the scene. React owns the content, the engine only writes style.transform. */
-export interface LabelAnchor {
-  el: HTMLElement;
+/** A point in the scene, in metres. */
+export interface ScenePoint {
   x: number;
   y: number;
   z: number;
+}
+
+/** The middle of a face, with the face's outward normal. */
+export interface SceneFace extends ScenePoint {
+  nx: number;
+  ny: number;
+  nz: number;
+}
+
+/** A DOM node the engine keeps glued to a point in the scene. React owns the content, the engine only writes style.transform. */
+export interface LabelAnchor extends ScenePoint {
+  el: HTMLElement;
+  /** The faces of a pile it may stand on instead of the point: each frame it takes the one that looks most at the eye. */
+  faces?: readonly SceneFace[];
 }
 
 export type MapPoint = readonly [x: number, z: number];

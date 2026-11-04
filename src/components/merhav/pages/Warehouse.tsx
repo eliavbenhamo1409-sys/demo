@@ -33,7 +33,7 @@ import { blockAt, buildMapModel, emptySpot } from "@/lib/map3d/model";
 import { placeKey, resolvePlace } from "@/lib/map3d/place";
 import { useShelves } from "@/lib/map3d/shelves";
 import { buildTrail, qtyAt, TRAIL_WINDOW, type PastQty } from "@/lib/map3d/trail";
-import type { Insets, LabelAnchor, MapEngine, MapObject, MapObjectKind, MapRoute, PickHit, ViewMode } from "@/lib/map3d/types";
+import type { Insets, LabelAnchor, MapEngine, MapObject, MapObjectKind, MapRoute, PickHit, ScenePoint, ViewMode } from "@/lib/map3d/types";
 import { isTempId, stockState, useData, type Movement, type Product } from "@/lib/store";
 import { Figure } from "../Figure";
 import { BackHome } from "../twin/BackHome";
@@ -96,7 +96,7 @@ function oneTagEach(views: readonly LabelView[], faults: ReadonlySet<string>): L
 /** How much of a shelf's height one tag takes close up. */
 const TAG_STEP = 0.2;
 
-/** Close up, products that share a shelf stack their tags over its middle, because side by side along it they cover each other. */
+/** Close up, three or more products on one shelf stand in lanes too thin for a tag each, so their tags step up from the stock, one over the other. */
 function stackedTags(views: readonly LabelView[], rack: MapObject): LabelView[] {
   const shelves = new Map<string, LabelView[]>();
   for (const view of views) {
@@ -108,9 +108,10 @@ function stackedTags(views: readonly LabelView[], rack: MapObject): LabelView[] 
   const moved = new Map<string, LabelView>();
   for (const row of shelves.values()) {
     if (row.length < 3) continue;
-    const middle = row.reduce((sum, view) => sum + (view.at?.x ?? 0), 0) / row.length;
     row.forEach((view, i) => {
-      if (view.at) moved.set(view.id, { ...view, at: { ...view.at, x: middle, y: view.at.y + i * step } });
+      if (!view.at) return;
+      const lift = <T extends ScenePoint>(point: T): T => ({ ...point, y: point.y + i * step });
+      moved.set(view.id, { ...view, at: { ...lift(view.at), faces: view.at.faces?.map(lift) } });
     });
   }
   return views.map((view) => moved.get(view.id) ?? view);
@@ -516,7 +517,10 @@ function WarehouseInner(): ReactElement {
   // The shelf that stands open on the door stays tied to its line; a row under the pointer borrows it.
   const [reachEl, setReachEl] = useState<HTMLElement | null>(null);
   const reached = peek ? peek.hit : closeView && selectedBlock ? selection : null;
-  const point = useMemo(() => (reached ? pointOf(reached, objects) : null), [reached, objects]);
+  const point = useMemo(() => (reached ? pointOf(reached, objects, model) : null), [reached, objects, model]);
+  // The tag that stands on that stock, so the line stops at its edge.
+  const reachedKey = useMemo(() => (reached ? (peek?.block ?? blockAt(model, reached))?.key ?? null : null), [reached, peek, model]);
+  const cardOf = useCallback(() => (reachedKey && world ? world.querySelector(`.m3d-label[data-key="${CSS.escape(reachedKey)}"] .m3d-tag`) : null), [reachedKey, world]);
   const peekedRow = peek ? peek.row : undefined;
   const rowOf = useCallback(() => (peekedRow === undefined ? (railRef.current?.querySelector(".m3d-shelfblock.is-open > .m3d-shelf") ?? null) : peekedRow), [peekedRow]);
   useEffect(() => {
@@ -756,7 +760,7 @@ function WarehouseInner(): ReactElement {
                   />
                 </div>
               ) : null}
-              {reachEl && reached ? <Reach key={`${reached.objectId}/${reached.level}/${reached.side ?? ""}/${peek ? "peek" : "open"}`} world={world} rail={railRef} row={rowOf} anchor={reachEl} /> : null}
+              {reachEl && reached ? <Reach key={`${reached.objectId}/${reached.level}/${reached.side ?? ""}/${peek ? "peek" : "open"}`} world={world} rail={railRef} row={rowOf} anchor={reachEl} card={cardOf} /> : null}
               {failed ? <Notice className="m3d-fail" title="המפה לא זמינה בדפדפן הזה">הרשימה ממשיכה לעבוד</Notice> : null}
               {!failed && !editing ? (
                 <div className="m3d-corner" onKeyUp={peekResult} onPointerOver={peekResult} onPointerLeave={() => setPeek(null)} onBlur={() => setPeek(null)} onClickCapture={() => setPeek(null)}>

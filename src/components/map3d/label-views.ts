@@ -1,6 +1,7 @@
 import { fmtPrice, fmtQty } from "@/lib/format";
 import { shelfAnchor } from "@/lib/map3d/layout";
 import { shelfLines, shortName, type MapModel, type ObjectStock, type ShelfBlock } from "@/lib/map3d/model";
+import { blockSpot, type Spot } from "@/lib/map3d/piles";
 import { shelfWords } from "@/lib/map3d/place";
 import type { MapObject, PickHit } from "@/lib/map3d/types";
 import type { LabelView } from "./Labels";
@@ -78,8 +79,14 @@ function blockHit(block: ShelfBlock): PickHit {
   return { objectId: block.objectId, level: block.level, side: block.side, through: block.through ?? undefined };
 }
 
-/** Products sharing a shelf stand one behind the other, so their tags stand side by side along it. */
-function blockAnchor(object: MapObject, block: ShelfBlock, blocks: readonly ShelfBlock[]) {
+/**
+ * On the stock itself: the middle of the free face of its pile that the camera faces, so the tag is read as the pile's.
+ * With nothing drawn, the front of the shelf; products sharing one stand one behind the other, so their tags stand side
+ * by side along it.
+ */
+function blockAnchor(model: MapModel, object: MapObject, block: ShelfBlock, blocks: readonly ShelfBlock[]): Spot {
+  const spot = blockSpot(model, object, block);
+  if (spot) return spot;
   const at = shelfAnchor(object, block.level ?? 0, block.side, block.through ?? block.level ?? 0);
   const sharing = blocks.filter((other) => other.level === block.level && other.side === block.side);
   const width = block.side === null ? object.w : object.w / 2;
@@ -114,7 +121,7 @@ function shelfViews({ objects, model, open, shelf }: LabelInput): LabelView[] {
         shelf: close || pointed ? (words ?? undefined) : undefined,
         qty: close || pointed ? `${fmtQty(block.qty)} ${block.product.unit}` : undefined,
         ...figureOf(block),
-        at: blockAnchor(object, block, blocks),
+        at: blockAnchor(model, object, block, blocks),
         hit: blockHit(block),
         quiet: !needs,
         attention: needs,
