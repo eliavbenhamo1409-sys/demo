@@ -6,6 +6,8 @@ html[data-theme="merhav-dark"] { color-scheme: dark; --bg-canvas: #0d100f; --bg-
 /* מרחב 5 wears מרחב's id with a mark, and its own paper (src/design/merhav5/tokens.css). */
 html[data-merhav5] { --bg-canvas: #e7e9ec; --bg-surface: #f6f7f9; }
 html[data-merhav5][data-theme="merhav-dark"] { --bg-canvas: #0e1013; --bg-surface: #16191d; }
+html[data-merhav6] { --bg-canvas: #eef0f2; --bg-surface: #ffffff; }
+html[data-merhav6][data-theme="merhav-dark"] { --bg-canvas: #0b0c0e; --bg-surface: #141517; }
 html[data-theme^="merhav"] { background: var(--bg-surface); }
 html[data-theme^="merhav"] body { background: transparent; }
 [data-theme^="merhav"] .sys-switch { display: none; }

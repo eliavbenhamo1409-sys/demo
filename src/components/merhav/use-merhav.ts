@@ -18,17 +18,17 @@ export const loadMerhav = (): Promise<Shell> => import("./Shell").then((module) 
 // The boot script has already painted the id, so this needn't wait for the session. The login stands on these stylesheets too.
 if (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme")?.startsWith("merhav")) void loadMerhav().catch(() => undefined);
 
-/** The admin's fourth style and the three variants that stand on the same shell. See src/design/merhav and the brief. */
+/** The admin's fourth style and the four variants that stand on the same shell. See src/design/merhav and the brief. */
 export function useMerhav(): boolean {
   return splitTheme(useTheme().theme).style.startsWith("merhav");
 }
 
-export type MerhavVariant = "merhav" | "merhav2" | "merhav3" | "merhav5";
+export type MerhavVariant = "merhav" | "merhav2" | "merhav3" | "merhav5" | "merhav6";
 
-/** Which of the four: מרחב with its eight rows, מרחב 2 with its five areas, מרחב 3 with its mission control, or מרחב 5 in its own colours. */
+/** Which of the five: מרחב with its eight rows, מרחב 2 with its five areas, מרחב 3 with its mission control, or מרחב 5 and מרחב 6 in their own colours. */
 export function useMerhavVariant(): MerhavVariant {
   const { style } = splitTheme(useTheme().theme);
-  return style === "merhav2" || style === "merhav3" || style === "merhav5" ? style : "merhav";
+  return style === "merhav2" || style === "merhav3" || style === "merhav5" || style === "merhav6" ? style : "merhav";
 }
 
 /**

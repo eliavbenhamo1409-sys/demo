@@ -37,10 +37,15 @@ import { AreaBar as AreaBar5, Rail as Rail5 } from "@/components/merhav5/Rail";
 import { allPages as pages5, pageWord as word5 } from "@/components/merhav5/areas";
 import { Catalog as Bay5 } from "@/components/merhav5/pages/Catalog";
 import { Overview as MissionControl5 } from "@/components/merhav5/pages/Overview";
+import { AreaBar as AreaBar6, Rail as Rail6 } from "@/components/merhav6/Rail";
+import { allPages as pages6, pageWord as word6 } from "@/components/merhav6/areas";
+import { Catalog as Bay6 } from "@/components/merhav6/pages/Catalog";
+import { Overview as MissionControl6 } from "@/components/merhav6/pages/Overview";
 import "@/design/merhav/index.css";
 import "@/design/merhav2/index.css";
 import "@/design/merhav3/index.css";
 import "@/design/merhav5/index.css";
+import "@/design/merhav6/index.css";
 
 export interface MerhavShellProps {
   items: RailItem[];
@@ -98,6 +103,7 @@ const VARIANTS: Record<MerhavVariant, Variant> = {
   merhav2: { Rail: Rail2, AreaBar: AreaBar2, own: { ...OWN, suppliers: Bay2 }, pages: pages2, word: word2 },
   merhav3: { Rail: Rail3, AreaBar: AreaBar3, own: { ...OWN, overview: MissionControl, suppliers: Bay3 }, pages: pages3, word: word3 },
   merhav5: { Rail: Rail5, AreaBar: AreaBar5, own: { ...OWN, overview: MissionControl5, suppliers: Bay5 }, pages: pages5, word: word5 },
+  merhav6: { Rail: Rail6, AreaBar: AreaBar6, own: { ...OWN, overview: MissionControl6, suppliers: Bay6 }, pages: pages6, word: word6 },
 };
 
 export function MerhavShell({ items, active, foot, morePages, actions, onAction, search, offline, page, overlays }: MerhavShellProps): ReactElement {
@@ -235,7 +241,7 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
           </main>
           {overlays}
           <PanelKeys />
-          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3" || variant === "merhav5"} />
+          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3" || variant === "merhav5" || variant === "merhav6"} />
         </div>
       )}
     </TwinProvider>
