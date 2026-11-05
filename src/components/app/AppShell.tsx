@@ -110,7 +110,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   const atlas = useAtlas();
   const atlasShell = useAtlasShell(atlas);
   // מרחב 2 gives תיעוד and צוות rows of their own, so the settings row is no longer their mark.
-  const fiveAreas = useMerhavVariant() === "merhav2";
+  const fiveAreas = useMerhavVariant() !== "merhav";
   const { theme } = useTheme();
 
   /* ───────── sidebar ───────── */

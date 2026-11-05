@@ -1,0 +1,196 @@
+/* קטלוג in מרחב 2: the patch bay. Our names on one side, theirs on the other, and the lines between them are the page.
+   The head, the open ports and the keys are מרחב's (catalog.css); only the bay stands here, under מרחב 2's mark. */
+
+html[data-merhav2] {
+  .m2-cat {
+    /* The wires take what a wider window adds, so a name never drifts from its supplier. */
+    --bay-wire: clamp(140px, calc(45% - 340px), 420px);
+    --bay-cols: minmax(0, 1fr) var(--bay-wire) minmax(0, 1.5fr);
+    --bay-name: minmax(0, 1fr) 150px 112px;
+  }
+
+  /* ── The bay ── */
+  .mh-cat-bay { margin-top: 26px; }
+  .mh-cat-bay-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: var(--bay-cols);
+    align-items: center;
+    height: 36px;
+    background: var(--bg-surface);
+    box-shadow: 0 1px 0 var(--border-strong);
+    font-size: var(--t-13);
+    color: var(--text-tertiary);
+  }
+  .mh-cat-bay-head-names { display: grid; grid-template-columns: var(--bay-name); padding-inline-start: 14px; align-items: center; }
+  .mh-cat-bay-held { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+  /* A category is a section: its head holds the place while the list passes under it, and folds it away. */
+  .mh-cat-section-head {
+    position: sticky;
+    top: 36px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 40px;
+    margin-top: 10px;
+    padding: 0;
+    border: 0;
+    background: var(--bg-surface);
+    box-shadow: 0 1px 0 var(--border-subtle);
+    color: var(--text-primary);
+    font: inherit;
+    cursor: pointer;
+  }
+  .mh-cat-section:first-of-type .mh-cat-section-head { margin-top: 0; }
+  .mh-cat-section-word { font-size: var(--t-15); font-weight: 600; }
+  .mh-cat-section-note { font-size: var(--t-13); color: var(--text-tertiary); }
+  .mh-cat-section-head svg { margin-inline-start: auto; color: var(--text-quiet); stroke-width: 1.5; }
+  .mh-cat-section-head:hover .mh-cat-section-word { color: var(--accent-text); }
+  .mh-cat-section-head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  /* Reaches into both gutters: offscreen bands skip their paint, and the carriage stands in the gutter. */
+  .mh-cat-band {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--bay-cols);
+    margin-inline: calc(var(--mh-gutter) * -1);
+    padding-inline: var(--mh-gutter);
+    content-visibility: auto;
+    contain-intrinsic-size: auto var(--row);
+  }
+  .mh-cat-band-product { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: var(--row); padding-inline-end: 14px; align-self: start; }
+  .mh-cat-band-name { display: block; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
+  .mh-cat-band-name:hover { color: var(--accent-text); }
+  .mh-cat-band-code { display: flex; gap: 10px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+  .mh-cat-band-add { padding: 0; border: 0; background: none; color: var(--text-tertiary); font: inherit; cursor: pointer; }
+  .mh-cat-band-add:hover { color: var(--accent-text); }
+  /* Each is one line of text, and a pointer still needs 24 pixels: the reach grows away from the other, and the lines stay where they are. */
+  .mh-cat-band-name { padding-top: 2px; margin-top: -2px; }
+  .mh-cat-band-add { padding-bottom: 6px; margin-bottom: -6px; }
+  .mh-cat-band-wire { position: relative; min-width: 0; }
+  .mh-cat-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .mh-cat-wire { fill: none; stroke: var(--wire); stroke-width: 1; transition: opacity var(--dur-1) var(--ease); }
+  .mh-cat-wire-lit { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: 1; visibility: hidden; }
+  /* A wire that just appeared draws itself once and settles into the rest. */
+  .is-fresh .mh-cat-wire-lit { visibility: visible; animation: mh-draw 320ms var(--ease) forwards, m2-cat-wire-settle 500ms var(--ease) 1s forwards; }
+  .mh-cat-jack { fill: var(--text-primary); }
+  .mh-cat-jack.is-open { fill: var(--bg-surface); stroke: var(--warning-text); stroke-width: 1.25; }
+  .mh-cat-band-names { min-width: 0; }
+  /* A product with no names yet: one open jack on our side, and pressing it starts a wire. */
+  .mh-cat-band.is-free .mh-cat-band-wire { --reach: 100%; --port: var(--border-control); }
+  .mh-cat-band.is-free .mh-cat-port { top: calc(var(--row) / 2); }
+  .mh-cat-band-none { display: flex; align-items: center; min-height: var(--row); padding-inline-start: 14px; color: var(--text-tertiary); font-size: var(--t-14); }
+  .mh-cat-name { position: relative; display: grid; grid-template-columns: var(--bay-name); align-items: start; min-height: var(--row); padding-inline-start: 14px; }
+  .mh-cat-port-mark { position: absolute; top: calc(var(--row) / 2); inset-inline-start: 0; width: 0; height: 0; }
+  .mh-cat-name-open { display: flex; flex-direction: column; justify-content: center; min-height: var(--row); min-width: 0; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; text-align: start; cursor: pointer; }
+  .mh-cat-name-text { font-size: var(--t-15); line-height: var(--l-21); overflow-wrap: anywhere; }
+  .mh-cat-name-open:hover .mh-cat-name-text { color: var(--accent-text); }
+  .mh-cat-name-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+  .mh-cat-name-sup { min-height: var(--row); padding: 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: var(--t-14); text-align: start; cursor: pointer; }
+  .mh-cat-name-sup:hover { color: var(--accent-text); }
+  .mh-cat-name-end { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: var(--row); }
+  .mh-cat-name-tool { flex: none; opacity: 0; }
+  /* Two keys share a narrow column, and neither may be squeezed under a pointer's reach. */
+  .mh-cat-name-tool:not(.sa-btn-icon) { padding-inline: 6px; }
+  .mh-cat-name-tool.sa-btn-icon { width: 24px; }
+  .mh-cat-name-end .sa-btn-link { min-height: 24px; }
+  .mh-cat-name:hover .mh-cat-name-tool, .mh-cat-name:focus-within .mh-cat-name-tool { opacity: 1; }
+  .mh-cat-name.is-form { display: block; padding-block: 10px; }
+  /* The form's menus reach past the band, so it stops skipping its paint while one is open. */
+  .mh-cat-band:has(.is-form) { content-visibility: visible; z-index: 3; }
+
+  /* Pointing lights a whole path and the other wires recede, with a breath of delay so that crossing the list stays still. */
+  .mh-cat-band > *, .mh-cat-name { transition: opacity var(--dur-1) var(--ease); }
+  .mh-cat-wires { transition: opacity var(--dur-2) var(--ease); }
+  .mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) .mh-cat-wires { opacity: 0.22; transition-delay: 120ms; }
+  .mh-cat-bay[data-lit] .mh-cat-band:not([data-on]) > :not(.mh-cat-band-wire) { opacity: 0.66; transition-delay: 120ms; }
+  .mh-cat-band[data-on="name"] .mh-cat-name:not([data-on]) { opacity: 0.66; }
+  .mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) { opacity: 0.3; }
+  .mh-cat-band[data-on] .mh-cat-wire-lit { visibility: visible; animation: mh-draw 260ms var(--ease) forwards; }
+  .mh-cat-band[data-on="band"] .mh-cat-wire-lit { stroke-dashoffset: -1; }
+  .mh-cat-band[data-on="name"] g[data-wire]:not([data-on]) .mh-cat-wire-lit { visibility: hidden; }
+  .mh-cat-band[data-on="band"] .mh-cat-jack:not(.is-open), .mh-cat-band[data-on="name"] g[data-on] .mh-cat-jack:not(.is-open), .mh-cat-band[data-on] > .mh-cat-band-wire > svg > .mh-cat-jack { fill: var(--accent); }
+  /* The same carriage as the rail, in the gutter of the band you are on. */
+  .mh-cat-band::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: calc(var(--row) / 2 - 12px);
+    width: 3px;
+    height: 24px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--dur-press) var(--spring-press);
+  }
+  .mh-cat-band[data-on]::before { transform: scaleY(1); }
+  .mh-cat-band-name:focus-visible, .mh-cat-band-add:focus-visible, .mh-cat-name-open:focus-visible, .mh-cat-name-sup:focus-visible { outline: none; border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+}
+html[data-merhav2][data-theme="merhav-dark"] .mh-cat-band .sa-thumb { filter: brightness(0.82); }
+@keyframes m2-cat-wire-settle { to { opacity: 0; } }
+
+/* A smaller window: the supplier stands under its name and the names keep their room. */
+@media (max-width: 1239px) {
+  html[data-merhav2] {
+    .m2-cat { --bay-name: minmax(0, 1fr) 96px; --bay-wire: clamp(72px, 12%, 140px); }
+    .mh-cat-bay-head-names > :nth-child(2) { display: none; }
+    .mh-cat-name-open { grid-column: 1; min-height: 0; padding-block: 8px 0; }
+    .mh-cat-name-sup { grid-column: 1; grid-row: 2; min-height: 0; padding-block-end: 8px; font-size: var(--t-13); line-height: var(--l-18); }
+    .mh-cat-name-end { grid-column: 2; grid-row: 1 / span 2; }
+  }
+}
+
+/* No room for a channel: the product stands over its names, and one spine carries the wires down the edge. */
+@media (max-width: 1019px) {
+  html[data-merhav2] {
+    .m2-cat { --bay-cols: minmax(0, 1fr); }
+    .mh-cat-bay-head { display: none; }
+    .mh-cat-bay { margin-top: 14px; }
+    .mh-cat-section-head { top: 0; }
+    .mh-cat-band { display: block; padding-block: 6px; }
+    .mh-cat-band-product { padding-inline-end: 0; }
+    .mh-cat-band:not(.is-free) .mh-cat-band-wire { display: none; }
+    .mh-cat-band.is-free .mh-cat-band-wire { position: absolute; inset-inline-end: var(--mh-gutter); top: 6px; width: 36px; height: var(--row); --reach: 50%; }
+    .mh-cat-band-names { margin-inline-start: 21px; border-inline-start: 1px solid var(--wire); }
+    .mh-cat-band.is-free .mh-cat-band-names { border-inline-start: 0; }
+    .mh-cat-name { padding-inline-start: 16px; }
+    .mh-cat-name::before { content: ""; position: absolute; inset-inline-start: 0; top: 24px; width: 10px; height: 1px; background: var(--wire); }
+  }
+}
+
+/* A finger: every key gets its 44 pixels. The tools are always there, so a name takes the whole width over them. */
+@media (hover: none) {
+  html[data-merhav2] {
+    .mh-cat-name-tool { opacity: 1; }
+    .mh-cat-section-head { height: 44px; }
+    .mh-cat-bay-head { height: 44px; }
+    .mh-cat-band-code { align-items: center; margin-block: -6px; }
+    .mh-cat-band-add { min-width: 44px; min-height: 44px; }
+    .mh-cat-band-name { position: relative; }
+    .mh-cat-band-name::after { content: ""; position: absolute; inset: -22px 0 0; }
+    .mh-cat-name-open { min-height: 44px; }
+    .mh-cat-name-tool.sa-btn-icon { width: 44px; }
+  }
+}
+@media (hover: none) and (min-width: 1020px) {
+  html[data-merhav2] .mh-cat-section-head { top: 44px; }
+}
+@media (hover: none) and (min-width: 1240px) {
+  html[data-merhav2] .m2-cat { --bay-name: minmax(0, 1fr) 150px 134px; }
+}
+@media (hover: none) and (max-width: 1239px) {
+  html[data-merhav2] {
+    .mh-cat-name { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; }
+    .mh-cat-name-open { grid-column: 1 / -1; grid-row: 1; }
+    .mh-cat-name-sup { grid-column: 1; grid-row: 2; min-height: 44px; min-width: 0; padding-block: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mh-cat-name-end { grid-column: 2; grid-row: 2; min-height: 44px; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-merhav2] :is(.is-fresh .mh-cat-wire-lit, .mh-cat-band[data-on] .mh-cat-wire-lit) { animation-duration: 0s; animation-delay: 0s; }
+}

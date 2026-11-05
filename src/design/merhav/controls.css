@@ -191,7 +191,7 @@
   .sa-modal-foot { border-top: 0; }
 
   /* The settings rows use the same key language. */
-  .sa-appearance { border-bottom: 1px solid var(--border-subtle); }
+  .sa-appearance { flex-wrap: wrap; row-gap: 4px; border-bottom: 1px solid var(--border-subtle); }
   .sa-appearance-opts { gap: 18px; background: none; padding: 0; border: 0; }
   .sa-appearance-opt { position: relative; height: 34px; padding: 0; background: none; border: 0; border-radius: 0; color: var(--text-tertiary); font-size: var(--t-14); box-shadow: none; }
   .sa-appearance-opt:hover { color: var(--text-primary); }

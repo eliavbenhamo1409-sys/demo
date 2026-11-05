@@ -25,11 +25,17 @@ import { Leader } from "./twin/Leader";
 import { PanelFocus } from "./twin/PanelFocus";
 import { Tags } from "./twin/Tags";
 import { TwinProvider, type Door } from "./twin/Twin";
-import { useMerhavVariant } from "./use-merhav";
-import { AreaBar, Rail as FiveAreas } from "@/components/merhav2/Rail";
-import { allPages, pageWord } from "@/components/merhav2/areas";
+import { useMerhavVariant, type MerhavVariant } from "./use-merhav";
+import { AreaBar as AreaBar2, Rail as Rail2 } from "@/components/merhav2/Rail";
+import { allPages as pages2, pageWord as word2 } from "@/components/merhav2/areas";
+import { Catalog as Bay2 } from "@/components/merhav2/pages/Catalog";
+import { AreaBar as AreaBar3, Rail as Rail3 } from "@/components/merhav3/Rail";
+import { allPages as pages3, pageWord as word3 } from "@/components/merhav3/areas";
+import { Catalog as Bay3 } from "@/components/merhav3/pages/Catalog";
+import { Overview as MissionControl } from "@/components/merhav3/pages/Overview";
 import "@/design/merhav/index.css";
 import "@/design/merhav2/index.css";
+import "@/design/merhav3/index.css";
 
 export interface MerhavShellProps {
   items: RailItem[];
@@ -73,10 +79,26 @@ const OWN: Record<string, ComponentType<{ shared: ReactNode }>> = {
   team: Team,
 };
 
+/** What each variant brings of its own: its rail, the row of an area's pages on a phone, the pages it composes differently, and its words. */
+interface Variant {
+  Rail: typeof Rail | typeof Rail2;
+  AreaBar: typeof AreaBar2 | null;
+  own: Record<string, ComponentType<{ shared: ReactNode }>>;
+  pages: (() => { label: string; href: string }[]) | null;
+  word: ((active: string) => string | undefined) | null;
+}
+
+const VARIANTS: Record<MerhavVariant, Variant> = {
+  merhav: { Rail, AreaBar: null, own: OWN, pages: null, word: null },
+  merhav2: { Rail: Rail2, AreaBar: AreaBar2, own: { ...OWN, suppliers: Bay2 }, pages: pages2, word: word2 },
+  merhav3: { Rail: Rail3, AreaBar: AreaBar3, own: { ...OWN, overview: MissionControl, suppliers: Bay3 }, pages: pages3, word: word3 },
+};
+
 export function MerhavShell({ items, active, foot, morePages, actions, onAction, search, offline, page, overlays }: MerhavShellProps): ReactElement {
   const { state } = useData();
   const pathname = usePathname();
   const variant = useMerhavVariant();
+  const own = VARIANTS[variant];
   const [commandOpen, setCommandOpen] = useState(false);
   // An address with no page reaches here as "overview": it gets the shared 404 on a closed door, not סקירה under a wrong address.
   const known = pathname === "/" || active !== "overview";
@@ -139,18 +161,18 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
     pageWas.current = pathname;
   }, [pathname]);
 
-  const Own = known ? OWN[active] : undefined;
+  const Own = known ? own.own[active] : undefined;
   const ready = state.status === "ready";
   const content = state.status === "loading" ? <div className="mh-calibrate" role="status" aria-label="טוען נתונים" /> : !ready || !Own ? page : <Own shared={page} />;
 
-  // מרחב 2 lists its pages by area; מרחב by its rail's order.
+  // A variant lists its pages by area; מרחב by its rail's order.
   const { areas, rest } = railOrder(items);
-  const pages = variant === "merhav2" ? allPages() : [...areas, ...rest].map((item) => ({ label: item.label, href: item.href })).concat(morePages);
-  const TheRail = variant === "merhav2" ? FiveAreas : Rail;
+  const pages = own.pages ? own.pages() : [...areas, ...rest].map((item) => ({ label: item.label, href: item.href })).concat(morePages);
+  const TheRail = own.Rail;
 
   // Each page names its own browser tab, and a screen reader says that name as the page turns. Next writes the site's
   // one title back after every turn, so the name is held rather than set once.
-  const pageName = variant === "merhav2" ? (known ? pageWord(active) : undefined) : (WORDS[active] ?? pages.find((p) => p.href === pathname)?.label);
+  const pageName = own.word ? (known ? own.word(active) : undefined) : (WORDS[active] ?? pages.find((p) => p.href === pathname)?.label);
   useEffect(() => {
     if (!pageName) return;
     const name = `${pageName} · ניהול מלאי`;
@@ -201,13 +223,13 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
           <main ref={mainNode} id="mh-main" className="mh-stage" tabIndex={-1}>
             {door === "dock" ? <DoorHandle /> : null}
             <div ref={pageNode} key={pathname} className="mh-page">
-              {variant === "merhav2" && known ? <AreaBar items={items} active={active} /> : null}
+              {own.AreaBar && known ? <own.AreaBar items={items} active={active} /> : null}
               {content}
             </div>
           </main>
           {overlays}
           <PanelKeys />
-          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={variant === "merhav2" ? {} : undefined} />
+          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3"} />
         </div>
       )}
     </TwinProvider>

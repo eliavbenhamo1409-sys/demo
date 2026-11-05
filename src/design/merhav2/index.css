@@ -1,20 +1,47 @@
-/* מרחב 2: מרחב's world, door and pages, with five words on the rail and each area's pages in a line under its word.
+/* מרחב 2: מרחב's world, door and pages, with five words on the rail and each area's pages as rows under its word.
    Shell.tsx imports this after מרחב's own index.css, and every rule hooks on html[data-merhav2], the mark the theme store
    sets only while מרחב 2 is chosen on the admin, so מרחב itself never sees a rule of it. */
+@import "./catalog.css";
 
 html[data-merhav2] {
-  /* ── The rail: an area is its word on the scale and the pages it holds under it ── */
+  /* ── The rail is a ruler: an area is a word at a long tick, its pages are rows at short ticks under it ── */
   .m2-area { display: flex; flex-direction: column; }
-  .m2-area[data-here] > .mh-nav-row { color: var(--text-primary); font-weight: 600; }
-  .m2-views { display: flex; flex-wrap: wrap; gap: 0 14px; padding: 0 0 10px; padding-inline-end: 26px; margin-top: -6px; }
-  .m2-view { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; color: var(--text-tertiary); font-size: var(--t-13); line-height: var(--l-18); text-decoration: none; transition: color var(--dur-2) var(--ease); }
-  .m2-view:hover { color: var(--text-primary); }
-  .m2-view[aria-current="page"] { color: var(--accent-text); font-weight: 600; }
-  .m2-view:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); border-radius: var(--radius-sm); }
-  .m2-view-count { font-size: var(--t-12); line-height: var(--l-16); color: var(--text-quiet); font-variant-numeric: tabular-nums; }
-  /* A tick for every area, none for its pages; the carriage rides between the words. */
-  .m2-nav .mh-nav-row::after { top: 50%; }
+  .m2-area[data-here] > .mh-nav-row { color: var(--text-primary); }
+  .m2-area > .mh-nav-row[aria-current="page"] { font-weight: 600; }
+  /* What an area holds, summed on its word while its rows are away. */
+  .m2-area[data-here] > .mh-nav-row > .m2-sum { opacity: 0; }
+  /* The pages of the area you are in glide open under its word, and shut when you leave it: the ruler shows where you are. */
+  .m2-pages { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-plate) var(--spring-plate); }
+  .m2-area[data-here] > .m2-pages { grid-template-rows: 1fr; }
+  .m2-pages-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--dur-plate); }
+  .m2-area[data-here] > .m2-pages > .m2-pages-body { visibility: visible; transition: none; }
+  .m2-pages-body::after { content: ""; display: block; height: 8px; flex: none; }
+  .m2-page {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 34px;
+    padding-inline: 14px 26px;
+    color: var(--text-secondary);
+    font-size: var(--t-14);
+    line-height: 34px;
+    text-decoration: none;
+    transition: color var(--dur-2) var(--ease);
+  }
+  .m2-page:hover { color: var(--text-primary); }
+  .m2-page[aria-current="page"] { color: var(--text-primary); font-weight: 600; }
+  /* A short tick for a page, cut into the same edge as the areas' long ones. */
+  .m2-page::after { content: ""; position: absolute; left: 0; top: 50%; width: 5px; height: 1px; background: var(--border-strong); }
+  .m2-page .mh-nav-count { font-size: var(--t-13); }
+  .m2-page:focus-visible { box-shadow: inset 0 0 0 1.5px var(--focus); }
   .m2-areabar { display: none; }
+}
+
+/* A touch tablet in landscape keeps the rail: a page row takes a finger's height like every other control there. */
+@media (hover: none) and (min-width: 900px) {
+  html[data-merhav2] .m2-page { height: 44px; line-height: 44px; }
 }
 
 /* On a phone the five words stand on the bar; the area's pages stand over the page on one ruled line, the sheet keeps only the foot. */
@@ -32,12 +59,10 @@ html[data-merhav2] {
     .mh-page:has(> .m2-areabar) .mh-wh { height: calc(100dvh - var(--mh-band) - var(--mh-foot) - 52px); }
   }
 }
-/* A touch tablet in landscape keeps the rail: a view word takes a finger's height like every other control there. */
-@media (hover: none) and (min-width: 900px) {
-  html[data-merhav2] .m2-view { min-height: 44px; }
-  html[data-merhav2] .m2-views { gap: 0 18px; padding-bottom: 4px; margin-top: -10px; }
-}
 @media (max-width: 420px) {
   html[data-merhav2] .mh-bar-seek span { display: none; }
   html[data-merhav2] .mh-bar-seek { padding-inline: var(--mh-gutter) 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-merhav2] :is(.m2-pages, .m2-pages-body, .m2-page) { transition: none; }
 }

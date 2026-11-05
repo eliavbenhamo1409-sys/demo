@@ -29,7 +29,7 @@ const isStock = (a: { kind: AttentionKind }) => a.kind === "out" || a.kind === "
 
 const HOURS = [0, 6, 12, 18, 24];
 
-function DayStrip({ onHover, onOpen }: { onHover: (m: Movement | null) => void; onOpen: (m: Movement) => void }): ReactElement {
+export function DayStrip({ onHover, onOpen }: { onHover: (m: Movement | null) => void; onOpen: (m: Movement) => void }): ReactElement {
   const { state, product } = useData();
   const today = useMemo(() => state.movements.filter((m) => isToday(m.created_at)).slice().reverse(), [state.movements]);
   const start = midnight();

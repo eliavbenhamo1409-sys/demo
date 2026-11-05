@@ -46,7 +46,7 @@ export const AREAS: readonly Area[] = [
     label: "ניהול",
     href: "/suppliers",
     views: [
-      { key: "suppliers", label: "ספקים", href: "/suppliers" },
+      { key: "suppliers", label: "קטלוג", href: "/suppliers" },
       { key: "team", label: "צוות", href: "/team" },
     ],
   },

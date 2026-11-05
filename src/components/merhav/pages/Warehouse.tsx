@@ -36,6 +36,7 @@ import { buildTrail, qtyAt, TRAIL_WINDOW, type PastQty } from "@/lib/map3d/trail
 import type { Insets, LabelAnchor, MapEngine, MapObject, MapObjectKind, MapRoute, PickHit, ScenePoint, ViewMode } from "@/lib/map3d/types";
 import { isTempId, stockState, useData, type Movement, type Product } from "@/lib/store";
 import { Figure } from "../Figure";
+import { useMerhavVariant } from "../use-merhav";
 import { BackHome } from "../twin/BackHome";
 import { useTwin } from "../twin/Twin";
 import { aimOf, litRows, pointOf, productAim, ROW, type Aim, type LensData } from "../warehouse/lens";
@@ -43,6 +44,14 @@ import { Reach } from "../warehouse/Reach";
 
 /** The figures over the list. Pointing at one asks the model where. */
 type Lens = "needing" | "orders" | "value";
+
+/** מרחב 3's display modes: the whole floor, or only what is short, what has a fault, or what moved this week. */
+type Mode = "all" | "short" | "faults" | "moves";
+
+const MODE_WORD: Record<Mode, string> = { all: "הכל", short: "חוסרים", faults: "תקלות", moves: "פעילות" };
+
+/** What a week is, for the mode that shows where goods moved. */
+const MOVES_WINDOW = 7 * 86_400_000;
 
 const LEAVE_WORD: Record<MapObjectKind, string> = {
   rack: "יציאה מהמתקן",
@@ -161,6 +170,8 @@ function WarehouseInner(): ReactElement {
   const params = useSearchParams();
   const narrow = useNarrow();
   const coarse = useCoarsePointer();
+  const variant = useMerhavVariant();
+  const [mode, setMode] = useState<Mode>("all");
 
   const editing = editor.draft !== null;
   const objects = editor.draft ?? layout.objects;
@@ -277,12 +288,38 @@ function WarehouseInner(): ReactElement {
     [listen],
   );
 
+  /* ───────── the display modes: what the mode holds, and the rest recedes ───────── */
+  const faultObjects = useMemo(() => {
+    const ids = new Set<string>();
+    for (const f of state.faults) {
+      if (f.status !== "open") continue;
+      const place = f.asset ?? (f.product_id ? placeOf(f.product_id) : null);
+      if (place) ids.add(place);
+    }
+    return ids;
+  }, [state.faults, placeOf]);
+
+  const modeIds = useMemo<Record<Mode, readonly string[]>>(() => {
+    const short = [...model.byObject.values()].filter((stock) => stock.worst !== "ok").map((stock) => stock.object.id);
+    const moved = new Set<string>();
+    for (const m of recent.rows) {
+      if (Date.parse(m.created_at) < now - MOVES_WINDOW) continue;
+      const place = resolvePlace(m.place, objects)?.objectId ?? placeOf(m.product_id);
+      if (place) moved.add(place);
+    }
+    return { all: [], short, faults: [...faultObjects], moves: [...moved] };
+  }, [model, recent.rows, now, objects, placeOf, faultObjects]);
+
+  const modes = variant === "merhav3" && at === null && !editing && !selectedObject;
+  const modeOn = modes && mode !== "all" ? modeIds[mode] : null;
+
   /* ───────── what the engine draws ───────── */
   const emphasis = useMemo(() => {
     if (editing) return null;
     if (pointed) return new Set(pointed.ids);
-    return targetId ? new Set([targetId]) : null;
-  }, [editing, pointed, targetId]);
+    if (targetId) return new Set([targetId]);
+    return modeOn && modeOn.length > 0 ? new Set(modeOn) : null;
+  }, [editing, pointed, targetId, modeOn]);
 
   // What the rule on the map follows: a whole block of a product, however it was reached. A row under the pointer borrows it.
   const shown = pointed ? pointed.hit : selected;
@@ -487,16 +524,6 @@ function WarehouseInner(): ReactElement {
   }, [viewMode]);
 
   /* ───────── labels ───────── */
-  const faultObjects = useMemo(() => {
-    const ids = new Set<string>();
-    for (const f of state.faults) {
-      if (f.status !== "open") continue;
-      const place = f.asset ?? (f.product_id ? placeOf(f.product_id) : null);
-      if (place) ids.add(place);
-    }
-    return ids;
-  }, [state.faults, placeOf]);
-
   const closeView = selectedObject?.kind === "rack" && viewMode !== "top" && viewMode !== "walk" ? selectedObject : null;
   const labels = useMemo(() => {
     const views = labelViews({ objects, model, past: past?.stock ?? null, money: false, faults: faultObjects, open: closeView, shelf: hover ?? pointed?.hit ?? null });
@@ -637,7 +664,7 @@ function WarehouseInner(): ReactElement {
   const rail = () => {
     if (editing) return <LayoutPanel editor={editor} model={model} />;
     if (selectedObject) return <ObjectCard map={map} object={selectedObject} hit={selected} past={past?.stock ?? null} onShelf={setSelected} onBack={() => setSelected(null)} />;
-    return <StatusRail map={map} past={past?.stock ?? null} at={at} />;
+    return <StatusRail map={map} past={past?.stock ?? null} at={at} words={variant === "merhav3"} />;
   };
 
   const onSearchPick = (product: Product) => {
@@ -715,6 +742,18 @@ function WarehouseInner(): ReactElement {
 
         {/* A date is the one figure of the past, and its wheels turn as the ruler is dragged. */}
         {at !== null ? <Figure className="mh-wh-when" text={fmtDateTime(new Date(at).toISOString())} /> : null}
+
+        {/* מרחב 3: the model as a lens. One mode holds its places and the rest of the floor recedes. */}
+        {modes ? (
+          <div className="m3-modes" role="group" aria-label="תצוגה">
+            {(Object.keys(MODE_WORD) as Mode[]).map((key) => (
+              <button key={key} type="button" className="m3-mode" aria-pressed={mode === key} onClick={() => setMode(key)}>
+                <span>{MODE_WORD[key]}</span>
+                {key !== "all" ? <span className={cx("m3-mode-n ltr", modeIds[key].length === 0 && "mh-tone-quiet")}>{fmtQty(modeIds[key].length)}</span> : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       {editing ? <EditBar editor={editor} /> : null}

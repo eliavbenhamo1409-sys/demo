@@ -28,10 +28,10 @@ function still(mark: HTMLElement, write: () => void): void {
 }
 
 /**
- * מרחב's scale with five words on it, and under each word the pages its area holds, always in sight: the whole
- * system is read at a glance and nothing is folded away. The carriage rides to the area you are in; the page you are
- * on is the green word in its line. On a phone the five words stand along the bottom edge, and the area's pages stand
- * over the page (AreaBar).
+ * מרחב's scale with five words on it, read like a ruler: an area is a word at a long tick, and the pages of the area you
+ * are in stand as rows at short ticks under it, gliding open when you arrive and shut when you leave. The carriage rides
+ * to the page you are on. On a phone the five words stand along the bottom edge, and the area's pages stand over the
+ * page (AreaBar).
  */
 export function Rail({ items, active, foot, offline, onSearch, action }: RailProps): ReactElement {
   const rail = useRef<HTMLElement>(null);
@@ -54,18 +54,39 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
   const counts: Record<string, number | undefined> = Object.fromEntries(items.map((i) => [i.key, i.count]));
   const area = areaOf(active);
 
-  const seat = useCallback((mark: HTMLElement | null, row: Element | null) => {
-    if (!mark || !list.current) return;
-    if (!row) {
-      mark.style.opacity = "0";
-      return;
+  /**
+   * Where a row will stand once every fold has settled: the rows of other areas are still gliding shut when the
+   * carriage sets out, so it aims at the end of their move, not at where they are.
+   */
+  const restingTop = useCallback((row: Element) => {
+    const nav = list.current;
+    if (!nav) return 0;
+    let y = row.getBoundingClientRect().top - nav.getBoundingClientRect().top;
+    const rowTop = row.getBoundingClientRect().top;
+    for (const fold of nav.querySelectorAll<HTMLElement>(".m2-pages")) {
+      const box = fold.getBoundingClientRect();
+      if (box.top >= rowTop || fold.contains(row)) continue;
+      const body = fold.firstElementChild;
+      const open = fold.parentElement?.hasAttribute("data-here") ?? false;
+      const resting = open && body ? body.scrollHeight : 0;
+      y += resting - box.height;
     }
-    const box = row.getBoundingClientRect();
-    const top = list.current.getBoundingClientRect().top;
-    mark.style.setProperty("--y", `${box.top - top}px`);
-    mark.style.setProperty("--h", `${box.height}px`);
-    mark.style.opacity = "1";
+    return y;
   }, []);
+
+  const seat = useCallback(
+    (mark: HTMLElement | null, row: Element | null) => {
+      if (!mark || !list.current) return;
+      if (!row) {
+        mark.style.opacity = "0";
+        return;
+      }
+      mark.style.setProperty("--y", `${restingTop(row)}px`);
+      mark.style.setProperty("--h", `${row.getBoundingClientRect().height}px`);
+      mark.style.opacity = "1";
+    },
+    [restingTop],
+  );
 
   const seatBar = useCallback((row: Element | null) => {
     const mark = barCarriage.current;
@@ -79,12 +100,14 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
     mark.style.opacity = "1";
   }, []);
 
-  /** Both shapes of the rail find the area you are in. A page outside every area marks nothing. */
+  /** Both shapes of the rail find where you are: the page's row, or the area's word where the area is its one page. A page outside every area marks nothing. */
   const settle = useCallback(
     (quiet = false) => {
       const key = going.current ?? here.current;
       const areaKey = areaOf(key)?.key;
-      const onRail = areaKey ? onScreen(rail.current?.querySelector(`.m2-area[data-area="${areaKey}"] > .mh-nav-row`)) : onScreen(rail.current?.querySelector('.mh-rail-foot [aria-current="page"]'));
+      const onRail = areaKey
+        ? onScreen(rail.current?.querySelector(`.m2-page[data-key="${key}"]`)) ?? onScreen(rail.current?.querySelector(`.m2-area[data-area="${areaKey}"] > .mh-nav-row`))
+        : onScreen(rail.current?.querySelector('.mh-rail-foot [aria-current="page"]'));
       const onBar = areaKey ? onScreen(bar.current?.querySelector(`.mh-stop[data-area="${areaKey}"]`)) : null;
       const open = rail.current?.hasAttribute("data-more") ?? false;
       const write = () => {
@@ -136,6 +159,8 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
 
   const onPick = (e: MouseEvent<HTMLElement>, key: string) => {
     closeMore();
+    // A press with a pointer leaves no ring behind on the word; the keyboard keeps its place.
+    if (e.detail > 0) e.currentTarget.blur();
     if (e.metaKey || e.ctrlKey || e.shiftKey) return;
     going.current = key === active ? null : key;
     settle();
@@ -143,13 +168,13 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
 
   const onMove = (e: PointerEvent<HTMLElement>) => {
     if (e.pointerType !== "mouse") return;
-    const row = e.target instanceof Element ? e.target.closest(".mh-nav-row") : null;
+    const row = e.target instanceof Element ? e.target.closest(".mh-nav-row, .m2-page") : null;
     seat(ghost.current, row);
   };
 
   // A keyboard walks the rail the way a pointer does.
   const onFocus = (e: FocusEvent<HTMLElement>) => {
-    if (e.target.matches(".mh-nav-row:focus-visible")) seat(ghost.current, e.target);
+    if (e.target.matches(".mh-nav-row:focus-visible, .m2-page:focus-visible")) seat(ghost.current, e.target);
   };
 
   const count = (n: number | undefined, cls: string) => (n ? <span className={`${cls} ltr`}>{fmtQty(n)}</span> : null);
@@ -178,20 +203,23 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
           {AREAS.map((a) => {
             const inside = area?.key === a.key;
             const own = a.views.length === 0;
+            const sum = a.views.reduce((n, v) => n + (counts[v.key] ?? 0), 0);
             return (
               <div key={a.key} className="m2-area" data-area={a.key} data-here={inside || undefined}>
                 <Link href={a.href} className="mh-nav-row" data-key={a.key} aria-current={inside ? (own ? "page" : "true") : undefined} onClick={(e) => onPick(e, a.views[0]?.key ?? a.key)}>
                   <span>{a.label}</span>
-                  {own ? count(counts[a.key], "mh-nav-count") : null}
+                  {own ? count(counts[a.key], "mh-nav-count") : count(sum, "mh-nav-count m2-sum")}
                 </Link>
                 {a.views.length ? (
-                  <div className="m2-views">
-                    {a.views.map((v) => (
-                      <Link key={v.key} href={v.href} className="m2-view" aria-current={v.key === active ? "page" : undefined} onClick={(e) => onPick(e, v.key)}>
-                        <span>{v.label}</span>
-                        {count(counts[v.key], "m2-view-count")}
-                      </Link>
-                    ))}
+                  <div className="m2-pages" aria-hidden={inside ? undefined : true}>
+                    <div className="m2-pages-body" inert={inside ? undefined : true}>
+                      {a.views.map((v) => (
+                        <Link key={v.key} href={v.href} className="m2-page" data-key={v.key} aria-current={v.key === active ? "page" : undefined} onClick={(e) => onPick(e, v.key)}>
+                          <span>{v.label}</span>
+                          {count(counts[v.key], "mh-nav-count")}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
               </div>

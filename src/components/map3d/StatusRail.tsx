@@ -33,8 +33,15 @@ function byNeed(a: Line, b: Line): number {
   return RANK[a.state] - RANK[b.state] || (a.share ?? Infinity) - (b.share ?? Infinity) || a.product.name.localeCompare(b.product.name, "he");
 }
 
-/** The rail's first tab: every product with where it stands and how it stands against its minimum. */
-export function StatusRail({ map, past, at }: { map: MapView; past: ReadonlyMap<string, PastQty> | null; at: number | null }) {
+/** A share of the minimum said in words rather than a bare percent: how many minimums stand, or what part of one. */
+function shareWords(share: number): string {
+  if (share >= 2) return `פי ${fmtQty(share >= 10 ? Math.round(share) : Math.round(share * 10) / 10)} מהמינימום`;
+  if (share > 0) return `${fmtQty(Math.round(share * 100))}% מהמינימום`;
+  return "אזל";
+}
+
+/** The rail's first tab: every product with where it stands and how it stands against its minimum. `words` says the share as a phrase instead of a percent. */
+export function StatusRail({ map, past, at, words }: { map: MapView; past: ReadonlyMap<string, PastQty> | null; at: number | null; words?: boolean }) {
   const { state } = useData();
 
   const lines = useMemo(
@@ -58,9 +65,9 @@ export function StatusRail({ map, past, at }: { map: MapView; past: ReadonlyMap<
         <LedgerHead />
         {needing > 0 ? <p className="m3d-group" role="row">דורש טיפול <span className="sa-mono m3d-count">{fmtQty(needing)}</span></p> : null}
         {faults.map((fault) => <FaultLine key={fault.id} map={map} fault={fault} />)}
-        {urgent.map((line) => <LedgerLine key={line.product.id} map={map} line={line} />)}
+        {urgent.map((line) => <LedgerLine key={line.product.id} map={map} line={line} words={words} />)}
         {fine.length > 0 ? <p className="m3d-group" role="row">תקין <span className="sa-mono m3d-count">{fmtQty(fine.length)}</span></p> : null}
-        {fine.map((line) => <LedgerLine key={line.product.id} map={map} line={line} />)}
+        {fine.map((line) => <LedgerLine key={line.product.id} map={map} line={line} words={words} />)}
         {lines.length === 0 ? <p className="m3d-empty">אין מוצרים</p> : null}
       </div>
       {map.model.tray.length > 0 ? <Tray map={map} /> : null}
@@ -110,7 +117,7 @@ function FaultLine({ map, fault }: { map: MapView; fault: Fault }) {
   );
 }
 
-function LedgerLine({ map, line }: { map: MapView; line: Line }) {
+function LedgerLine({ map, line, words }: { map: MapView; line: Line; words?: boolean }) {
   const { openProduct } = useUi();
   const { product: p, state, place, share } = line;
 
@@ -134,7 +141,7 @@ function LedgerLine({ map, line }: { map: MapView; line: Line }) {
           state === "ok" ? <span className="m3d-line-unit">ללא מינימום</span> : <span className={cx("m3d-line-percent", STATE_NUM[state])}>{STATE_WORD[state]}</span>
         ) : (
           <>
-            <span className={cx("m3d-line-percent", STATE_NUM[state])}>{percentText(share)}</span>
+            <span className={cx("m3d-line-percent", STATE_NUM[state], words && "is-words")}>{words ? shareWords(share) : percentText(share)}</span>
             <StockMeter value={Math.max(share, 0)} min={1} tone={METER_TONE[state]} />
           </>
         )}

@@ -5,7 +5,8 @@ import { Fragment, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, 
 import { createPortal } from "react-dom";
 import { cx, Icon, type IconName } from "@/components/ui";
 import type { ActionItem } from "@/components/ui/ActionMenu";
-import { useData } from "@/lib/store";
+import { normalizeName, useData } from "@/lib/store";
+import { placeKey, resolvePlace } from "@/lib/map3d/place";
 import { useTwin } from "./twin/Twin";
 
 export interface CommandHit {
@@ -27,10 +28,38 @@ const HIT_ICON: Record<CommandHit["kind"], IconName> = { product: "package", ord
 /** The same words as the rail. */
 const PAGE_WORD: Record<string, string> = { "/3d": "מחסן", "/suppliers": "ספקים" };
 
-const GROUP = { hit: null, action: "פעולות", page: "עמודים" } as const;
+const GROUP = { hit: null, near: "אולי התכוונת", place: "מיקומים", action: "פעולות", page: "עמודים" } as const;
+
+/** How far two words may differ and still be the same word with a slip: one letter, two for a long word. */
+const slips = (word: string) => (word.length >= 7 ? 2 : word.length >= 4 ? 1 : 0);
+
+function distance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    let diagonal = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const next = Math.min(prev[j] + 1, prev[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = prev[j];
+      prev[j] = next;
+    }
+  }
+  return prev[b.length];
+}
+
+/** A word of the query that is one slip away from a word of the name. */
+function nearly(query: string, name: string): boolean {
+  const words = normalizeName(name).split(/\s+/);
+  return normalizeName(query).split(/\s+/).every((q) => words.some((w) => w.includes(q) || (slips(q) > 0 && Math.abs(w.length - q.length) <= slips(q) && distance(q, w) <= slips(q))));
+}
+
+/** How many near misses the plate offers. */
+const NEAR = 5;
 
 type Row =
   | { type: "hit"; hit: CommandHit }
+  | { type: "near"; hit: CommandHit }
+  | { type: "place"; label: string; sub: string; href: string }
   | { type: "action"; item: ActionItem }
   | { type: "page"; label: string; href: string };
 
@@ -42,8 +71,10 @@ interface CommandProps {
   actions: ActionItem[];
   onAction: (key: string) => void;
   pages: { label: string; href: string }[];
-  /** This style's words for pages the rail names differently; מרחב 2 passes none, its labels already carry the area's word. */
+  /** This style's words for pages the rail names differently; a variant passes none, its labels already carry the area's word. */
   pageWords?: Record<string, string>;
+  /** מרחב 3: the plate finds places on the floor too, and a product whose name was typed with a slip. */
+  wide?: boolean;
 }
 
 const inField = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select, [role="textbox"], [role="searchbox"], [role="combobox"]'));
@@ -61,10 +92,10 @@ const modelInView = (world: HTMLElement | null) => world !== null && getComputed
  * The search is nowhere until it is wanted: anywhere in the admin, just start typing. One plate holds what the words
  * find and what can be done, and walking through the results lights their shelves on the model as you go.
  */
-export function Command({ open, onOpen, onClose, search, actions, onAction, pages, pageWords = PAGE_WORD }: CommandProps): ReactElement | null {
+export function Command({ open, onOpen, onClose, search, actions, onAction, pages, pageWords = PAGE_WORD, wide = false }: CommandProps): ReactElement | null {
   const router = useRouter();
-  const { linesOf } = useData();
-  const { world, itemsOf, spotOver, aimProduct } = useTwin();
+  const { state, linesOf } = useData();
+  const { world, itemsOf, spotOver, aimProduct, objects } = useTwin();
   const scrim = useRef<HTMLDivElement>(null);
   const plate = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -109,14 +140,34 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
     const named = pages.map((p) => ({ ...p, label: pageWords[p.href] ?? p.label, also: p.label }));
     const q = query.trim();
     if (q) {
+      // A place on the floor, by its code or its name, or a shelf as a receipt writes it.
+      const key = placeKey(q);
+      const shelf = wide ? resolvePlace(q, objects) : null;
+      const places: Row[] = wide
+        ? objects
+            .filter((o) => placeKey(o.id).includes(key) || o.name.includes(q) || o.id === shelf?.objectId)
+            .slice(0, 4)
+            .map((o) => ({ type: "place", label: o.id === shelf?.objectId && shelf ? q.toUpperCase() : o.id, sub: o.name, href: `/3d?at=${encodeURIComponent(o.id === shelf?.objectId && shelf ? q : o.id)}` }))
+        : [];
+      // Nothing found by its spelling: the products whose names are one slip away.
+      const found = new Set(hits.map((h) => h.id));
+      const near: Row[] =
+        wide && !hits.some((h) => h.kind === "product") && q.length >= 4
+          ? state.products
+              .filter((p) => !found.has(p.id) && nearly(q, p.name))
+              .slice(0, NEAR)
+              .map((p) => ({ type: "near", hit: { kind: "product", id: p.id, title: p.name, sub: p.sku } }))
+          : [];
       return [
         ...hits.map((hit): Row => ({ type: "hit", hit })),
+        ...near,
+        ...places,
         ...actions.filter((a) => a.label.includes(q)).map((item): Row => ({ type: "action", item })),
         ...named.filter((p) => p.label.includes(q) || p.also.includes(q)).map(({ label, href }): Row => ({ type: "page", label, href })),
       ];
     }
     return [...actions.map((item): Row => ({ type: "action", item })), ...named.map(({ label, href }): Row => ({ type: "page", label, href }))];
-  }, [query, hits, actions, pages, pageWords]);
+  }, [query, hits, actions, pages, pageWords, wide, objects, state.products]);
 
   const at = Math.min(index, Math.max(rows.length - 1, 0));
   const current = rows[at];
@@ -156,7 +207,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
 
   // The row you stand on answers on the model: its shelves light, and for a product the line runs out to it. Only for
   // as long as you stand there: what the page had lit comes back with the plate gone.
-  const standing = open && current?.type === "hit" ? current.hit : null;
+  const standing = open && (current?.type === "hit" || current?.type === "near") ? current.hit : null;
   const standingKind = standing?.kind;
   const standingId = standing?.id;
   const racksOf = useEffectEvent((orderId: string) => linesOf(orderId).flatMap((line) => itemsOf(line.product_id).map((item) => item.objectId)));
@@ -180,7 +231,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
 
   const run = (row: Row | undefined) => {
     if (!row) return;
-    if (row.type === "hit") pick(row.hit);
+    if (row.type === "hit" || row.type === "near") pick(row.hit);
     else if (row.type === "action") onAction(row.item.key);
     else router.push(row.href);
     onClose();
@@ -253,7 +304,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
           {rows.length === 0 ? <p className="mh-command-empty" role="status">לא נמצאו תוצאות</p> : null}
           {rows.map((row, i) => {
             const selected = i === at;
-            const key = row.type === "hit" ? `${row.hit.kind}:${row.hit.id}` : row.type === "action" ? row.item.key : row.href;
+            const key = row.type === "hit" || row.type === "near" ? `${row.type}:${row.hit.kind}:${row.hit.id}` : row.type === "action" ? row.item.key : `${row.type}:${row.href}`;
             return (
               <Fragment key={key}>
                 {lead(i)}
@@ -268,11 +319,17 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
                   onMouseMove={() => setIndex(i)}
                   onClick={() => run(row)}
                 >
-                  {row.type === "hit" ? (
+                  {row.type === "hit" || row.type === "near" ? (
                     <>
                       <Icon name={HIT_ICON[row.hit.kind]} size={16} />
                       <span className="mh-command-title">{row.hit.title}</span>
                       <span className="mh-command-sub"><bdi>{row.hit.sub}</bdi></span>
+                    </>
+                  ) : row.type === "place" ? (
+                    <>
+                      <Icon name="layers" size={16} />
+                      <span className="mh-command-title ltr">{row.label}</span>
+                      <span className="mh-command-sub">{row.sub}</span>
                     </>
                   ) : row.type === "action" ? (
                     <>
