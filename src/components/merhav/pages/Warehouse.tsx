@@ -310,7 +310,7 @@ function WarehouseInner(): ReactElement {
     return { all: [], short, faults: [...faultObjects], moves: [...moved] };
   }, [model, recent.rows, now, objects, placeOf, faultObjects]);
 
-  const modes = variant === "merhav3" && at === null && !editing && !selectedObject;
+  const modes = (variant === "merhav3" || variant === "merhav5") && at === null && !editing && !selectedObject;
   const modeOn = modes && mode !== "all" ? modeIds[mode] : null;
 
   /* ───────── what the engine draws ───────── */
@@ -664,7 +664,7 @@ function WarehouseInner(): ReactElement {
   const rail = () => {
     if (editing) return <LayoutPanel editor={editor} model={model} />;
     if (selectedObject) return <ObjectCard map={map} object={selectedObject} hit={selected} past={past?.stock ?? null} onShelf={setSelected} onBack={() => setSelected(null)} />;
-    return <StatusRail map={map} past={past?.stock ?? null} at={at} words={variant === "merhav3"} />;
+    return <StatusRail map={map} past={past?.stock ?? null} at={at} words={variant === "merhav3" || variant === "merhav5"} />;
   };
 
   const onSearchPick = (product: Product) => {

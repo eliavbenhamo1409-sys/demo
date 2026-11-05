@@ -3,6 +3,9 @@
    The colours are the ones in tokens.css, read here for the phone's status bar and the page behind the shell. */
 html[data-theme="merhav"] { color-scheme: light; --bg-canvas: #e6e4dd; --bg-surface: #f7f6f2; }
 html[data-theme="merhav-dark"] { color-scheme: dark; --bg-canvas: #0d100f; --bg-surface: #151917; }
+/* מרחב 5 wears מרחב's id with a mark, and its own paper (src/design/merhav5/tokens.css). */
+html[data-merhav5] { --bg-canvas: #e7e9ec; --bg-surface: #f6f7f9; }
+html[data-merhav5][data-theme="merhav-dark"] { --bg-canvas: #0e1013; --bg-surface: #16191d; }
 html[data-theme^="merhav"] { background: var(--bg-surface); }
 html[data-theme^="merhav"] body { background: transparent; }
 [data-theme^="merhav"] .sys-switch { display: none; }

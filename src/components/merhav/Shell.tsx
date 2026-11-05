@@ -33,9 +33,14 @@ import { AreaBar as AreaBar3, Rail as Rail3 } from "@/components/merhav3/Rail";
 import { allPages as pages3, pageWord as word3 } from "@/components/merhav3/areas";
 import { Catalog as Bay3 } from "@/components/merhav3/pages/Catalog";
 import { Overview as MissionControl } from "@/components/merhav3/pages/Overview";
+import { AreaBar as AreaBar5, Rail as Rail5 } from "@/components/merhav5/Rail";
+import { allPages as pages5, pageWord as word5 } from "@/components/merhav5/areas";
+import { Catalog as Bay5 } from "@/components/merhav5/pages/Catalog";
+import { Overview as MissionControl5 } from "@/components/merhav5/pages/Overview";
 import "@/design/merhav/index.css";
 import "@/design/merhav2/index.css";
 import "@/design/merhav3/index.css";
+import "@/design/merhav5/index.css";
 
 export interface MerhavShellProps {
   items: RailItem[];
@@ -92,6 +97,7 @@ const VARIANTS: Record<MerhavVariant, Variant> = {
   merhav: { Rail, AreaBar: null, own: OWN, pages: null, word: null },
   merhav2: { Rail: Rail2, AreaBar: AreaBar2, own: { ...OWN, suppliers: Bay2 }, pages: pages2, word: word2 },
   merhav3: { Rail: Rail3, AreaBar: AreaBar3, own: { ...OWN, overview: MissionControl, suppliers: Bay3 }, pages: pages3, word: word3 },
+  merhav5: { Rail: Rail5, AreaBar: AreaBar5, own: { ...OWN, overview: MissionControl5, suppliers: Bay5 }, pages: pages5, word: word5 },
 };
 
 export function MerhavShell({ items, active, foot, morePages, actions, onAction, search, offline, page, overlays }: MerhavShellProps): ReactElement {
@@ -229,7 +235,7 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
           </main>
           {overlays}
           <PanelKeys />
-          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3"} />
+          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3" || variant === "merhav5"} />
         </div>
       )}
     </TwinProvider>

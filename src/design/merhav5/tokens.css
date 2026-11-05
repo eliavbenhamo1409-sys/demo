@@ -1,0 +1,208 @@
+/* מרחב 5: מרחב's world and מרחב 3's way around, in colours the eye already knows.
+   The language is four meanings, four hues, and nothing else coloured:
+     blue   is what you can press, what is chosen, what is alive;
+     green  is what came in and what is fine;
+     amber  is what waits for a person;
+     red    is what is wrong, and the louder red is stock an order has already lost.
+   Everything else is ink on daylight paper: cool, bright, no tint, so the four colours are the only colours on the page.
+   The document is painted as מרחב (data-theme="merhav") with the mark data-merhav5, so every size, type and motion token
+   is מרחב's; only what has a colour is set again here. Nothing outside this file has a colour value. See DESIGN-BRIEF.md, "מרחב 5". */
+
+html[data-merhav5] {
+  color-scheme: light;
+
+  /* Daylight paper: the floor is cool concrete, the plate is white. */
+  --bg-canvas: #e7e9ec;
+  --bg-surface: #f6f7f9;
+  --bg-raised: #ffffff;
+  --bg-muted: #edeff2;
+  --bg-sunken: #e1e3e7;
+  --bg-inverse: #15181c;
+  --bg-inverse-hover: #272b31;
+  --bg-scrim: rgba(21, 24, 28, 0.3);
+  --bg-glass: rgba(246, 247, 249, 0.84);
+
+  /* Ink: cool near-black, no grey on grey. */
+  --text-primary: #14171b;
+  --text-secondary: #3d434a;
+  --text-tertiary: #5b626a;
+  --text-quiet: #5f666e;
+  --text-disabled: #a3a8af;
+  --text-inverse: #f6f7f9;
+
+  --border-subtle: rgba(20, 23, 27, 0.09);
+  --border-base: rgba(20, 23, 27, 0.13);
+  --border-strong: rgba(20, 23, 27, 0.24);
+  --border-control: rgba(20, 23, 27, 0.46);
+  --border-inverse: #14171b;
+
+  /* Blue: press. */
+  --accent: #1f3fcf;
+  --accent-hover: #1833ad;
+  --accent-soft: rgba(31, 63, 207, 0.1);
+  --on-accent: #ffffff;
+  --accent-text: #1a38bd;
+  --focus: #1f3fcf;
+  --chart-bar: #1f3fcf;
+
+  /* Green: came in, fine. */
+  --success: #14804a;
+  --on-success: #ffffff;
+  --success-text: #117544;
+  --qty-in: #117544;
+
+  /* Amber: waits. */
+  --warning: #b45309;
+  --on-warning: #ffffff;
+  --warning-text: #9a4607;
+
+  /* Red: wrong. The louder one is stock an order has already lost. */
+  --danger: #c92a2a;
+  --on-danger: #ffffff;
+  --danger-text: #b42323;
+  --short: #cf1b1b;
+
+  /* The shadows are ink at a strength, in this ink. */
+  --shadow-sm: 0 1px 2px rgba(20, 23, 27, 0.05);
+  --shadow-md: 0 1px 1px rgba(20, 23, 27, 0.04), -6px 10px 26px -10px rgba(20, 23, 27, 0.16);
+  --shadow-card: 0 0 0 1px var(--border-subtle), 0 1px 1px rgba(20, 23, 27, 0.03);
+  --shadow-lift: 0 0 0 1px var(--border-base), -8px 14px 34px -12px rgba(20, 23, 27, 0.2);
+  --shadow-modal: 0 0 0 1px var(--border-base), -14px 26px 70px -18px rgba(20, 23, 27, 0.34);
+  --shadow-door: -1px 0 0 rgba(20, 23, 27, 0.1), -2px 0 3px rgba(20, 23, 27, 0.05), -22px 0 54px -6px rgba(20, 23, 27, 0.17);
+
+  /* The model: a concrete floor in daylight, graphite uprights, grey beams with a blue face, the door and the forklift
+     in the same blue, the machines in a quieter steel blue, so the pale stock is what the eye finds. */
+  --scene-canvas: #e7e9ec;
+  --scene-slab: #f3f4f6;
+  --scene-grid: #d5d8dd;
+  --scene-wall: #f0f1f3;
+  --scene-wall-top: #ffffff;
+  --scene-column: #c2c6cc;
+  --scene-door: #2140b8;
+  --scene-upright: #2b3036;
+  --scene-shelf: #697079;
+  --scene-shelf-edge: #2140b8;
+  --scene-machine: #3b4f78;
+  --scene-machine-detail: #e4e6ea;
+  --scene-lane: #e0e2e6;
+  --scene-lane-mark: #bfc3ca;
+  --scene-zone: #dde3ee;
+  --scene-zone-line: #a8b6d0;
+  --scene-ground-shadow: 0.2;
+  --scene-sky: 1.55;
+  --scene-sun: 2.5;
+  --scene-sun-color: #fff7ea;
+  --scene-bounce: #cfd3d9;
+  --scene-studio: 0.4;
+  --scene-metal: 0.22;
+  --scene-contact: 0.5;
+  --scene-forklift: #2140b8;
+  --scene-stock-natural: #b6c0c7;
+  --scene-stock-black: #2a2e31;
+  --scene-stock-white: #f4f4f0;
+  --scene-stock-bronze: #a6875c;
+  --scene-stock-roll: #565c60;
+  --scene-stock-canister: #7ea89a;
+  --scene-stock-carton: #c6ad8a;
+}
+
+/* After dark the paper is graphite, the ink is white, and the four colours are lifted so each still reads as itself. */
+html[data-merhav5][data-theme="merhav-dark"] {
+  color-scheme: dark;
+
+  --bg-canvas: #0e1013;
+  --bg-surface: #16191d;
+  --bg-raised: #1d2126;
+  --bg-muted: #22262c;
+  --bg-sunken: #0b0d10;
+  --bg-inverse: #eceef1;
+  --bg-inverse-hover: #ffffff;
+  --bg-scrim: rgba(0, 0, 0, 0.5);
+  --bg-glass: rgba(22, 25, 29, 0.84);
+
+  --text-primary: #eef0f3;
+  --text-secondary: #c2c6cc;
+  --text-tertiary: #9aa0a8;
+  --text-quiet: #878d96;
+  --text-disabled: #596069;
+  --text-inverse: #0e1013;
+
+  --border-subtle: rgba(238, 240, 243, 0.1);
+  --border-base: rgba(238, 240, 243, 0.13);
+  --border-strong: rgba(238, 240, 243, 0.22);
+  --border-control: rgba(238, 240, 243, 0.42);
+  --border-inverse: #eef0f3;
+
+  --accent: #5b7cff;
+  --accent-hover: #7490ff;
+  --accent-soft: rgba(91, 124, 255, 0.16);
+  --on-accent: #06102e;
+  --accent-text: #8ea4ff;
+  --focus: #8ea4ff;
+  --chart-bar: #5b7cff;
+
+  --success: #3dbb7a;
+  --on-success: #04160c;
+  --success-text: #5ccf92;
+  --qty-in: #5ccf92;
+
+  --warning: #e3a040;
+  --on-warning: #241703;
+  --warning-text: #edb765;
+
+  --danger: #ef6e66;
+  --on-danger: #2b0d07;
+  --danger-text: #f58e86;
+  --short: #ff5a50;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 1px 1px rgba(0, 0, 0, 0.3), -6px 10px 28px -8px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 0 0 1px var(--border-subtle);
+  --shadow-lift: 0 0 0 1px var(--border-base), -8px 14px 36px -10px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 0 0 1px var(--border-base), -14px 26px 80px -14px rgba(0, 0, 0, 0.8);
+  --shadow-door: -1px 0 0 rgba(238, 240, 243, 0.08), -2px 0 4px rgba(0, 0, 0, 0.4), -24px 0 60px -4px rgba(0, 0, 0, 0.62);
+
+  --scene-canvas: #0e1013;
+  --scene-slab: #181b20;
+  --scene-grid: #272b31;
+  --scene-wall: #22262c;
+  --scene-wall-top: #30353c;
+  --scene-column: #3a3f47;
+  --scene-door: #5b7cff;
+  --scene-upright: #7a8089;
+  --scene-shelf: #3e444c;
+  --scene-shelf-edge: #5b7cff;
+  --scene-machine: #3a4f80;
+  --scene-machine-detail: #aab0b9;
+  --scene-lane: #1e2126;
+  --scene-lane-mark: #40454d;
+  --scene-zone: #1e2636;
+  --scene-zone-line: #3d4f78;
+  --scene-ground-shadow: 0.5;
+  --scene-sky: 0.95;
+  --scene-sun: 1.9;
+  --scene-sun-color: #eef1f6;
+  --scene-bounce: #353a42;
+  --scene-studio: 0.3;
+  --scene-metal: 0.25;
+  --scene-contact: 0.6;
+  --scene-forklift: #5b7cff;
+  --scene-stock-natural: #c3ccd1;
+  --scene-stock-black: #7b8388;
+  --scene-stock-white: #dfe0dc;
+  --scene-stock-bronze: #b4935f;
+  --scene-stock-roll: #8b9398;
+  --scene-stock-canister: #82b2a2;
+  --scene-stock-carton: #b89e78;
+}
+
+/* The wash of light over the model is מרחב's, tinted green after dark; here it is the paper's own grey. */
+html[data-merhav5][data-theme="merhav-dark"] .mh-world-light {
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(150, 165, 190, 0.07) 0%, rgba(150, 165, 190, 0) 58%),
+    linear-gradient(to left, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.28) 100%);
+}
+
+/* The login's photograph: the same model in these colours (agent/demo-render/door.js, ?theme=merhav5). */
+html[data-merhav5] .app-login-art { background-image: url("/login/merhav5.webp"); }
+html[data-merhav5][data-theme="merhav-dark"] .app-login-art { background-image: url("/login/merhav5-dark.webp"); }

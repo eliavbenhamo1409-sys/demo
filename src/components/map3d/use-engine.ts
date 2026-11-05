@@ -64,8 +64,11 @@ export function useMapEngine(host: RefObject<HTMLDivElement | null>, events: Req
       else retry = window.setTimeout(paint, PALETTE_RETRY_MS);
     };
     paint();
-    const observer = new MutationObserver(paint);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    // The style's id, or a variant's mark beside it: מרחב 5 changes the scene's tokens while data-theme stays מרחב's.
+    const observer = new MutationObserver((changes) => {
+      if (changes.some((c) => c.attributeName?.startsWith("data-"))) paint();
+    });
+    observer.observe(document.documentElement, { attributes: true });
     return () => {
       window.clearTimeout(retry);
       observer.disconnect();

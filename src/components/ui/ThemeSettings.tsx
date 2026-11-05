@@ -68,7 +68,7 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
 
   // Merhav's code comes first (מרחב 2 stands on it), so the old style stands until the new one can take over, with nothing blank between.
   const chooseStyle = (next: ThemeStyle) => {
-    if (next === "merhav" || next === "merhav2" || next === "merhav3") void loadMerhav().then(() => setTheme(joinTheme(next, mode)), () => undefined);
+    if (next === "merhav" || next === "merhav2" || next === "merhav3" || next === "merhav5") void loadMerhav().then(() => setTheme(joinTheme(next, mode)), () => undefined);
     else if (next === "atlas") void loadAtlas().then(() => setTheme(joinTheme(next, mode)), () => undefined);
     else setTheme(joinTheme(next, mode));
   };
