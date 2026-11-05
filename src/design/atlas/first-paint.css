@@ -1,0 +1,7 @@
+/* All that stands before the rest of ATLAS arrives, and the one file of it in everyone's first load: index.css is a chunk only this style
+   downloads. So every rule here needs the style's own id, and nothing here is more than the first frame needs. */
+html[data-theme="atlas"] { color-scheme: light; --bg-canvas: #f6f8f6; --bg-surface: #ffffff; }
+html[data-theme="atlas-dark"] { color-scheme: dark; --bg-canvas: #0f1613; --bg-surface: #151f1a; }
+html[data-theme^="atlas"] { background: var(--bg-canvas); }
+html[data-theme^="atlas"] body { background: var(--bg-canvas); }
+[data-theme^="atlas"] .sys-switch { display: none; }

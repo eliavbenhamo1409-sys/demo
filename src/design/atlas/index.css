@@ -1,0 +1,13 @@
+/* ATLAS 2028, in load order. Shell.tsx imports this, behind its own import(), so nobody else downloads it. */
+@import "./fonts.css";
+@import "./tokens.css";
+@import "./foundation.css";
+@import "./shell.css";
+@import "./overview.css";
+@import "./inventory.css";
+@import "./warehouse.css";
+@import "./movements.css";
+@import "./orders.css";
+@import "./faults.css";
+@import "./suppliers.css";
+@import "./responsive.css";

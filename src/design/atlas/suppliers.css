@@ -1,0 +1,99 @@
+/* ATLAS ספקים: an ordered industrial library. The title, one sentence and three figures, the search on one line, then the
+   names waiting for a decision as two-sided rows: the name as the supplier wrote it on the right, one thin arrow, the
+   factory product on the left. Under them the suppliers as a table ruled only between rows; a row unfolds what that
+   supplier calls what, in the same two-sided shape, so the eye learns one pattern for the whole page. */
+
+.at-su { display: flex; flex-direction: column; gap: 24px; padding: 32px var(--at-gutter) 48px; }
+.at-su-lead { display: block; margin-block-end: 8px; }
+
+/* ── Waiting for approval: a rule and a title, then one row per name, 64 high ── */
+.at-su-wait { display: flex; flex-direction: column; scroll-margin-top: 24px; }
+.at-su-wait-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-base); }
+.at-su-wait-head h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 500; }
+.at-su-wait-head .at-su-n { color: var(--warning-text); font-variant-numeric: tabular-nums; }
+.at-su-wait-hint { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.at-su-matches { list-style: none; margin: 0; padding: 0; }
+.at-su-match { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) auto; align-items: center; gap: 16px; min-height: 64px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+.at-su-match:last-child { border-bottom: 0; }
+
+/* The two sides: a title and one quiet line each. The product's name opens its drawer. */
+.at-su-from, .at-su-to { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.at-su-ext, .at-su-prod { font-size: var(--t-15); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.at-su-prod { padding: 0; border: 0; background: none; font: inherit; font-weight: 500; text-align: start; cursor: pointer; transition: color var(--dur-1) var(--ease); }
+button.at-su-prod:hover { color: var(--accent-text); }
+.at-su-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-su-meta .ltr { unicode-bidi: isolate; }
+.at-su-arrow { display: flex; justify-content: center; color: var(--text-quiet); }
+.at-su-to .sa-select { max-width: 360px; }
+.at-su-swap { padding: 0; border: 0; background: none; font: inherit; color: var(--accent-text); cursor: pointer; }
+.at-su-swap:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
+.at-su-swap:disabled { color: var(--text-disabled); cursor: default; }
+
+/* The actions: one white key, two quiet words. Red only when the hand is on the one that deletes. */
+.at-su-acts { display: flex; align-items: center; gap: 8px; }
+.at-su-acts .sa-btn.at-su-del:hover:not(:disabled), .at-su-act .sa-btn.at-su-del:hover:not(:disabled) { color: var(--danger-text); }
+
+/* ── The suppliers ── */
+.at-su-table .is-name { width: 34%; min-width: 220px; }
+.at-su-table .is-phone { width: 150px; }
+.at-su-table th.is-num, .at-su-table td.is-num { width: 96px; }
+.at-su-table .is-act { width: 1%; white-space: nowrap; text-align: end; }
+.at-su-act { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
+.at-su-chev { flex: none; color: var(--text-quiet); transition: transform var(--dur-2) var(--ease); }
+.at-su-chev.is-open { transform: rotate(180deg); }
+
+/* The fold: the supplier's names under its row, one layer down, in the shape of the rows above. */
+.at-table tbody tr.at-su-fold { cursor: default; }
+.at-table tbody tr.at-su-fold td, .at-table tbody tr.at-su-fold:hover td { height: auto; padding: 0; background: var(--bg-canvas); border-bottom: 0; }
+.at-su-fold-box { display: grid; grid-template-rows: 1fr; animation: at-su-unfold var(--dur-3) var(--ease) both; }
+.at-su-fold-box.is-leaving { animation: at-su-refold var(--dur-3) var(--ease) both; pointer-events: none; }
+.at-su-fold-body { min-height: 0; overflow: hidden; }
+.at-su-fold-in { display: flex; flex-direction: column; padding-block: 4px 12px; padding-inline: 32px 16px; box-shadow: inset 0 -1px 0 var(--border-subtle); }
+/* The last fold ends on the table's own foot rule, not on a second one. */
+.at-table tbody tr.at-su-fold:last-child .at-su-fold-in { box-shadow: none; }
+.at-su-fold-head { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 72px; gap: 16px; padding: 10px 0 6px; font-size: var(--t-12); line-height: 16px; font-weight: 500; color: var(--text-tertiary); }
+.at-su-names { list-style: none; margin: 0; padding: 0; }
+.at-su-name { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 72px; align-items: center; gap: 16px; min-height: 48px; border-top: 1px solid var(--border-subtle); }
+.at-su-name .at-su-ext, .at-su-name .at-su-prod { font-size: var(--t-14); }
+.at-su-name .at-su-act { justify-content: flex-end; }
+.at-su-fold-empty { margin: 0; padding: 12px 0 4px; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+.at-su-fold-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-top: 8px; }
+.at-su-more { padding: 0; border: 0; background: none; font: inherit; font-size: var(--t-13); line-height: var(--l-18); color: var(--warning-text); cursor: pointer; }
+.at-su-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+@keyframes at-su-unfold { from { grid-template-rows: 0fr; } to { grid-template-rows: 1fr; } }
+@keyframes at-su-refold { from { grid-template-rows: 1fr; } to { grid-template-rows: 0fr; } }
+@media (prefers-reduced-motion: reduce) {
+  .at-su-fold-box { animation: none; }
+  .at-su-fold-box.is-leaving { display: none; }
+  .at-su-chev { transition: none; }
+}
+
+/* A narrower workspace, with the panel open: the phone goes to the drawer, the match's actions take a line of their own. */
+@container work (max-width: 900px) {
+  .at-su-table .is-phone { display: none; }
+  .at-su-table .is-name { min-width: 180px; }
+  .at-su-match { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); row-gap: 8px; }
+  .at-su-acts { grid-column: 1 / -1; }
+}
+
+/* A phone: the two sides stand one under the other, the arrow turns down, the actions stay large. */
+@media (max-width: 899px) {
+  .at-su { padding: 20px 16px 40px; gap: 16px; }
+  .at-su-table .is-phone, .at-su-table .is-products { display: none; }
+  .at-su-table .is-name { min-width: 0; width: auto; }
+  .at-su-table th.is-num, .at-su-table td.is-num { width: 72px; }
+  .at-su-match { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0; }
+  .at-su-match .at-su-arrow { justify-content: flex-start; }
+  .at-su-match .at-su-arrow svg { transform: rotate(-90deg); }
+  .at-su-to .sa-select { max-width: none; }
+  .at-su-acts { flex-wrap: wrap; }
+  .at-su-fold-in { padding-inline: 16px; }
+  .at-su-fold-head { display: none; }
+  .at-su-name { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "from act" "to act"; row-gap: 2px; padding-block: 8px; }
+  .at-su-name .at-su-from { grid-area: from; }
+  .at-su-name .at-su-arrow { display: none; }
+  .at-su-name .at-su-to { grid-area: to; flex-direction: row; align-items: baseline; gap: 6px; }
+  .at-su-name .at-su-to .at-su-prod { font-weight: 400; color: var(--text-secondary); }
+  .at-su-name .at-su-act { grid-area: act; }
+}

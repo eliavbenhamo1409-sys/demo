@@ -1,0 +1,95 @@
+/* ATLAS סקירה: the state of the factory in the first five seconds. The title and one business sentence, three figures ruled apart,
+   the model as the one large thing on the page, what needs a hand on the side, and the day's activity along the foot.
+   The page is one screen high on a desk: the model never scrolls away. */
+
+.at-ov { display: grid; grid-template-rows: auto minmax(280px, 1fr) auto; min-height: 100dvh; height: 100dvh; }
+.at-ov > * { min-width: 0; }
+
+/* ── The state: the title, one sentence, three figures ruled apart ── */
+.at-ov-head { display: flex; flex-direction: column; gap: 16px; padding: 32px var(--at-gutter) 16px; background: var(--bg-canvas); border-bottom: 1px solid var(--border-base); }
+.at-ov-title { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 4px 20px; min-width: 0; }
+.at-ov-title h1 { margin: 0; font-size: 32px; line-height: 40px; font-weight: 500; letter-spacing: -0.01em; }
+.at-ov-state { margin: 0; max-width: 72ch; font-size: var(--t-16); line-height: var(--l-24); color: var(--text-secondary); text-wrap: pretty; }
+.at-ov-date { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; }
+/* Three figures, separated by rules and nothing else. */
+.at-ov-keys { display: flex; gap: 0; margin: 0; }
+.at-ov-keys > div { display: flex; flex-direction: column; gap: 2px; min-width: 150px; padding-inline: 24px; border-inline-start: 1px solid var(--border-base); }
+.at-ov-keys > div:first-child { padding-inline-start: 0; border-inline-start: 0; }
+.at-ov-keys dt { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-secondary); }
+.at-ov-keys dd { margin: 0; font-size: 44px; line-height: 48px; font-weight: 500; letter-spacing: -0.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.at-ov-keys dd.is-money small { font-size: 22px; font-weight: 400; color: var(--text-secondary); margin-inline-end: 2px; }
+.at-ov-keys dd.is-calm { color: var(--text-secondary); }
+.at-ov-keys .at-ov-note { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; }
+
+/* ── The warehouse ── */
+.at-ov-model { min-height: 280px; }
+.at-ov-model-caption { position: absolute; top: 16px; right: var(--at-gutter); display: flex; align-items: center; gap: 12px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-secondary); }
+.at-ov-model-caption a { color: var(--accent-text); text-decoration: none; font-weight: 500; }
+.at-ov-model-caption a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.at-ov-model-legend { position: absolute; bottom: 12px; right: var(--at-gutter); display: flex; gap: 16px; font-size: var(--t-12); line-height: 16px; color: var(--text-tertiary); }
+.at-ov-model-legend span::before { content: ""; display: inline-block; width: 14px; height: 2px; margin-inline-end: 6px; vertical-align: middle; background: var(--border-control); }
+.at-ov-model-legend .is-low::before { background: var(--warning); }
+.at-ov-model-legend .is-out::before { background: var(--danger); }
+
+/* ── The day along the foot ── */
+.at-ov-day { padding: 12px var(--at-gutter) 16px; background: var(--bg-canvas); border-top: 1px solid var(--border-base); }
+.at-ov-day-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 8px; }
+.at-ov-day-head h2 { margin: 0; font-size: var(--t-15); line-height: var(--l-22); font-weight: 500; }
+.at-ov-day-sum { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-secondary); }
+.at-ov-day-legend { display: flex; gap: 14px; margin-inline-start: auto; font-size: var(--t-12); line-height: 16px; color: var(--text-tertiary); }
+.at-ov-day-legend span::before { content: ""; display: inline-block; width: 3px; height: 12px; margin-inline-end: 6px; vertical-align: -2px; border-radius: 1px; background: var(--text-tertiary); }
+.at-ov-day-legend .is-in::before { background: var(--qty-in); }
+.at-ov-day-legend .is-out::before { background: var(--chart-out); }
+.at-ov-day-week { display: flex; gap: 24px; margin-inline-start: 24px; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-secondary); }
+.at-ov-day-week b { font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.at-ov-day-week .is-in { color: var(--qty-in); }
+.at-day { position: relative; height: 40px; }
+.at-day-line { position: absolute; inset-inline: 0; top: 20px; height: 1px; background: var(--border-strong); }
+.at-day-hour { position: absolute; top: 26px; transform: translateX(-50%); font-size: var(--t-12); line-height: 16px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.at-day-hour::before { content: ""; position: absolute; left: 50%; top: -6px; width: 1px; height: 5px; background: var(--border-strong); }
+.at-day-now { position: absolute; top: 12px; width: 1px; height: 17px; background: var(--text-primary); }
+.at-day-now::after { content: "עכשיו"; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: var(--t-12); line-height: 16px; color: var(--text-secondary); white-space: nowrap; }
+.at-tick { position: absolute; top: 8px; width: 3px; height: 24px; margin-left: -1.5px; padding: 0; border: 0; border-radius: 1px; background: var(--text-tertiary); cursor: pointer; transition: transform var(--dur-1) var(--ease); }
+.at-tick.is-in { background: var(--qty-in); }
+.at-tick.is-out { background: var(--chart-out); }
+.at-tick:hover, .at-tick:focus-visible { transform: scaleY(1.25); box-shadow: none; outline: 1px solid var(--accent); outline-offset: 2px; }
+.at-day-tip { position: absolute; bottom: 40px; transform: translateX(-50%); padding: 4px 10px; border: 1px solid var(--border-base); border-radius: 6px; background: var(--bg-surface); box-shadow: var(--shadow-md); font-size: var(--t-13); line-height: var(--l-18); white-space: nowrap; pointer-events: none; z-index: 2; }
+.at-day-empty { position: absolute; inset-inline: 0; top: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* ── What needs a hand, on the side ── */
+.at-need-list { list-style: none; margin: 0; padding: 0 0 24px; }
+.at-need { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 12px 24px; border-top: 1px solid var(--border-subtle); transition: background-color var(--dur-1) var(--ease); }
+.at-need:hover { background: var(--bg-hover); }
+.at-need-main { grid-column: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; }
+.at-need-main::after { content: ""; position: absolute; inset: 0; }
+.at-need-main:focus-visible { box-shadow: none; }
+.at-need-main:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
+.at-need-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); text-wrap: pretty; }
+.at-need-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-need-end { grid-column: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.at-need-word { font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; white-space: nowrap; }
+.at-need-act { position: relative; z-index: 1; }
+.at-need-act .sa-btn { height: 28px; padding-inline: 8px; font-size: var(--t-13); }
+.at-need-group { padding: 12px 24px 6px; font-size: var(--t-12); line-height: 16px; font-weight: 500; color: var(--text-tertiary); }
+.at-need-empty { padding: 32px 24px; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+.at-need-empty b { display: block; font-weight: 500; color: var(--text-primary); }
+
+/* Tones: colour on the word, never a fill. */
+.at-tone-ok { color: var(--success-text); }
+.at-tone-warn { color: var(--warning-text); }
+.at-tone-out { color: var(--danger-text); }
+.at-tone-short { color: var(--short); font-weight: 600; }
+.at-tone-quiet { color: var(--text-tertiary); }
+.at-tone-in { color: var(--qty-in); }
+
+@container work (max-width: 1000px) {
+  .at-ov-title { grid-template-columns: auto minmax(0, 1fr); }
+  .at-ov-date { grid-column: 1 / -1; }
+  .at-ov-keys > div { min-width: 120px; padding-inline: 20px; }
+  .at-ov-keys dd { font-size: 34px; line-height: 40px; }
+  .at-ov-keys dd.is-money small { font-size: 18px; }
+}
+@media (max-height: 760px) {
+  .at-ov { height: auto; }
+  .at-ov-model { min-height: 340px; }
+}

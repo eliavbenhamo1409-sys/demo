@@ -24,8 +24,9 @@ import { isTempId, useData } from "@/lib/store";
 import { useTagRoom } from "./use-tag-room";
 
 /** Where the door stands on a page. open: tucked into the rail, the model has the stage. dock: the model keeps a third.
- *  side: a narrow rail of content beside a full model. closed: the door covers the model. */
-export type Door = "open" | "dock" | "side" | "closed";
+ *  side: a narrow rail of content beside a full model. closed: the door covers the model.
+ *  frame: no door; the page cuts one box ([data-twin-frame]) and the model is fitted into it (ATLAS). */
+export type Door = "open" | "dock" | "side" | "closed" | "frame";
 
 interface Handlers {
   onPick?: MapEngineEvents["onPick"];
@@ -326,6 +327,7 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
   const gauge = useRef<HTMLElement>(null);
   const held = useRef<CameraTarget>(null);
   const fit = useRef<() => void>(null);
+  const frameSize = useRef<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
     if (!engine || !world) return;
@@ -335,11 +337,12 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
       probe.style.width = `var(${token})`;
       return probe.offsetWidth;
     };
-    const place = () => {
+    const place = (moved = false) => {
       const free = world.clientWidth;
       if (free === 0) return;
       const target = held.current;
       const insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+      let fly = true;
       // What the door may take of the whole floor and still leave the L its width.
       const leaving = (inset: number, bleed = 0) => Math.max(Math.min(inset, free + bleed - world.clientHeight * FITS), 0);
       // A drawer on the bare stage stands where the figures did, and what is held has to clear it.
@@ -353,14 +356,32 @@ export function TwinProvider({ door, children }: ProviderProps): ReactElement {
         const inset = free - widthOf("--mh-dock");
         insets.right = target ? inset : leaving(inset);
       } else if (door === "side") insets.right = leaving(widthOf("--mh-side"));
+      else if (door === "frame") {
+        // The page says where the model shows: one box, and the model is fitted into it whatever stands around it.
+        const frame = document.querySelector("[data-twin-frame]");
+        if (!frame) return;
+        const stage = world.getBoundingClientRect();
+        const box = frame.getBoundingClientRect();
+        // A frame that only moved, because its page scrolled, keeps the camera where it stands: the rig slides the view with
+        // the insets. A frame that changed size, or a page asking for a place, fits the model again.
+        const was = frameSize.current;
+        frameSize.current = { w: box.width, h: box.height };
+        if (moved && was && was.w === box.width && was.h === box.height) fly = false;
+        // A page may let the floor's empty corners run a little under what stands around the box.
+        const bleed = Number(frame.getAttribute("data-twin-bleed")) || 0;
+        insets.top = box.top - stage.top - bleed;
+        insets.left = box.left - stage.left - bleed;
+        insets.right = stage.right - box.right - bleed;
+        insets.bottom = stage.bottom - box.bottom - bleed;
+      }
       engine.setInsets(insets);
-      engine.flyTo(target);
+      if (fly) engine.flyTo(target);
       if (document.visibilityState === "hidden") engine.renderNow();
     };
     const onResize = () => {
       // The event comes before the engine's own observer, and the camera fits to the size the engine knows.
       engine.renderNow();
-      place();
+      place(true);
     };
     fit.current = place;
     place();

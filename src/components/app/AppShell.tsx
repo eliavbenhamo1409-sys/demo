@@ -18,6 +18,7 @@ import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { MillShell } from "@/components/mill/MillShell";
 import { useMill } from "@/components/mill/use-mill";
 import { useMerhav, useMerhavShell, useMerhavVariant } from "@/components/merhav/use-merhav";
+import { useAtlas, useAtlasShell } from "@/components/atlas/use-atlas";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { findCommands, type CommandHit } from "./command-search";
@@ -106,6 +107,8 @@ function ShellInner({ children }: { children: ReactNode }) {
   const router = useRouter();
   const mill = useMill();
   const merhavShell = useMerhavShell(useMerhav());
+  const atlas = useAtlas();
+  const atlasShell = useAtlasShell(atlas);
   // מרחב 2 gives תיעוד and צוות rows of their own, so the settings row is no longer their mark.
   const fiveAreas = useMerhavVariant() === "merhav2";
   const { theme } = useTheme();
@@ -334,7 +337,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const foot = (
     <>
-      <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={!fiveAreas && SETTINGS_PAGES.some((p) => p.key === active)} />
+      <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={!fiveAreas && !atlas && SETTINGS_PAGES.some((p) => p.key === active)} />
       <NavItem icon="log-out" onClick={onLogOut}>יציאה</NavItem>
     </>
   );
@@ -366,10 +369,26 @@ function ShellInner({ children }: { children: ReactNode }) {
   );
 
   // Only for the moment before its code lands. What stands behind it is first-paint.css.
-  if (merhavShell === undefined) return null;
+  if (merhavShell === undefined || atlasShell === undefined) return null;
 
   if (merhavShell) {
     return createElement(merhavShell, {
+      items,
+      active,
+      foot,
+      morePages: SETTINGS_PAGES,
+      actions: SHELL_ACTIONS,
+      onAction,
+      search: { query, onQuery: onSearchChange, hits, pick },
+      offline: !state.live,
+      page,
+      overlays,
+      panelOpen: panel !== null,
+    });
+  }
+
+  if (atlasShell) {
+    return createElement(atlasShell, {
       items,
       active,
       foot,

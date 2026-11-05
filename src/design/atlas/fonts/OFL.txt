@@ -1,0 +1,3 @@
+Heebo (Copyright 2016 The Heebo Project Authors, github.com/OdedEzer/heebo) and Inter (Copyright 2016 The Inter Project Authors, github.com/rsms/inter)
+are both licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org). The files here are the variable-weight
+woff2 subsets served by Google Fonts (Heebo v28, Inter v20), fetched on 2026-11-05, under the family names at-heebo and at-inter.

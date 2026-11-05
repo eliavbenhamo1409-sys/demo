@@ -1,0 +1,74 @@
+/* ATLAS תקלות: a calm work board. A title and one summary line, the two tabs with the search and the worker filter on one
+   rule, then one table ruled only between rows: each fault one row of 64 with the photo at an exact size, what happened,
+   where, when, who, the state as a word and one small action. Nothing is an emergency: amber on the word for what waits,
+   red only for what has waited over a week, never a fill. */
+
+.at-fa { display: flex; flex-direction: column; gap: 24px; padding: 32px var(--at-gutter) 48px; }
+
+/* ── The tabs and the filters share one rule: the tabs' underline sits on it, the inputs stand a step above it ── */
+.at-fa-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border-base); }
+.at-fa-bar .sa-tabs.sa-tabs-line { flex: none; border-bottom: 0; }
+.at-fa-filters { display: flex; align-items: center; gap: 8px; min-width: 0; padding-bottom: 8px; }
+.at-fa-filters .sa-search { flex: 0 1 300px; min-width: 180px; }
+.at-fa-filters .sa-select { flex: 0 1 170px; min-width: 130px; }
+
+/* ── The table: rows of 64, the photo first at its exact size, the action last ── */
+.at-table.at-fa-table td { height: 64px; }
+.at-fa-table .is-photo { width: 48px; padding-inline-end: 0; }
+.at-fa-table .is-what { min-width: 220px; }
+.at-fa-table .is-place { width: 150px; }
+.at-fa-table .is-when { width: 130px; white-space: nowrap; }
+.at-fa-table .is-who { width: 130px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-fa-table .is-state { width: 110px; }
+.at-fa-table .is-act { width: 1%; white-space: nowrap; text-align: end; }
+
+/* The photo, or the product's, on a mineral square; with neither the square stays, so the descriptions share one edge. */
+.at-fa-photo { display: block; width: 48px; height: 48px; border-radius: 6px; background: var(--bg-muted); overflow: hidden; }
+.at-fa-photo img, .at-fa-photo .sa-thumb { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0; }
+a.at-fa-photo { transition: box-shadow var(--dur-1) var(--ease); }
+a.at-fa-photo:hover { box-shadow: 0 0 0 1px var(--border-control); }
+a.at-fa-photo:focus-visible { box-shadow: var(--focus-ring); }
+
+/* What happened is the row's title: a sentence gets two lines before it is cut. */
+.at-fa-table .is-what .at-cell-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; text-wrap: pretty; }
+
+/* The state is a word in its colour: red while it waits, as a fault reads on every other page, quiet once it is done. */
+.at-fa-state.is-open { color: var(--danger-text); }
+.at-fa-state.is-late { color: var(--danger-text); }
+.at-fa-state.is-done { color: var(--text-tertiary); font-weight: 400; }
+
+/* A narrower workspace (the panel open beside it) keeps what the board is for: the fault, its age, its state, its action. */
+@container work (max-width: 900px) {
+  .at-fa-table .is-place, .at-fa-table .is-who { display: none; }
+  .at-fa-table .is-what { min-width: 160px; }
+  .at-fa-filters .sa-search { flex-basis: 220px; }
+}
+
+/* A phone: the filters under the tabs, and each row folds into two lines with its action at the end. */
+@media (max-width: 899px) {
+  .at-fa { padding: 20px 16px 40px; gap: 16px; }
+  .at-fa-bar { flex-wrap: wrap; }
+  .at-fa-filters { flex: 1 1 100%; padding-bottom: 12px; }
+  .at-fa-filters .sa-search { flex: 1 1 auto; min-width: 0; }
+  .at-fa-table thead { display: none; }
+  .at-fa-table tbody tr {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto auto;
+    grid-template-areas: "photo what what act" "photo when state act";
+    align-items: center;
+    gap: 2px 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .at-fa-table tbody tr:last-child { border-bottom: 0; }
+  .at-fa-table tbody tr:hover { background: var(--bg-hover); }
+  .at-fa-table tbody tr.is-selected { background: var(--bg-selected); }
+  .at-table.at-fa-table td { display: block; height: auto; min-width: 0; padding: 0; border: 0; }
+  .at-table.at-fa-table tbody tr:hover td, .at-table.at-fa-table tbody tr.is-selected td { background: none; }
+  .at-fa-table td.is-photo { grid-area: photo; }
+  .at-fa-table td.is-what { grid-area: what; }
+  .at-fa-table td.is-when { grid-area: when; }
+  .at-fa-table td.is-state { grid-area: state; }
+  .at-fa-table td.is-act { grid-area: act; }
+  .at-fa-table td.is-place, .at-fa-table td.is-who, .at-fa-table .is-when .at-cell-sub { display: none; }
+}

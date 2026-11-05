@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
 import { createPortal } from "react-dom";
+import { loadAtlas } from "@/components/atlas/use-atlas";
 import { loadMerhav } from "@/components/merhav/use-merhav";
 import { joinTheme, splitTheme, THEME_MODES, THEME_STYLES, useTheme, type ThemeStyle } from "@/lib/theme";
 import { Button } from "./Button";
@@ -68,6 +69,7 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
   // Merhav's code comes first (מרחב 2 stands on it), so the old style stands until the new one can take over, with nothing blank between.
   const chooseStyle = (next: ThemeStyle) => {
     if (next === "merhav" || next === "merhav2") void loadMerhav().then(() => setTheme(joinTheme(next, mode)), () => undefined);
+    else if (next === "atlas") void loadAtlas().then(() => setTheme(joinTheme(next, mode)), () => undefined);
     else setTheme(joinTheme(next, mode));
   };
 
@@ -127,7 +129,7 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
         <div className="sa-modal-body">
           <div className="sa-settings-group">
             {/* Merhav and מרחב 2 are the admin's alone, and only the admin passes pages. Anyone else sees them as the default style, so that is what is marked. */}
-            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => s.id !== "merhav" && s.id !== "merhav2")} value={pages || (style !== "merhav" && style !== "merhav2") ? style : "minimal"} onChange={chooseStyle} />
+            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => s.id !== "merhav" && s.id !== "merhav2" && s.id !== "atlas")} value={pages || (style !== "merhav" && style !== "merhav2" && style !== "atlas") ? style : "minimal"} onChange={chooseStyle} />
             <Choice label="מראה" options={THEME_MODES} value={mode} onChange={(m) => setTheme(joinTheme(style, m))} />
           </div>
           {pages?.length ? (

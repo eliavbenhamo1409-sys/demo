@@ -1,0 +1,119 @@
+/* ATLAS מלאי: the cleanest table. A title and one summary line, the controls on one line with one primary key, a distribution bar
+   of the stock by state that is also the filter, then a wide open table ruled only between rows. The chosen product opens
+   beside it, with its shelf in the window over the panel. */
+
+.at-inv { display: flex; flex-direction: column; gap: 24px; padding: 32px var(--at-gutter) 48px; }
+
+/* ── Head: a title, a summary line, and the page's one primary key ── */
+.at-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.at-head-text { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-width: 0; }
+.at-title { margin: 0; font-size: 32px; line-height: 40px; font-weight: 500; letter-spacing: -0.01em; }
+.at-line { margin: 0; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+.at-head-end { display: flex; align-items: center; gap: 8px; flex: none; }
+.at-sum { display: flex; flex-wrap: wrap; gap: 0; margin: 0; padding: 0; list-style: none; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+.at-sum li { display: inline-flex; align-items: baseline; gap: 4px; padding-inline: 12px; border-inline-start: 1px solid var(--border-base); }
+.at-sum li:first-child { padding-inline-start: 0; border-inline-start: 0; }
+.at-sum b { font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.at-sum .at-tone-warn b { color: var(--warning-text); }
+.at-sum .at-tone-out b { color: var(--danger-text); }
+.at-sum .at-tone-short b { color: var(--short); }
+
+/* ── Controls: search, two filters, sort ── */
+.at-tools { display: flex; align-items: center; gap: 8px; }
+.at-tools .sa-search { flex: 1 1 320px; max-width: 420px; }
+.at-tools .sa-select { flex: 0 1 180px; min-width: 140px; }
+.at-tools-sort { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; font-size: var(--t-13); color: var(--text-tertiary); }
+.at-tools-sort .sa-select { min-width: 150px; }
+
+/* ── The stock by state: one bar, a legend with numbers, and the filter ── */
+.at-dist { display: flex; flex-direction: column; gap: 8px; }
+.at-dist-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--chart-track); direction: ltr; }
+.at-dist-bar i { display: block; height: 100%; background: var(--chart-other); transition: width var(--dur-3) var(--ease); }
+.at-dist-bar .is-ok { background: var(--accent); }
+.at-dist-bar .is-low { background: var(--warning); }
+.at-dist-bar .is-out { background: var(--danger); }
+.at-dist-bar .is-short { background: var(--short); }
+.at-dist-bar .is-dim { opacity: 0.35; }
+.at-dist-legend { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.at-dist-item { display: inline-flex; align-items: baseline; gap: 6px; height: 28px; padding: 0 2px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-secondary); cursor: pointer; transition: color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease); }
+.at-dist-item::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--chart-other); align-self: center; }
+.at-dist-item.is-ok::before { background: var(--accent); }
+.at-dist-item.is-low::before { background: var(--warning); }
+.at-dist-item.is-out::before { background: var(--danger); }
+.at-dist-item.is-short::before { background: var(--short); }
+.at-dist-item b { font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.at-dist-item:hover { color: var(--text-primary); }
+.at-dist-item[aria-pressed="true"] { color: var(--text-primary); border-bottom-color: var(--accent); }
+.at-dist-item:focus-visible { box-shadow: none; outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* A swatch only where the bar has that segment: הכול and משוריין are counts, not states. */
+.at-dist-item:not(.is-ok, .is-low, .is-out, .is-short)::before { display: none; }
+
+/* ── The table ── */
+/* Clipped to its corners, not a scroll container: the sticky head still rides the workspace's scroll. */
+.at-table-wrap { border: 1px solid var(--border-base); border-radius: var(--radius-lg); background: var(--bg-surface); overflow: clip; }
+.at-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t-14); line-height: var(--l-20); }
+.at-table th { position: sticky; top: 0; z-index: 1; height: 44px; padding: 0 16px; background: var(--bg-surface); color: var(--text-secondary); font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; text-align: start; white-space: nowrap; border-bottom: 1px solid var(--border-base); }
+.at-table th button { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.at-table th button:hover { color: var(--text-primary); }
+.at-table th button[aria-pressed="true"] { color: var(--text-primary); }
+.at-table th button:focus-visible { box-shadow: none; outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.at-table th.is-num { text-align: end; }
+.at-table th.is-num button { flex-direction: row-reverse; }
+.at-table td { height: 56px; padding: 0 16px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; color: var(--text-primary); }
+.at-table tbody tr:last-child td { border-bottom: 0; }
+.at-table tbody tr { cursor: pointer; transition: background-color var(--dur-1) var(--ease); }
+.at-table tbody tr:hover td { background: var(--bg-hover); }
+.at-table tbody tr.is-selected td { background: var(--bg-selected); }
+.at-table tbody tr:focus-visible { box-shadow: none; outline: 2px solid var(--accent); outline-offset: -2px; }
+.at-table td.is-num { text-align: end; font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
+.at-table td.is-num small { font-size: var(--t-12); color: var(--text-tertiary); margin-inline-start: 4px; }
+.at-table .is-name { width: 38%; min-width: 260px; }
+.at-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.at-cell .sa-thumb { flex: none; width: 36px; height: 36px; }
+.at-cell-text { display: flex; flex-direction: column; min-width: 0; }
+.at-cell-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-cell-sub { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-cell-sub .ltr { unicode-bidi: isolate; }
+.at-place { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
+.at-place-more { font-size: var(--t-12); color: var(--text-tertiary); margin-inline-start: 6px; }
+.at-num-sub { display: block; font-size: var(--t-12); line-height: 16px; color: var(--text-tertiary); font-weight: 400; }
+.at-min { display: flex; align-items: center; gap: 10px; min-width: 150px; }
+.at-meter { position: relative; display: block; width: 72px; height: 6px; border-radius: 3px; background: var(--chart-track); overflow: hidden; direction: ltr; }
+.at-meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 3px; }
+.at-meter.is-low i { background: var(--warning); }
+.at-meter.is-out i, .at-meter.is-short i { background: var(--danger); }
+.at-meter u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-primary); opacity: 0.6; }
+.at-min-pct { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; white-space: nowrap; font-size: var(--t-13); }
+.at-state { font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; white-space: nowrap; }
+.at-state.is-ok { color: var(--text-tertiary); font-weight: 400; }
+.at-state.is-low { color: var(--warning-text); }
+.at-state.is-out { color: var(--danger-text); }
+.at-state.is-short { color: var(--short); font-weight: 600; }
+.at-state-sub { display: block; font-size: var(--t-12); line-height: 16px; color: var(--text-tertiary); font-weight: 400; }
+.at-table-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-top: 1px solid var(--border-subtle); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+/* The table gives up its last columns by the room it really has: beside an open panel a 1440 window leaves 844px. */
+@container work (max-width: 1000px) {
+  .at-table .is-min, .at-table .is-place-more { display: none; }
+}
+@container work (max-width: 820px) {
+  .at-table .is-reserved { display: none; }
+  .at-table .is-name { min-width: 200px; }
+}
+@media (max-width: 899px) {
+  .at-inv { padding: 20px 16px 40px; gap: 16px; }
+  .at-head { flex-direction: column; align-items: stretch; }
+  .at-head-end { justify-content: flex-start; }
+  .at-tools { flex-wrap: wrap; }
+  .at-tools .sa-search { flex-basis: 100%; max-width: none; }
+  .at-tools .sa-select { flex: 1 1 40%; min-width: 0; }
+  .at-tools-sort { margin-inline-start: 0; }
+  .at-table .is-place, .at-table .is-state { display: none; }
+  /* Two columns that always fit: the name takes what the figure leaves, and a long name wraps to two lines. */
+  .at-table { table-layout: fixed; }
+  .at-table th.is-name { width: auto; min-width: 0; }
+  .at-table th.is-available { width: 104px; }
+  .at-table td { padding: 0 12px; }
+  .at-cell .sa-thumb { width: 32px; height: 32px; }
+  .at-cell-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+}

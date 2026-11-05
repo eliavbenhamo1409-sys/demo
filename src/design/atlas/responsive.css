@@ -1,0 +1,61 @@
+/* ATLAS on a laptop, a tablet and a phone. One file on top: everything here only changes how the same zones sit in a smaller room. */
+
+/* A laptop keeps all three zones; the panel narrows and the figures step down (tokens.css). */
+
+/* A tablet and a phone: one task at a time. The spine turns into a header of two rows, the panel takes the whole window,
+   the side of a page stands under its work, and the model is seen only where it is the page (סקירה, מחסן). */
+@media (max-width: 899px) {
+  /* No spine beside the page: the world spans the whole window, so the model is fitted to its real frame. */
+  html[data-theme^="atlas"] { --at-context: 100vw; --at-gutter: 16px; --at-spine: 0px; --mh-rail: 0px; }
+  html[data-theme^="atlas"]:has(.at-app) { overflow: auto; }
+  .at-app { display: flex; flex-direction: column; height: auto; min-height: 100dvh; }
+  .at-spine { position: sticky; top: 0; z-index: 5; flex-direction: row; flex-wrap: wrap; align-items: center; height: auto; padding: 0 0 0 8px; overflow: visible; }
+  .at-brand { flex: 1; height: 52px; padding-inline: 16px 8px; }
+  .at-seek { width: auto; height: 32px; margin: 0 8px 0 0; }
+  .at-seek span { display: none; }
+  .at-seek kbd { display: none; }
+  .at-nav { order: 3; flex: none; width: 100%; flex-direction: row; gap: 0; margin: 0; padding: 0 8px; overflow-x: auto; scrollbar-width: none; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+  .at-area { flex: none; }
+  .at-nav-row { height: 44px; padding-inline: 12px; }
+  .at-area[data-here] > .at-nav-row { background: none; }
+  .at-area[data-here] > .at-nav-row::before { inset-block: auto 0; inset-inline: 12px; width: auto; height: 2px; border-radius: 1px; }
+  .at-area[data-here] > .at-nav-row > .at-count.is-sum { opacity: 1; }
+  .at-pages { display: none; }
+  .at-spine-foot { flex-direction: row; align-items: center; gap: 4px; margin: 0; padding: 0 4px; border: 0; }
+  .at-new { height: 32px; margin: 0; padding: 0 8px; }
+  .at-new span { display: none; }
+  .at-spine .sa-nav-item { width: auto; height: 32px; padding: 0 6px; }
+  .at-spine .sa-nav-item span { display: none; }
+  .at-offline { margin: 0 6px; }
+  [data-theme^="atlas"] body:has(.at-app) .sys-switch { position: static; width: 100%; height: 40px; justify-content: center; }
+  .at-work { height: auto; min-height: 60dvh; overflow: visible; }
+  .at-areabar { display: block; padding: 12px var(--at-gutter) 0; }
+  .at-areabar-row { display: flex; gap: 20px; border-bottom: 1px solid var(--border-base); }
+  .at-areabar-item { display: inline-flex; align-items: center; gap: 6px; height: 40px; color: var(--text-secondary); font-size: var(--t-14); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .at-areabar-item[aria-current="page"] { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--accent); }
+  .at-areabar-count { font-size: var(--t-12); color: var(--text-tertiary); }
+  .at-side { height: auto; max-height: none; border-inline-start: 0; border-top: 1px solid var(--border-base); }
+  .at-app > .app-panelHost { width: 100%; border: 0; }
+  .at-app[data-map] > .app-panelHost { top: 0; }
+  .at-context-map { display: none; }
+  .at-ov { height: auto; min-height: 0; grid-template-rows: auto 44dvh auto; }
+  .at-ov-head { padding: 20px var(--at-gutter) 16px; }
+  .at-ov-title h1 { font-size: 26px; line-height: 32px; }
+  .at-ov-state { font-size: var(--t-15); line-height: var(--l-22); }
+  .at-ov-keys { flex-wrap: wrap; gap: 12px 0; }
+  .at-ov-keys > div { min-width: 0; flex: 1 1 33%; padding-inline: 12px; }
+  .at-ov-keys dd { font-size: 26px; line-height: 32px; }
+  .at-ov-keys dd.is-money { font-size: 22px; }
+  .at-ov-keys dd.is-money small { font-size: 14px; }
+  .at-ov-keys .at-ov-note { white-space: normal; }
+  .at-ov-model { min-height: 0; }
+  .at-ov-model-caption { right: var(--at-gutter); }
+  .at-ov-day-head { flex-wrap: wrap; }
+  .at-ov-day-week { margin-inline-start: 0; flex-basis: 100%; }
+  .at-wait { margin-inline: var(--at-gutter); }
+  html[data-theme^="atlas"] .app-toasts { inset-inline: var(--at-gutter); }
+}
+@media (max-width: 599px) {
+  .at-ov-keys > div { flex-basis: 100%; padding-inline: 0; border: 0; }
+  .at-ov-keys > div + div { padding-top: 10px; border-top: 1px solid var(--border-subtle); }
+}

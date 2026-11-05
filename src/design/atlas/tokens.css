@@ -1,0 +1,262 @@
+/* ATLAS 2028 — the industrial clarity system (label מרחב 4 in the settings dialog).
+   Minerals, cold light, one deep jade. Order before beauty: 70% mineral white and white, 20% ink and greys, 8% jade, 2% warnings.
+   Every shared token the sa-* components read is set here, so the shared drawers and forms wear this skin with no rule of their own. */
+
+html[data-theme^="atlas"] {
+  color-scheme: light;
+
+  /* Surfaces. The workspace is mineral white; what is active is pure white; a second layer is the mineral layer. */
+  --bg-canvas: #f6f8f6;
+  --bg-surface: #ffffff;
+  --bg-raised: #ffffff;
+  --bg-muted: #edf1ee;
+  --bg-sunken: #edf1ee;
+  --bg-hover: #f1f4f2;
+  --bg-thumb: #edf1ee;
+  --bg-fill: rgba(21, 35, 30, 0.06);
+  --bg-fill-hover: rgba(21, 35, 30, 0.1);
+  --bg-selected: #e5f1ec;
+  --bg-glass: rgba(246, 248, 246, 0.86);
+  --bg-inverse: #142822;
+  --bg-inverse-hover: #1d3830;
+  --bg-scrim: rgba(20, 40, 34, 0.32);
+
+  /* Ink. Secondary text stays readable: nothing here is weaker than 4.5:1 on white. */
+  --text-primary: #15231e;
+  --text-secondary: #586760;
+  --text-tertiary: #67756e;
+  --text-quiet: #75837c;
+  --text-disabled: #a3aea8;
+  --text-inverse: #f6f8f6;
+
+  /* Rules. One divider, 1px, and a step each way. */
+  --border-subtle: #e6ece8;
+  --border-base: #dce3de;
+  --border-strong: #c5cfc9;
+  --border-control: #9aa8a1;
+  --border-inverse: #15231e;
+  --hair: 1px;
+
+  /* Jade: what you can press, what is chosen, what is alive. */
+  --accent: #0d6653;
+  --accent-hover: #0b5745;
+  --accent-soft: #e5f1ec;
+  --on-accent: #ffffff;
+  --accent-text: #0d6653;
+  --success: #0d6653;
+  --on-success: #ffffff;
+  --success-text: #0d6653;
+  --qty-in: #0d6653;
+  --chart-in: #0d6653;
+  --chart-out: #586760;
+  --chart-other: #c5cfc9;
+  --chart-track: #e6ece8;
+  --chart-bar: #0d6653;
+  --chart-today: #0d6653;
+  --selection: rgba(13, 102, 83, 0.18);
+
+  /* The 2%: amber for a warning, signal red for a fault, and one louder red for stock an order has already lost. */
+  --warning: #b36a25;
+  --on-warning: #ffffff;
+  --warning-text: #915319;
+  --danger: #ba3b32;
+  --on-danger: #ffffff;
+  --danger-text: #ab3229;
+  --short: #c8271d;
+  --focus: #0d6653;
+  --focus-ring: 0 0 0 2px var(--bg-surface), 0 0 0 4px var(--accent);
+  --focus-ring-danger: 0 0 0 2px var(--bg-surface), 0 0 0 4px var(--danger);
+
+  /* Depth is layers, contrast and rules. Only what truly floats (a menu, a dialog) carries one soft shadow. */
+  --shadow-sm: none;
+  --shadow-card: 0 0 0 1px var(--border-base);
+  --shadow-md: 0 0 0 1px var(--border-base), 0 8px 24px -8px rgba(21, 35, 30, 0.16);
+  --shadow-lift: 0 0 0 1px var(--border-base), 0 12px 32px -12px rgba(21, 35, 30, 0.2);
+  --shadow-modal: 0 0 0 1px var(--border-base), 0 24px 64px -16px rgba(21, 35, 30, 0.28);
+
+  /* Radii: 6 to 10 on working parts, larger only on what floats. */
+  --radius-sm: 6px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* Type: Heebo carries the Hebrew, Inter the Latin and every number. Weights 400, 500, 600. */
+  --font-sans: "at-inter", "at-heebo", "Inter", "Heebo", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: var(--font-sans);
+  --t-12: 12px; --t-13: 13px; --t-14: 14px; --t-15: 15px; --t-16: 16px; --t-17: 17px;
+  --l-16: 16px; --l-18: 18px; --l-20: 20px; --l-21: 21px; --l-22: 22px; --l-23: 23px; --l-24: 24px;
+
+  /* Sizes. Controls 40 to 44, a dense row 48, a row with a second line 56. */
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 44px;
+  --row: 56px;
+  --touch: 48px;
+  --touch-lg: 56px;
+  --panel: 400px;
+  --modal: 480px;
+  --content: 1600px;
+  --topbar: 56px;
+  --sidebar: 196px;
+  --gap: 16px;
+  --inset: 24px;
+  --shell-gap: 0px;
+
+  /* Spacing: 4, 8, 12, 16, 24, 32, 48. Nothing else. */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+
+  /* Motion: short and exact. A hover answers in 120, a chosen row in 150, a panel opens in 240. */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-1: 120ms;
+  --dur-2: 150ms;
+  --dur-3: 240ms;
+
+  /* The three zones. */
+  --at-spine: 196px;
+  --at-context: 400px;
+  --at-map-h: 260px;
+  --at-gutter: 32px;
+  --at-jade-light: #3fb08e;
+  /* The world under the admin spans everything beside the spine (Twin reads this name). */
+  --mh-rail: var(--at-spine);
+
+  /* The model: a cold white floor ruled with thin lines, graphite construction, light metal shelves, exact jade edges,
+     machines in a sober industrial green. Its canvas is the workspace itself, so it is part of the page. */
+  --scene-canvas: #f6f8f6;
+  --scene-slab: #fbfcfb;
+  --scene-grid: #dce3de;
+  --scene-wall: #edf1ee;
+  --scene-wall-top: #ffffff;
+  --scene-column: #c5cfc9;
+  --scene-door: #0d6653;
+  --scene-upright: #2a3431;
+  --scene-shelf: #b7c1bc;
+  --scene-shelf-edge: #0d6653;
+  --scene-machine: #2e7664;
+  --scene-machine-detail: #e6ece8;
+  --scene-lane: #e9eeeb;
+  --scene-lane-mark: #c5cfc9;
+  --scene-zone: #dfe8e3;
+  --scene-zone-line: #9fb3a9;
+  --scene-ground-shadow: 0.14;
+  --scene-sky: 1.6;
+  --scene-sun: 2.3;
+  --scene-sun-color: #f7faff;
+  --scene-bounce: #d5ddd8;
+  --scene-studio: 0.4;
+  --scene-metal: 0.28;
+  --scene-contact: 0.34;
+  --scene-forklift: #0d6653;
+  --scene-stock-natural: #b5c0c5;
+  --scene-stock-black: #2b3331;
+  --scene-stock-white: #f4f6f4;
+  --scene-stock-bronze: #a98a5e;
+  --scene-stock-roll: #505b57;
+  --scene-stock-canister: #7ea89a;
+  --scene-stock-carton: #c9b08c;
+}
+
+/* The same system after dark: forest black under white ink, the jade lifted so it still reads as the one colour. */
+html[data-theme="atlas-dark"] {
+  color-scheme: dark;
+  --bg-canvas: #0f1613;
+  --bg-surface: #151f1a;
+  --bg-raised: #1a2620;
+  --bg-muted: #1b2822;
+  --bg-sunken: #0b110e;
+  --bg-hover: #1a2620;
+  --bg-thumb: #1b2822;
+  --bg-fill: rgba(230, 236, 232, 0.08);
+  --bg-fill-hover: rgba(230, 236, 232, 0.14);
+  --bg-selected: rgba(63, 176, 142, 0.16);
+  --bg-glass: rgba(15, 22, 19, 0.86);
+  --bg-inverse: #0a100d;
+  --bg-inverse-hover: #142822;
+  --bg-scrim: rgba(0, 0, 0, 0.55);
+  --text-primary: #e6ece8;
+  --text-secondary: #b3bfb8;
+  --text-tertiary: #93a099;
+  --text-quiet: #7f8c86;
+  --text-disabled: #55615b;
+  --text-inverse: #0f1613;
+  --border-subtle: rgba(230, 236, 232, 0.08);
+  --border-base: rgba(230, 236, 232, 0.12);
+  --border-strong: rgba(230, 236, 232, 0.2);
+  --border-control: rgba(230, 236, 232, 0.36);
+  --border-inverse: #e6ece8;
+  --accent: #3fb08e;
+  --accent-hover: #4fbf9c;
+  --accent-soft: rgba(63, 176, 142, 0.14);
+  --on-accent: #06140f;
+  --accent-text: #5fc4a5;
+  --success: #3fb08e;
+  --on-success: #06140f;
+  --success-text: #5fc4a5;
+  --qty-in: #5fc4a5;
+  --chart-in: #3fb08e;
+  --chart-out: #b3bfb8;
+  --chart-other: #3a4842;
+  --chart-track: #1b2822;
+  --chart-bar: #3fb08e;
+  --chart-today: #3fb08e;
+  --selection: rgba(63, 176, 142, 0.3);
+  --warning: #e0a04a;
+  --on-warning: #241703;
+  --warning-text: #e8b063;
+  --danger: #e6766c;
+  --on-danger: #2b0d07;
+  --danger-text: #ef8f86;
+  --short: #ff6a5e;
+  --focus: #5fc4a5;
+  --shadow-card: 0 0 0 1px var(--border-base);
+  --shadow-md: 0 0 0 1px var(--border-base), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 0 0 1px var(--border-base), 0 12px 32px -12px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 0 0 1px var(--border-base), 0 24px 64px -16px rgba(0, 0, 0, 0.8);
+  --at-jade-light: #5fc4a5;
+  --scene-canvas: #0f1613;
+  --scene-slab: #18221d;
+  --scene-grid: #263129;
+  --scene-wall: #1b2822;
+  --scene-wall-top: #27352e;
+  --scene-column: #34433c;
+  --scene-door: #3fb08e;
+  --scene-upright: #8a9792;
+  --scene-shelf: #46534d;
+  --scene-shelf-edge: #3fb08e;
+  --scene-machine: #2a8a6c;
+  --scene-machine-detail: #aab7b0;
+  --scene-lane: #1d2823;
+  --scene-lane-mark: #3a4842;
+  --scene-zone: #1f2f27;
+  --scene-zone-line: #3f5a4e;
+  --scene-ground-shadow: 0.5;
+  --scene-sky: 0.95;
+  --scene-sun: 1.8;
+  --scene-sun-color: #eef4f2;
+  --scene-bounce: #2d3a34;
+  --scene-studio: 0.3;
+  --scene-metal: 0.3;
+  --scene-contact: 0.55;
+  --scene-forklift: #3fb08e;
+  --scene-stock-natural: #c3ccd1;
+  --scene-stock-black: #7b8388;
+  --scene-stock-white: #dfe3df;
+  --scene-stock-bronze: #b4935f;
+  --scene-stock-roll: #8b9398;
+  --scene-stock-canister: #82b2a2;
+  --scene-stock-carton: #b89e78;
+}
+
+/* A finger needs 44px, whatever the style. */
+@media (hover: none) {
+  html[data-theme^="atlas"] { --control-sm: 44px; --control-md: 44px; --control-lg: 48px; }
+}
+/* A laptop keeps the three zones and gives up some air. */
+@media (max-width: 1439px) {
+  html[data-theme^="atlas"] { --at-context: 360px; --at-gutter: 24px; }
+}
+/* A very large screen grows the spine and the panel a step, so the workspace never reads as a strip between two posts. */
+@media (min-width: 2200px) {
+  html[data-theme^="atlas"] { --at-spine: 224px; --at-context: 440px; --at-gutter: 40px; --t-13: 14px; --t-14: 15px; --t-15: 16px; --l-18: 19px; --l-20: 21px; --l-22: 23px; }
+}

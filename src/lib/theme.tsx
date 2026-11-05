@@ -6,7 +6,8 @@
  *   minimal — neutral white or near-black, hairlines, one green, numbers in a monospace;
  *   bokeh — the control room: violet on lavender, cards standing off out-of-focus light, charts of the past year;
  *   merhav — the warehouse is the interface: one live model under the whole admin, plates sliding over it (admin only);
- *   merhav2 — מרחב 2: the same world and door, cut down to five areas (admin only).
+ *   merhav2 — מרחב 2: the same world and door, cut down to five areas (admin only);
+ *   atlas — ATLAS 2028 (label מרחב 4): the industrial clarity system, a shell of its own on the same live model (admin only).
  * מרחב 2 is painted as מרחב: the document carries מרחב's id and the mark data-merhav2, so every rule of מרחב applies
  * and מרחב 2 adds its own under the mark. Its stored ids are its own, so a saved choice is its own.
  * The choice is one id ("light", "dark", "minimal", "minimal-dark", "minimal-bokeh", "minimal-bokeh-dark")
@@ -20,8 +21,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-export type ThemeId = "light" | "dark" | "minimal" | "minimal-dark" | "minimal-bokeh" | "minimal-bokeh-dark" | "merhav" | "merhav-dark" | "merhav2" | "merhav2-dark";
-export type ThemeStyle = "classic" | "minimal" | "bokeh" | "merhav" | "merhav2";
+export type ThemeId = "light" | "dark" | "minimal" | "minimal-dark" | "minimal-bokeh" | "minimal-bokeh-dark" | "merhav" | "merhav-dark" | "merhav2" | "merhav2-dark" | "atlas" | "atlas-dark";
+export type ThemeStyle = "classic" | "minimal" | "bokeh" | "merhav" | "merhav2" | "atlas";
 export type ThemeMode = "light" | "dark";
 
 export const THEME_STYLES: readonly { id: ThemeStyle; label: string }[] = [
@@ -30,6 +31,7 @@ export const THEME_STYLES: readonly { id: ThemeStyle; label: string }[] = [
   { id: "bokeh", label: "בוקה" },
   { id: "merhav", label: "מרחב" },
   { id: "merhav2", label: "מרחב 2" },
+  { id: "atlas", label: "מרחב 4" },
 ] as const;
 
 export const THEME_MODES: readonly { id: ThemeMode; label: string }[] = [
@@ -49,16 +51,18 @@ export function splitTheme(id: ThemeId): { style: ThemeStyle; mode: ThemeMode } 
     style:
       id === "merhav" || id === "merhav-dark" ? "merhav"
       : id === "merhav2" || id === "merhav2-dark" ? "merhav2"
+      : id === "atlas" || id === "atlas-dark" ? "atlas"
       : id === "minimal-bokeh" || id === "minimal-bokeh-dark" ? "bokeh"
       : id === "minimal" || id === "minimal-dark" ? "minimal"
       : "classic",
-    mode: id === "dark" || id === "minimal-dark" || id === "minimal-bokeh-dark" || id === "merhav-dark" || id === "merhav2-dark" ? "dark" : "light",
+    mode: id === "dark" || id === "minimal-dark" || id === "minimal-bokeh-dark" || id === "merhav-dark" || id === "merhav2-dark" || id === "atlas-dark" ? "dark" : "light",
   };
 }
 
 export function joinTheme(style: ThemeStyle, mode: ThemeMode): ThemeId {
   if (style === "merhav") return mode === "dark" ? "merhav-dark" : "merhav";
   if (style === "merhav2") return mode === "dark" ? "merhav2-dark" : "merhav2";
+  if (style === "atlas") return mode === "dark" ? "atlas-dark" : "atlas";
   if (style === "bokeh") return mode === "dark" ? "minimal-bokeh-dark" : "minimal-bokeh";
   if (style === "minimal") return mode === "dark" ? "minimal-dark" : "minimal";
   return mode;
@@ -67,7 +71,7 @@ export function joinTheme(style: ThemeStyle, mode: ThemeMode): ThemeId {
 function resolve(v: string | null): ThemeId {
   if (v === "dark" || v === "modern-dark") return "dark";
   if (v === "light" || v === "classic" || v === "modern") return "light";
-  if (v === "minimal-dark" || v === "minimal-bokeh" || v === "minimal-bokeh-dark" || v === "merhav" || v === "merhav-dark" || v === "merhav2" || v === "merhav2-dark") return v;
+  if (v === "minimal-dark" || v === "minimal-bokeh" || v === "minimal-bokeh-dark" || v === "merhav" || v === "merhav-dark" || v === "merhav2" || v === "merhav2-dark" || v === "atlas" || v === "atlas-dark") return v;
   return DEFAULT_THEME;
 }
 
@@ -76,8 +80,8 @@ const OTHER_SYSTEM = /^\/(worker|catalog)(\/|$)/;
 /** Merhav and מרחב 2 are the admin's alone: the worker and the catalogue keep the default style, in the same light or dark. On the admin מרחב 2 wears מרחב's id. */
 function painted(id: ThemeId, pathname: string): ThemeId {
   if (OTHER_SYSTEM.test(pathname)) {
-    if (id === "merhav-dark" || id === "merhav2-dark") return "minimal-dark";
-    if (id === "merhav" || id === "merhav2") return "minimal";
+    if (id === "merhav-dark" || id === "merhav2-dark" || id === "atlas-dark") return "minimal-dark";
+    if (id === "merhav" || id === "merhav2" || id === "atlas") return "minimal";
     return id;
   }
   if (id === "merhav2") return "merhav";
@@ -90,7 +94,7 @@ function marked(id: ThemeId, pathname: string): boolean {
 }
 
 /** Runs before hydration; keep it tiny and self-contained (no imports). Mirrors resolve(). */
-export const THEME_BOOT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var v=t==="dark"||t==="modern-dark"?"dark":t==="light"||t==="classic"||t==="modern"?"light":t==="minimal-dark"||t==="minimal-bokeh"||t==="minimal-bokeh-dark"||t==="merhav"||t==="merhav-dark"||t==="merhav2"||t==="merhav2-dark"?t:${JSON.stringify(DEFAULT_THEME)};var w=/^\\/(worker|catalog)(\\/|$)/.test(location.pathname);var two=v==="merhav2"||v==="merhav2-dark";if(w&&(v==="merhav"||v==="merhav-dark"||two))v=v==="merhav"||v==="merhav2"?"minimal":"minimal-dark";else if(two)v=v==="merhav2"?"merhav":"merhav-dark";var r=document.documentElement;r.setAttribute("data-theme",v);if(two&&!w)r.setAttribute(${JSON.stringify(MERHAV2_ATTR)},"");}catch(e){}})();`;
+export const THEME_BOOT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var v=t==="dark"||t==="modern-dark"?"dark":t==="light"||t==="classic"||t==="modern"?"light":t==="minimal-dark"||t==="minimal-bokeh"||t==="minimal-bokeh-dark"||t==="merhav"||t==="merhav-dark"||t==="merhav2"||t==="merhav2-dark"||t==="atlas"||t==="atlas-dark"?t:${JSON.stringify(DEFAULT_THEME)};var w=/^\\/(worker|catalog)(\\/|$)/.test(location.pathname);var two=v==="merhav2"||v==="merhav2-dark";if(w&&(v==="merhav"||v==="merhav-dark"||two||v==="atlas"||v==="atlas-dark"))v=v==="merhav"||v==="merhav2"||v==="atlas"?"minimal":"minimal-dark";else if(two)v=v==="merhav2"?"merhav":"merhav-dark";var r=document.documentElement;r.setAttribute("data-theme",v);if(two&&!w)r.setAttribute(${JSON.stringify(MERHAV2_ATTR)},"");}catch(e){}})();`;
 
 /* ── A tiny external store over localStorage ─────────────────────────────── */
 const listeners = new Set<() => void>();

@@ -1,0 +1,164 @@
+/* ATLAS: the shared sa-* components in this language. The tokens do most of it; what a token cannot say is said here.
+   One primary key per area, inputs 40 to 44 high on white with one divider and a jade focus, tabs as text with one exact
+   underline, tables ruled only between rows, panels white with a thin rule and no shadow. */
+
+html[data-theme^="atlas"] {
+  font-variant-numeric: tabular-nums;
+
+  ::selection { background: var(--selection); }
+  :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  svg[stroke="currentColor"] { stroke-width: 1.5; }
+
+  /* ── Type ── */
+  .sa-page-title { font-size: 32px; line-height: 40px; font-weight: 500; letter-spacing: -0.01em; }
+  .sa-page-sub { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+  .sa-section-title { font-size: 20px; line-height: 28px; font-weight: 500; }
+  .sa-num { font-weight: 500; }
+
+  /* ── Buttons ── */
+  .sa-btn { height: var(--control-md); padding: 0 14px; border-radius: 7px; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease); }
+  .sa-btn svg { width: 18px; height: 18px; stroke-width: 1.5; }
+  .sa-btn-sm { height: var(--control-sm); padding: 0 10px; font-size: var(--t-13); border-radius: 6px; }
+  .sa-btn-sm svg { width: 16px; height: 16px; }
+  .sa-btn-lg { height: var(--control-lg); padding: 0 18px; }
+  .sa-btn-icon { width: var(--control-md); padding: 0; }
+  .sa-btn-icon.sa-btn-sm { width: var(--control-sm); }
+  .sa-btn-primary, .sa-btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .sa-btn-primary:hover:not(:disabled), .sa-btn-accent:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .sa-btn-secondary { background: var(--bg-surface); color: var(--text-primary); border-color: var(--border-strong); }
+  .sa-btn-secondary:hover:not(:disabled) { border-color: var(--border-control); background: var(--bg-hover); }
+  .sa-btn-ghost { color: var(--text-secondary); }
+  .sa-btn-ghost:hover:not(:disabled) { background: var(--bg-muted); color: var(--text-primary); }
+  .sa-btn-danger { background: var(--bg-surface); color: var(--danger-text); border-color: var(--border-strong); }
+  .sa-btn-danger:hover:not(:disabled) { border-color: var(--danger); }
+  .sa-btn-link { color: var(--accent-text); }
+  .sa-btn:disabled { opacity: 0.5; }
+
+  /* ── Inputs and selects ── */
+  .sa-label { font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-secondary); }
+  .sa-input, .sa-select-trigger { height: var(--control-md); padding-inline: 12px; border: 1px solid var(--border-base); border-radius: 7px; background: var(--bg-surface); color: var(--text-primary); font-size: var(--t-14); line-height: var(--l-20); transition: border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease); }
+  .sa-input::placeholder { color: var(--text-quiet); }
+  .sa-input:hover:not(:disabled), .sa-select-trigger:hover:not(:disabled) { border-color: var(--border-control); }
+  .sa-input:focus, .sa-select-trigger.is-open, .sa-select-trigger:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .sa-input.is-error, .sa-input.is-error:focus { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+  .sa-input:disabled, .sa-select-trigger:disabled { background: var(--bg-muted); color: var(--text-tertiary); }
+  .sa-textarea { min-height: 92px; padding: 10px 12px; line-height: var(--l-20); }
+  .sa-input-lg { height: var(--control-lg); }
+  .sa-control-icon { color: var(--text-quiet); }
+  .sa-select-chevron { color: var(--text-quiet); }
+  .sa-hint { color: var(--text-tertiary); }
+  .sa-search .sa-input { background: var(--bg-surface); border-color: var(--border-base); }
+  .sa-search .sa-input:focus { border-color: var(--accent); }
+
+  /* ── Menus ── */
+  .sa-menu { border: 1px solid var(--border-base); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-md); }
+  .sa-menu-item { border-radius: 6px; font-size: var(--t-14); }
+  .sa-menu-item:hover, .sa-menu-item.is-active { background: var(--bg-selected); }
+  .sa-menu-item.is-selected { font-weight: 500; color: var(--accent-text); }
+  .sa-menu-search { border-bottom-color: var(--border-subtle); }
+
+  /* ── Tabs: text, and one exact line under the active one ── */
+  .sa-tabs { gap: 24px; }
+  .sa-tab { height: 40px; font-size: var(--t-14); font-weight: 500; color: var(--text-secondary); border-bottom: 2px solid transparent; }
+  .sa-tab:hover { color: var(--text-primary); }
+  .sa-tab.is-active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--accent); }
+  .sa-tab .sa-badge { color: var(--text-tertiary); }
+  .sa-tabs-line { border-bottom: 1px solid var(--border-base); }
+
+  /* ── Badges, dots, states: colour plus a word, never colour alone ── */
+  .sa-badge { font-weight: 500; }
+  .sa-badge-success { color: var(--success-text); }
+  .sa-badge-warning { color: var(--warning-text); }
+  .sa-badge-danger { color: var(--danger-text); }
+
+  /* ── Cards and tables (the shared pages this style has not composed itself) ── */
+  .sa-card { border: 1px solid var(--border-base); border-radius: var(--radius-lg); box-shadow: none; }
+  .sa-card-head { border-bottom-color: var(--border-subtle); }
+  .sa-card-title { font-size: var(--t-15); font-weight: 500; }
+  .sa-table-wrap { border: 1px solid var(--border-base); border-radius: var(--radius-lg); background: var(--bg-surface); }
+  .sa-table { font-size: var(--t-14); }
+  .sa-table th { height: 44px; background: var(--bg-surface); color: var(--text-secondary); font-size: var(--t-13); font-weight: 500; border-bottom: 1px solid var(--border-base); }
+  .sa-table td { height: 48px; border-bottom: 1px solid var(--border-subtle); }
+  .sa-table tbody tr.is-clickable:hover td { background: var(--bg-hover); }
+  .sa-table tbody tr.is-selected td { background: var(--bg-selected); }
+  .sa-cell-primary { font-weight: 500; }
+  .sa-cell-sub { color: var(--text-tertiary); }
+  .sa-stats { gap: 0; background: none; border: 1px solid var(--border-base); border-radius: var(--radius-lg); }
+  .sa-stat { padding: 16px 20px; }
+  .sa-stat + .sa-stat { border-inline-start: 1px solid var(--border-base); }
+  .sa-stat-value { font-size: 28px; line-height: 34px; font-weight: 500; }
+  .sa-stat-label { font-weight: 500; color: var(--text-secondary); }
+
+  /* ── Attention rows ── */
+  .sa-attention-item { padding: 12px 16px; border-bottom-color: var(--border-subtle); }
+  .sa-attention-item:hover { background: var(--bg-hover); }
+  .sa-attention-title { font-weight: 500; }
+
+  /* ── The panel: white, one rule, no shadow, small radius where it floats ── */
+  .sa-panel { width: 100%; max-width: none; background: var(--bg-surface); border: 0; box-shadow: none; }
+  .sa-panel.is-card { border: 1px solid var(--border-base); border-radius: var(--radius-lg); box-shadow: none; }
+  .sa-panel-head { gap: 12px; padding: 20px 24px 16px; border-bottom: 1px solid var(--border-base); }
+  .sa-panel-eyebrow { font-size: var(--t-13); font-weight: 500; color: var(--text-tertiary); }
+  .sa-panel-title { font-size: 20px; line-height: 28px; font-weight: 500; white-space: normal; overflow: visible; text-wrap: pretty; }
+  .sa-panel-sub { font-size: var(--t-14); color: var(--text-secondary); }
+  .sa-panel-tabs { padding-inline: 24px; }
+  .sa-panel-body { gap: 24px; padding: 20px 24px 28px; }
+  .sa-panel-foot { gap: 8px 12px; padding: 12px 24px; padding-bottom: max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border-base); background: var(--bg-surface); }
+  .sa-panel-foot .sa-btn-primary { flex: 1; }
+  .sa-panel-actions .sa-btn-icon svg { width: 18px; height: 18px; }
+  .app-panelHost > .sa-panel { overflow: hidden auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+  .app-panelHost > .sa-panel > .sa-panel-head { position: sticky; top: 0; z-index: 3; background: var(--bg-surface); }
+  .app-panelHost > .sa-panel > .sa-panel-body { flex: none; overflow: visible; }
+  .app-panelHost > .sa-panel > .sa-panel-foot { position: sticky; bottom: 0; z-index: 3; margin-top: auto; }
+  .app-panelHost > .sa-sheet > .sa-panel-tabs { position: sticky; top: 0; z-index: 3; background: var(--bg-surface); }
+
+  /* ── Fields on a panel ── */
+  .sa-fields dt { color: var(--text-tertiary); }
+  .sa-fields dd { font-weight: 500; }
+  .sa-figures { gap: 12px; }
+  .sa-figure dd { font-size: 20px; line-height: 26px; font-weight: 500; }
+  .sa-form-more { border-top-color: var(--border-subtle); }
+  .sa-form-more-toggle:hover { color: var(--accent-text); }
+  .sa-qty { border-color: var(--border-base); border-radius: 7px; }
+  .sa-qty input:focus { background: var(--bg-selected); }
+
+  /* ── Timeline ── */
+  .sa-timeline-item + .sa-timeline-item { border-top-color: var(--border-subtle); }
+  .sa-timeline-title { font-weight: 500; }
+
+  /* ── Notice, empty, modal, settings ── */
+  .sa-notice { border: 1px solid var(--border-base); border-radius: var(--radius-lg); background: var(--bg-surface); }
+  .sa-empty { padding: 48px 24px; gap: 4px; }
+  .sa-empty-title { font-weight: 500; }
+  .sa-empty-hint { color: var(--text-secondary); }
+  .sa-empty-actions { margin-top: 16px; }
+  .sa-modal { border: 1px solid var(--border-base); border-radius: var(--radius-xl); box-shadow: var(--shadow-modal); }
+  .sa-modal-title { font-weight: 500; }
+  .sa-modal-foot { border-top-color: var(--border-subtle); }
+  /* Seven styles no longer fit on one line of the dialog: the words wrap under each other instead of leaving the box. */
+  .sa-appearance { align-items: flex-start; }
+  .sa-appearance-opts { flex-wrap: wrap; justify-content: flex-end; gap: 0 20px; }
+  .sa-appearance + .sa-appearance { border-top-color: var(--border-subtle); }
+  .sa-appearance-opt { font-weight: 500; border-bottom-width: 2px; }
+  .sa-appearance-opt.is-active { border-bottom-color: var(--accent); }
+  .sa-appearance-opt:focus-visible { box-shadow: var(--focus-ring); }
+
+  /* ── Waiting is one thin line, never a wheel ── */
+  .sa-spinner { width: 16px; height: 2px; border: 0; border-radius: 1px; background: currentColor; transform-origin: right; animation: at-sweep 900ms var(--ease) both; }
+  .sa-spinner-sm { width: 12px; }
+  .sa-spinner-lg, .sa-spinner-track { width: 120px; height: 1px; background: var(--border-strong); }
+  .sa-skeleton { background: var(--bg-muted); border-radius: 4px; }
+
+  /* ── Toasts stand at the foot of the workspace, inside the gutters ── */
+  .app-toasts { inset-inline: auto var(--at-gutter); bottom: 24px; }
+  .app-toast { border: 1px solid var(--border-base); border-radius: var(--radius-lg); box-shadow: var(--shadow-lift); }
+
+  /* ── Product thumbs: a real photo on a mineral square, no frame ── */
+  .sa-thumb { border-radius: 6px; background: var(--bg-muted); box-shadow: none; }
+  .sa-meter { background: var(--chart-track); }
+}
+
+@keyframes at-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

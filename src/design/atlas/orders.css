@@ -1,0 +1,62 @@
+/* ATLAS הזמנות: one table on the rules of מלאי. A title and one summary line, the tabs as text with one underline on a rule
+   that crosses the page, the search and the agent on one line, then every order on a row: which, who, can it go out,
+   when, what, how much. In the open tab what the shelf can't cover stands first behind a quiet ruled line. The chosen
+   order opens beside the table, with its racks in the window over the panel. */
+
+.at-or { display: flex; flex-direction: column; gap: 24px; padding: 32px var(--at-gutter) 48px; }
+
+/* ── Controls: the tabs on their rule, then the search and the agent ── */
+.at-or-controls { display: flex; flex-direction: column; gap: 16px; }
+.at-or-tabs { align-self: stretch; }
+.at-or-tab-n { font-size: var(--t-13); font-weight: 400; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sa-tab.is-active .at-or-tab-n { color: var(--text-secondary); }
+
+/* ── The table: fixed columns, so a long name is cut with an ellipsis rather than pushing the sum off the page ── */
+.at-or-table { table-layout: fixed; }
+.at-or-table th.at-or-n { width: 84px; }
+.at-or-table th.at-or-state { width: 136px; }
+.at-or-table th.at-or-when { width: 120px; }
+.at-or-table th.at-or-items { width: 24%; }
+.at-or-table th.at-or-total { width: 136px; }
+/* The number names the order; the customer is the row's title. */
+.at-or-table td.at-or-n { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.at-or-table .at-or-items .at-cell-title { font-weight: 400; }
+.at-or-table .at-cell-sub .at-or-figure { display: inline-block; }
+/* A promise for today is the one date that reads in ink. */
+.at-or-today { color: var(--text-primary); }
+/* The number stands under the customer only where its column is gone. */
+.at-or-phone-n { display: none; }
+
+/* ── Group heads: a quiet ruled line inside the body, never a filled row ── */
+.at-or-table tbody tr.at-or-group { cursor: default; }
+.at-or-table tbody tr.at-or-group td { height: 36px; border-bottom: 1px solid var(--border-base); font-size: var(--t-12); line-height: 16px; font-weight: 500; color: var(--text-tertiary); }
+.at-or-table tbody tr.at-or-group:hover td { background: var(--bg-surface); }
+.at-or-group b { margin-inline-start: 6px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* ── A narrower workspace: the panel is open, or the window is small. Secondary columns go first. ── */
+@container work (max-width: 900px) {
+  .at-or-table .at-or-items { display: none; }
+}
+@container work (max-width: 640px) {
+  .at-or-table .at-or-n { display: none; }
+  .at-or-phone-n { display: inline; }
+  .at-or-table th, .at-or-table td { padding-inline: 12px; }
+  .at-or-table th.at-or-state { width: 112px; }
+  .at-or-table th.at-or-when { width: 96px; }
+  .at-or-table th.at-or-total { width: 120px; }
+}
+@container work (max-width: 560px) {
+  .at-or-table .at-or-total { display: none; }
+}
+
+/* ── A phone: the zones stack; who, the state and the date stay, the rest is in the drawer ── */
+@media (max-width: 899px) {
+  .at-or { padding: 20px 16px 40px; gap: 16px; }
+  .at-or-controls .at-tools { flex-wrap: wrap; }
+  .at-or-controls .at-tools .sa-search { flex-basis: 100%; max-width: none; }
+  .at-or-table .at-or-items, .at-or-table .at-or-n, .at-or-table .at-or-total { display: none; }
+  .at-or-phone-n { display: inline; }
+  .at-or-table th, .at-or-table td { padding-inline: 12px; }
+  .at-or-table th.at-or-state { width: 112px; }
+  .at-or-table th.at-or-when { width: 96px; }
+}

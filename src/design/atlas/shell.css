@@ -1,0 +1,367 @@
+/* ATLAS: three zones on one grid. The spine (A) stands fixed on the right in forest ink, the workspace (B) takes the room and
+   scrolls on its own, and the contextual panel (C) stands on the left only when something is chosen or the page has a side.
+   Under all of it, where a page cuts a frame, the one live model shows through. */
+
+html[data-theme^="atlas"]:has(.at-app) { overflow: hidden; scrollbar-gutter: auto; }
+
+.at-app {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--at-spine) minmax(0, 1fr) var(--at-side-w, 0px);
+  grid-template-rows: 100dvh;
+  height: 100dvh;
+  isolation: isolate;
+  transition: grid-template-columns var(--dur-3) var(--ease);
+}
+.at-app[data-side] { --at-side-w: var(--at-context); }
+
+/* ── The world: fixed, so the model never scrolls away; hidden where no page cuts a frame for it ── */
+html[data-theme^="atlas"] .mh-world {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  right: var(--at-spine);
+  z-index: 0;
+  background: var(--scene-canvas);
+  overflow: hidden;
+}
+html[data-theme^="atlas"] .mh-twin { position: absolute; inset: 0; transform: none; }
+html[data-theme^="atlas"] .mh-twin canvas { outline: none; }
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme^="atlas"] .mh-twin canvas { animation: at-fade var(--dur-3) var(--ease) both; }
+}
+html[data-theme^="atlas"] .mh-world-light { display: none; }
+html[data-theme^="atlas"] .mh-gauge { position: absolute; visibility: hidden; height: 0; pointer-events: none; transition-property: none; }
+html[data-theme^="atlas"] .mh-twin-failed { position: absolute; top: 16px; left: 16px; margin: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-secondary); }
+.at-app[data-door="closed"] .mh-world { visibility: hidden; transition: visibility 0s linear var(--dur-3); }
+
+/* A frame is where the page lets the model through: nothing is painted on it, and the pointer reaches the model. */
+.at-frame { position: relative; pointer-events: none; }
+.at-frame > * { pointer-events: auto; }
+/* On a stage that shows the model the workspace lets the pointer through, and only what is painted takes it back: a page's root
+   and its frame are glass, everything else on the page is a surface. */
+.at-app:is([data-stage="hero"], [data-stage="full"]) .at-work { background: transparent; pointer-events: none; }
+.at-app:is([data-stage="hero"], [data-stage="full"]) .at-work > .at-page > * { pointer-events: none; }
+.at-app:is([data-stage="hero"], [data-stage="full"]) .at-work > .at-page > .at-areabar { pointer-events: auto; }
+.at-app:is([data-stage="hero"], [data-stage="full"]) .at-work > .at-page > * > :not(.at-frame) { pointer-events: auto; }
+/* The window at the head of the panel, on a list page: the chosen thing's place, at its real size. */
+.at-context-map {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--at-context);
+  height: var(--at-map-h);
+  z-index: 1;
+  pointer-events: none;
+  box-shadow: inset -1px 0 0 var(--border-base), inset 0 -1px 0 var(--border-base);
+}
+
+/* The way back after turning the model by hand: on the frame, in its far corner, only while it is needed. */
+.at-home { position: absolute; bottom: 16px; inset-inline-end: 24px; z-index: 2; height: 36px; padding-inline: 12px; border: 1px solid var(--border-base); border-radius: 6px; background: var(--bg-surface); color: var(--text-primary); font: inherit; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; cursor: pointer; animation: at-arrive var(--dur-2) var(--ease) both; }
+.at-home:hover { border-color: var(--border-control); }
+
+/* ── Zone A: the spine ── */
+.at-spine {
+  grid-column: 1;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding-bottom: 36px;
+  background: var(--bg-inverse);
+  color: #f6f8f6;
+  overflow: hidden auto;
+  scrollbar-width: none;
+}
+.at-brand { display: flex; align-items: center; height: 64px; padding: 0 20px; font-size: var(--t-16); line-height: var(--l-22); font-weight: 600; color: #ffffff; letter-spacing: -0.005em; }
+.at-seek {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  margin: 0 12px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(246, 248, 246, 0.82);
+  font: inherit;
+  font-size: var(--t-14);
+  cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.at-seek:hover { background: rgba(255, 255, 255, 0.11); color: #ffffff; }
+.at-seek:focus-visible { box-shadow: 0 0 0 2px var(--at-jade-light); }
+.at-seek svg { flex: none; color: rgba(246, 248, 246, 0.7); }
+.at-seek kbd { margin-inline-start: auto; font: inherit; font-size: var(--t-12); line-height: 16px; color: rgba(246, 248, 246, 0.5); direction: ltr; }
+
+.at-nav { display: flex; flex-direction: column; margin-top: 20px; }
+.at-area { display: flex; flex-direction: column; }
+.at-nav-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding-inline: 20px 16px;
+  color: rgba(246, 248, 246, 0.78);
+  font-size: var(--t-15);
+  line-height: var(--l-20);
+  text-decoration: none;
+  transition: color var(--dur-1) var(--ease), background-color var(--dur-1) var(--ease);
+}
+.at-nav-row:hover { color: #ffffff; background: rgba(255, 255, 255, 0.04); }
+.at-nav-row:focus-visible { box-shadow: inset 0 0 0 2px var(--at-jade-light); }
+.at-area[data-here] > .at-nav-row { color: #ffffff; font-weight: 500; background: rgba(255, 255, 255, 0.08); }
+/* The one mark of where you are: a thin jade bar on the edge, no capsule, no frame. */
+.at-area[data-here] > .at-nav-row::before { content: ""; position: absolute; inset-block: 9px; right: 0; width: 3px; border-radius: 0 2px 2px 0; background: var(--at-jade-light); }
+.at-count { font-size: var(--t-12); line-height: 16px; font-weight: 500; color: rgba(246, 248, 246, 0.6); font-variant-numeric: tabular-nums; }
+.at-area[data-here] > .at-nav-row > .at-count.is-sum { opacity: 0; }
+/* The pages of the area you are in open under its word; the rest stay shut. */
+.at-pages { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-3) var(--ease); }
+.at-area[data-here] > .at-pages { grid-template-rows: 1fr; }
+.at-pages-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s linear var(--dur-3); }
+.at-area[data-here] > .at-pages > .at-pages-body { visibility: visible; transition: none; }
+.at-pages-body::after { content: ""; display: block; height: 6px; flex: none; }
+.at-page-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 34px;
+  padding-inline: 32px 16px;
+  color: rgba(246, 248, 246, 0.66);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  text-decoration: none;
+  transition: color var(--dur-1) var(--ease);
+}
+.at-page-row:hover { color: #ffffff; }
+.at-page-row:focus-visible { box-shadow: inset 0 0 0 2px var(--at-jade-light); }
+.at-page-row[aria-current="page"] { color: #ffffff; font-weight: 500; }
+.at-page-row[aria-current="page"]::before { content: ""; position: absolute; inset-block: 11px; right: 20px; width: 2px; background: var(--at-jade-light); }
+
+.at-spine-foot { display: flex; flex-direction: column; gap: 2px; margin-top: auto; padding: 12px 12px 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.at-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 7px;
+  background: none;
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--t-14);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.at-new:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.3); }
+.at-new:focus-visible { box-shadow: 0 0 0 2px var(--at-jade-light); }
+.at-new svg { color: rgba(246, 248, 246, 0.7); }
+.at-spine .sa-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: rgba(246, 248, 246, 0.7);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 400;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease), background-color var(--dur-1) var(--ease);
+}
+.at-spine .sa-nav-item:hover { color: #ffffff; background: rgba(255, 255, 255, 0.06); }
+.at-spine .sa-nav-item.is-active { color: #ffffff; font-weight: 400; }
+.at-spine .sa-nav-item:focus-visible { box-shadow: inset 0 0 0 2px var(--at-jade-light); }
+.at-spine .sa-nav-item > svg { width: 18px; height: 18px; color: rgba(246, 248, 246, 0.55); }
+.at-offline { margin: 0 8px 6px; font-size: var(--t-13); line-height: var(--l-18); color: #e8b063; }
+
+/* The way between the three systems: three quiet words at the very foot of the spine. */
+[data-theme^="atlas"] body:has(.at-app) .sys-switch {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  width: var(--at-spine);
+  height: 36px;
+  padding: 0 20px;
+  background: var(--bg-inverse);
+  border: 0;
+  font-size: var(--t-12);
+  line-height: 16px;
+}
+[data-theme^="atlas"] body:has(.at-app) .sys-switch a { min-width: 0; min-height: 24px; color: rgba(246, 248, 246, 0.5); text-decoration: none; }
+[data-theme^="atlas"] body:has(.at-app) .sys-switch a:hover { color: #ffffff; }
+[data-theme^="atlas"] body:has(.at-app) .sys-switch a[aria-current="page"] { color: rgba(246, 248, 246, 0.85); }
+
+/* ── Zone B: the workspace ── */
+.at-work {
+  grid-column: 2;
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  height: 100dvh;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  background: var(--bg-canvas);
+  outline: none;
+  container: work / inline-size;
+}
+.at-work:focus-visible { box-shadow: none; }
+.at-page { min-height: 100%; min-width: 0; animation: at-arrive var(--dur-3) var(--ease) both; }
+/* A shared page this style has not composed itself keeps its anatomy, on this style's gutters. */
+.at-page > .sa-page { max-width: none; margin: 0; padding: 32px var(--at-gutter) 48px; }
+.at-page > .sa-notice { margin: 32px var(--at-gutter) 0; }
+/* The pages of the area on a phone: hidden on a desk, where the spine holds them. */
+.at-areabar { display: none; }
+
+/* Waiting is one jade line crossing once, where the title is about to stand. */
+.at-wait { height: 2px; margin: 32px var(--at-gutter) 0; background: var(--accent); transform-origin: right; animation: at-sweep 1200ms var(--ease) both; }
+
+/* The way past the spine, for the keyboard alone. */
+.at-skip {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 7;
+  padding: 8px 12px;
+  border-radius: 7px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.at-skip:focus-visible { transform: none; }
+
+/* ── Zone C: the contextual panel ── */
+.at-side {
+  grid-column: 3;
+  position: relative;
+  z-index: 2;
+  display: none;
+  height: 100dvh;
+  min-width: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  background: var(--bg-surface);
+  border-inline-start: 1px solid var(--border-base);
+}
+.at-app[data-side] .at-side { display: block; }
+/* With the drawer's window open the side is under the drawer anyway, and painted it would cover the window. */
+.at-app[data-map] .at-side { visibility: hidden; }
+.at-side-body { display: flex; flex-direction: column; min-height: 100%; animation: at-arrive var(--dur-3) var(--ease) both; }
+.at-side-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 24px 24px 12px; }
+.at-side-head h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 500; }
+.at-side-head .at-side-n { font-size: var(--t-14); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+/* The shared drawer is the panel here: fixed where the side stands, over it while open, no scrim and no slide from off screen. */
+.at-app > .app-scrim { display: none; }
+.at-app > .app-panelHost {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  /* Physical sides on purpose: the shared rule says inset-inline-end, which is this same left edge in RTL, and a logical
+     reset here would undo it. */
+  left: 0;
+  right: auto;
+  width: var(--at-context);
+  max-width: 100%;
+  z-index: 4;
+  background: var(--bg-surface);
+  border-inline-start: 1px solid var(--border-base);
+  animation: at-panel-in var(--dur-3) var(--ease);
+}
+.at-app[data-map] > .app-panelHost { top: var(--at-map-h); }
+.at-app > .app-panelHost[data-closing] { animation: at-panel-out var(--dur-2) var(--ease) forwards; pointer-events: none; }
+.at-app > .app-panelHost:focus-visible { box-shadow: none; }
+
+/* ── What stands in the world: the tags over what needs a hand, the line from a row to its shelf, the way back ── */
+html[data-theme^="atlas"] .mh-tags { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+html[data-theme^="atlas"] .mh-tag { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; pointer-events: auto; cursor: pointer; transition: opacity var(--dur-3) var(--ease); }
+html[data-theme^="atlas"] .mh-tag-body {
+  position: absolute;
+  left: 0;
+  bottom: 22px;
+  transform: translateX(calc(-50% + var(--lean, 0px)));
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px 4px;
+  white-space: nowrap;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: 6px;
+}
+html[data-theme^="atlas"] .mh-tag::after { content: ""; position: absolute; left: -0.5px; bottom: 0; width: 1px; height: 22px; background: var(--text-primary); opacity: 0.4; }
+html[data-theme^="atlas"] .mh-tag-code { font-weight: 600; direction: ltr; }
+html[data-theme^="atlas"] .mh-tag.is-low .mh-tag-word { color: var(--warning-text); }
+html[data-theme^="atlas"] .mh-tag.is-out .mh-tag-word { color: var(--danger-text); }
+html[data-theme^="atlas"] .mh-tag.is-short .mh-tag-word { color: var(--short); font-weight: 600; }
+html[data-theme^="atlas"] .mh-aim { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+html[data-theme^="atlas"] .mh-leader { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 3; }
+html[data-theme^="atlas"] .mh-leader path { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 1; stroke-dashoffset: 1; animation: at-draw 220ms var(--ease) forwards; }
+html[data-theme^="atlas"] .mh-leader circle { fill: var(--bg-surface); stroke: var(--accent); stroke-width: 1.5; animation: at-fade 160ms 120ms var(--ease) both; }
+html[data-theme^="atlas"] .mh-back {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  height: 34px;
+  padding-inline: 12px;
+  border: 1px solid var(--border-base);
+  border-radius: 7px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--t-14);
+  cursor: pointer;
+  animation: at-arrive var(--dur-2) var(--ease) both;
+}
+html[data-theme^="atlas"] .mh-back:hover { border-color: var(--border-control); }
+
+/* ── The search plate (shared with מרחב's component, dressed here) ── */
+html[data-theme^="atlas"] .mh-command-scrim { position: fixed; inset: 0; z-index: 130; display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; background: var(--bg-scrim); animation: at-fade var(--dur-2) var(--ease) both; }
+html[data-theme^="atlas"] .mh-command { width: min(620px, 100%); max-height: 64vh; display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-xl); box-shadow: var(--shadow-modal); overflow: hidden; animation: at-arrive var(--dur-2) var(--ease) both; }
+html[data-theme^="atlas"] .mh-command-field { display: flex; align-items: center; gap: 12px; height: 56px; padding-inline: 20px; border-bottom: 1px solid var(--border-base); color: var(--text-quiet); }
+html[data-theme^="atlas"] .mh-command-field svg { flex: none; width: 18px; height: 18px; }
+html[data-theme^="atlas"] .mh-command-field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--text-primary); font: inherit; font-size: var(--t-16); }
+html[data-theme^="atlas"] .mh-command-field input:focus-visible { box-shadow: none; }
+html[data-theme^="atlas"] .mh-command-field input::placeholder { color: var(--text-quiet); }
+html[data-theme^="atlas"] .mh-command-list { overflow-y: auto; padding: 8px; }
+html[data-theme^="atlas"] .mh-command-empty { margin: 0; padding: 16px 12px; color: var(--text-tertiary); }
+html[data-theme^="atlas"] .mh-command-group { padding: 10px 12px 4px; font-size: var(--t-12); line-height: 16px; font-weight: 500; color: var(--text-tertiary); }
+html[data-theme^="atlas"] .mh-command-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 12px; border: 0; border-radius: 7px; background: none; color: var(--text-primary); font: inherit; text-align: start; cursor: pointer; }
+html[data-theme^="atlas"] .mh-command-row.is-at { background: var(--bg-selected); }
+html[data-theme^="atlas"] .mh-command-row svg { flex: none; width: 18px; height: 18px; color: var(--text-quiet); }
+html[data-theme^="atlas"] .mh-command-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-14); font-weight: 500; }
+html[data-theme^="atlas"] .mh-command-sub { margin-inline-start: auto; font-size: var(--t-13); color: var(--text-tertiary); white-space: nowrap; }
+
+/* ── Shared motion ── */
+@keyframes at-arrive { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes at-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes at-draw { to { stroke-dashoffset: 0; } }
+@keyframes at-panel-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes at-panel-out { to { opacity: 0; transform: translateX(-12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .at-app, .at-pages, .at-page, .at-side-body, .at-app > .app-panelHost, .at-wait { animation: none; transition: none; }
+}
