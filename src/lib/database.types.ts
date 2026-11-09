@@ -129,9 +129,13 @@ export type Database = {
       faults: {
         Row: {
           asset: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
           created_at: string
           description: string
           id: string
+          instruction: string | null
           movement_id: string | null
           photo_path: string | null
           product_id: string | null
@@ -143,9 +147,13 @@ export type Database = {
         }
         Insert: {
           asset?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
           created_at?: string
           description: string
           id?: string
+          instruction?: string | null
           movement_id?: string | null
           photo_path?: string | null
           product_id?: string | null
@@ -157,9 +165,13 @@ export type Database = {
         }
         Update: {
           asset?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
           created_at?: string
           description?: string
           id?: string
+          instruction?: string | null
           movement_id?: string | null
           photo_path?: string | null
           product_id?: string | null
@@ -170,6 +182,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["fault_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "faults_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "faults_movement_id_fkey"
             columns: ["movement_id"]

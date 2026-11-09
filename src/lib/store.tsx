@@ -347,6 +347,8 @@ type Api = {
   /** Closes a fault with what was done about it; the database records who. */
   resolveFault: (id: string, resolution?: string) => Promise<void>;
   reopenFault: (id: string) => Promise<void>;
+  /** Hands an open fault to a worker with what to do; it shows on their phone. The database stamps when and by whom. */
+  assignFault: (id: string, workerId: string, instruction: string) => Promise<void>;
   updateFault: (fault: Fault, patch: FaultPatch) => Promise<void>;
   /** Removes the report and its photo for good; its movement and the stock stay. */
   deleteFault: (fault: Fault) => Promise<void>;
@@ -775,6 +777,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: tempId(), product_id: input.productId ?? null, movement_id: movementId, description: input.description,
         reported_by: input.workerId ?? null, status: "open", created_at: new Date().toISOString(), resolved_at: null,
         photo_path: input.photoPath ?? null, asset: input.asset ?? null, resolution: null, resolved_by: null,
+        assigned_to: null, instruction: null, assigned_at: null, assigned_by: null,
       };
       return (await insert("faults", {
         product_id: input.productId ?? null, movement_id: movementId, description: input.description,
@@ -785,6 +788,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     },
     resolveFault: (id, resolution) => update("faults", id, { status: "resolved", resolved_at: new Date().toISOString(), resolution }),
     reopenFault: (id) => update("faults", id, { status: "open", resolved_at: null, resolution: null }),
+    // The time is set here only so the row reads right until the database's stamp arrives.
+    assignFault: (id, workerId, instruction) => update("faults", id, { assigned_to: workerId, instruction, assigned_at: new Date().toISOString() }),
     updateFault: async (fault, patch) => {
       await update("faults", fault.id, patch);
       if (!fault.movement_id) return;
