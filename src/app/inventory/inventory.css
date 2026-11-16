@@ -1,0 +1,22 @@
+/* מלאי — the tabs, and under מלאי חסר the kinds it holds. Added 2026-11-16.
+   The kinds are a smaller step of the same segmented control, right beneath the tabs they belong to,
+   inside the toolbar's tab slot, so a window narrow enough to wrap the toolbar still keeps them together. */
+
+.sa-stock-tabs { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0; max-width: 100%; }
+
+/* The filters and the search keep the first line beside the tabs while the kinds open beneath. */
+.sa-toolbar:has(> .sa-toolbar-tabs > .sa-stock-tabs) { align-items: flex-start; }
+
+.sa-stock-kinds { display: flex; min-width: 0; max-width: 100%; animation: sa-stock-kinds-in var(--dur-2) var(--ease) both; }
+@keyframes sa-stock-kinds-in { from { opacity: 0; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .sa-stock-kinds { animation: none; } }
+
+/* A step lighter than the tabs above: no track, the same white thumb on the chosen kind. */
+[data-theme^="minimal"] .sa-stock-kinds .sa-tabs { padding: 0; background: none; }
+[data-theme^="minimal"] .sa-stock-kinds .sa-tab { height: calc(var(--control-md) - 10px); font-size: var(--t-13); }
+
+/* A phone: מלאי תקין and מלאי חסר say תקין and חסר, and the segments sit closer, so both rows stand at 375px without scrolling. */
+@media (max-width: 600px) {
+  .sa-stock-word { display: none; }
+  [data-theme^="minimal"] .sa-toolbar-tabs .sa-stock-tabs .sa-tab { padding-inline: 6px; gap: 4px; }
+}

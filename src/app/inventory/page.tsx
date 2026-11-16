@@ -21,20 +21,35 @@ import {
 } from "@/components/ui";
 import { fmtCompact, fmtDayWord, fmtName, fmtQty, fmtUnit } from "@/lib/format";
 import { shelfWorth } from "@/lib/snapshot";
+import "./inventory.css";
 
-type Tab = "products" | "low" | "out" | "reserved" | "short";
-type SortKey = "name" | "qty" | "updated_at";
+/** The tabs: everything in order of need (מבט כולל), what is fine, what is missing, what open orders hold. */
+type View = "all" | "ok" | "missing" | "reserved";
+/** Inside מלאי חסר, the row beneath: all of it, or one kind. */
+type Kind = "any" | "out" | "low" | "short";
+type SortKey = "level" | "name" | "qty" | "updated_at";
 type SortDir = "asc" | "desc";
 
-const TAB_VALUES: Tab[] = ["products", "low", "out", "reserved", "short"];
+const VIEWS: View[] = ["all", "ok", "missing", "reserved"];
+const KINDS: Kind[] = ["any", "out", "low", "short"];
 
-function tabFromParams(params: URLSearchParams): Tab {
-  const filter = params.get("filter");
-  if (filter === "low") return "low";
-  if (filter === "out") return "out";
-  if (filter === "reserved") return "reserved";
-  if (filter === "short") return "short";
-  return "products";
+/** `?filter=` holds the place: ok, missing, reserved, or one kind inside missing. The older links (low, out, short, reserved, restock) land where they meant. */
+function placeFromParams(params: URLSearchParams): { view: View; kind: Kind } {
+  switch (params.get("filter")) {
+    case "ok": return { view: "ok", kind: "any" };
+    case "missing":
+    case "restock": return { view: "missing", kind: "any" };
+    case "out": return { view: "missing", kind: "out" };
+    case "low": return { view: "missing", kind: "low" };
+    case "short": return { view: "missing", kind: "short" };
+    case "reserved": return { view: "reserved", kind: "any" };
+    default: return { view: "all", kind: "any" };
+  }
+}
+
+function filterOf(view: View, kind: Kind): string | null {
+  if (view === "missing") return kind === "any" ? "missing" : kind;
+  return view === "all" ? null : view;
 }
 
 /** The store's rule: what is left after open orders is under the minimum, and it isn't already short. */
@@ -50,6 +65,21 @@ function isShort(p: Product): boolean {
 }
 function isReserved(p: Product): boolean {
   return p.reserved > 0;
+}
+
+/** One reading per product, in the order of need: nothing on the shelf, orders past the shelf, under the minimum after orders, fine. */
+type Level = "out" | "short" | "low" | "ok";
+function levelOf(p: Product): Level {
+  if (isOut(p)) return "out";
+  if (isShort(p)) return "short";
+  if (isLow(p)) return "low";
+  return "ok";
+}
+const NEED: Record<Level, number> = { out: 0, short: 1, low: 2, ok: 3 };
+
+/** What is left after orders against the minimum; within a level the one closest to empty comes first. */
+function cover(p: Product): number {
+  return p.min_qty > 0 ? available(p) / p.min_qty : Number.POSITIVE_INFINITY;
 }
 
 /** What a hold leaves: what can still be promised, or what the orders are missing once it passes the shelf. */
@@ -85,13 +115,14 @@ function InventoryInner() {
   const pathname = usePathname();
   const params = useSearchParams();
 
-  // The active tab lives in the URL (?filter=low|out|reserved|short).
-  const tab = tabFromParams(params);
-  const setTab = useCallback(
-    (next: Tab) => {
+  // The tab and the kind inside מלאי חסר live in the URL (?filter=ok|missing|out|low|short|reserved).
+  const { view, kind } = placeFromParams(params);
+  const go = useCallback(
+    (nextView: View, nextKind: Kind = "any") => {
       const sp = new URLSearchParams(params.toString());
       sp.delete("filter");
-      if (next !== "products") sp.set("filter", next);
+      const filter = filterOf(nextView, nextKind);
+      if (filter) sp.set("filter", filter);
       const qs = sp.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
@@ -100,7 +131,8 @@ function InventoryInner() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [supplierId, setSupplierId] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
+  // The first look is in order of need: what ran out, what orders took past the shelf, what is under the minimum, then what is fine.
+  const [sortKey, setSortKey] = useState<SortKey>("level");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   /* ───────── options ───────── */
@@ -127,46 +159,63 @@ function InventoryInner() {
     });
   }, [state.products, category, supplierId]);
 
-  const lowCount = useMemo(() => baseProducts.filter(isLow).length, [baseProducts]);
-  const outCount = useMemo(() => baseProducts.filter(isOut).length, [baseProducts]);
-  const reservedCount = useMemo(() => baseProducts.filter(isReserved).length, [baseProducts]);
-  const shortCount = useMemo(() => baseProducts.filter(isShort).length, [baseProducts]);
+  /** Each product counted once by its level; חסר להזמנות also counts one that ran out while orders hold it. */
+  const counts = useMemo(() => {
+    const c = { out: 0, short: 0, low: 0, ok: 0, overbooked: 0, reserved: 0 };
+    for (const p of baseProducts) {
+      c[levelOf(p)] += 1;
+      if (isShort(p)) c.overbooked += 1;
+      if (isReserved(p)) c.reserved += 1;
+    }
+    return c;
+  }, [baseProducts]);
+  const missingCount = counts.out + counts.short + counts.low;
 
   const products = useMemo(() => {
     let list = baseProducts;
-    if (tab === "low") list = list.filter(isLow);
-    else if (tab === "out") list = list.filter(isOut);
-    else if (tab === "reserved") list = list.filter(isReserved);
-    else if (tab === "short") list = list.filter(isShort);
+    if (view === "ok") list = list.filter((p) => levelOf(p) === "ok");
+    else if (view === "missing") {
+      if (kind === "out") list = list.filter(isOut);
+      else if (kind === "low") list = list.filter(isLow);
+      else if (kind === "short") list = list.filter(isShort);
+      else list = list.filter((p) => levelOf(p) !== "ok");
+    } else if (view === "reserved") list = list.filter(isReserved);
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.barcode ?? "").includes(q));
     const dir = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
+      if (sortKey === "level") {
+        const ca = cover(a), cb = cover(b);
+        const need = NEED[levelOf(a)] - NEED[levelOf(b)] || (ca < cb ? -1 : ca > cb ? 1 : 0);
+        return need * dir || a.name.localeCompare(b.name, "he");
+      }
       if (sortKey === "qty") return (a.qty - b.qty) * dir;
       if (sortKey === "updated_at") return a.updated_at.localeCompare(b.updated_at) * dir;
       return a.name.localeCompare(b.name, "he") * dir;
     });
-  }, [baseProducts, tab, q, sortKey, sortDir]);
+  }, [baseProducts, view, kind, q, sortKey, sortDir]);
 
-  const toggleSort = useCallback((key: SortKey) => {
-    setSortKey((k) => {
-      if (k === key) {
+  // No state set inside another's updater: React may run an updater twice, which flipped the direction back.
+  const toggleSort = useCallback(
+    (key: SortKey) => {
+      if (key === sortKey) {
         setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-        return k;
+        return;
       }
-      setSortDir(key === "name" ? "asc" : "desc");
-      return key;
-    });
-  }, []);
+      setSortKey(key);
+      setSortDir(key === "name" || key === "level" ? "asc" : "desc");
+    },
+    [sortKey],
+  );
 
   const sortTitle = useCallback(
-    (label: string, key: SortKey): ReactNode => {
+    (label: string, key: SortKey, spoken = label): ReactNode => {
       const active = sortKey === key;
       return (
         <button
           type="button"
           className="inline-flex items-center gap-[var(--space-1)] hover:text-ink"
           onClick={() => toggleSort(key)}
-          aria-label={`מיון לפי ${label}`}
+          aria-label={`מיון לפי ${spoken}`}
           aria-pressed={active}
         >
           {label}
@@ -237,7 +286,8 @@ function InventoryInner() {
       },
       {
         key: "min_qty",
-        title: "מול המינימום",
+        // The order of need is this column's: pressing it brings the first look back after another sort.
+        title: sortTitle("מול המינימום", "level", "מצב המלאי"),
         muted: true,
         render: (p) => (
           <span className="sa-level">
@@ -268,19 +318,39 @@ function InventoryInner() {
 
   /* ───────── header ───────── */
   const tabs = [
-    { value: "products", label: "מוצרים", count: baseProducts.length },
-    { value: "low", label: "מתחת למינימום", count: lowCount },
-    { value: "out", label: "אזל", count: outCount },
-    { value: "reserved", label: "משוריין", count: reservedCount },
-    // Only while orders hold more than the shelf has, or while it's the open tab.
-    ...(shortCount > 0 || tab === "short" ? [{ value: "short", label: <span className="text-short">חסר להזמנות</span>, count: shortCount }] : []),
+    { value: "all", label: "מבט כולל", count: baseProducts.length },
+    // A phone drops the word מלאי, so the four tabs and their counts stand without scrolling.
+    { value: "ok", label: <><span className="sa-stock-word">מלאי </span>תקין</>, count: counts.ok },
+    { value: "missing", label: <><span className="sa-stock-word">מלאי </span>חסר</>, count: missingCount },
+    { value: "reserved", label: "משוריין", count: counts.reserved },
   ];
 
+  /* What מלאי חסר holds, beneath it, worst first; חסר להזמנות stands last because it comes and goes. */
+  const kinds = [
+    { value: "any", label: "הכל", count: missingCount },
+    { value: "out", label: "אזל", count: counts.out },
+    { value: "low", label: "מתחת למינימום", count: counts.low },
+    // Only while orders hold more than the shelf has, or while it's the open kind.
+    ...(counts.overbooked > 0 || kind === "short" ? [{ value: "short", label: <span className="text-short">חסר להזמנות</span>, count: counts.overbooked }] : []),
+  ];
+
+  // A press on מלאי חסר itself always opens all of it.
   const onTab = (v: string) => {
-    if ((TAB_VALUES as string[]).includes(v)) setTab(v as Tab);
+    if ((VIEWS as string[]).includes(v)) go(v as View);
+  };
+  const onKind = (v: string) => {
+    if ((KINDS as string[]).includes(v)) go("missing", v as Kind);
   };
 
   const hasFilters = Boolean(q || category || supplierId);
+
+  const emptyCopy =
+    view === "ok" ? { title: "אין מוצרים במלאי תקין", hint: "כל המוצרים חסרים או מתחת למינימום" }
+    : view === "reserved" ? { title: "אין מוצרים משוריינים", hint: "מלאי שהזמנה פתוחה משריינת יופיע כאן" }
+    : kind === "out" ? { title: "אין מוצרים שאזלו", hint: "לכל מוצר יש מלאי על המדף" }
+    : kind === "low" ? { title: "אין מוצרים מתחת למינימום", hint: "המלאי מעל המינימום" }
+    : kind === "short" ? { title: "אין מוצרים שחסרים להזמנות", hint: "המדף מכסה את כל ההזמנות" }
+    : { title: "אין מלאי חסר", hint: "כל המוצרים מעל המינימום" };
 
   const clearFilters = () => {
     setQuery("");
@@ -303,11 +373,8 @@ function InventoryInner() {
         <Button variant="secondary" onClick={clearFilters}>ניקוי סינון</Button>
       </EmptyState>
     ) : (
-      <EmptyState
-        title={tab === "low" ? "אין מוצרים מתחת למינימום" : tab === "out" ? "אין מוצרים שאזלו" : tab === "reserved" ? "אין מוצרים משוריינים" : "אין מוצרים שחסרים להזמנות"}
-        hint={tab === "low" ? "המלאי מעל המינימום" : tab === "out" ? "לכל מוצר יש מלאי על המדף" : tab === "reserved" ? "מלאי שהזמנה פתוחה משריינת יופיע כאן" : "המדף מכסה את כל ההזמנות"}
-      >
-        <Button variant="secondary" onClick={() => setTab("products")}>כל המוצרים</Button>
+      <EmptyState title={emptyCopy.title} hint={emptyCopy.hint}>
+        <Button variant="secondary" onClick={() => go("all")}>מבט כולל</Button>
       </EmptyState>
     );
 
@@ -320,7 +387,16 @@ function InventoryInner() {
       />
 
       <Toolbar
-        tabs={<Tabs tabs={tabs} value={tab} onChange={onTab} />}
+        tabs={
+          <div className="sa-stock-tabs">
+            <Tabs tabs={tabs} value={view} onChange={onTab} />
+            {view === "missing" ? (
+              <div className="sa-stock-kinds" role="group" aria-label="סוג החוסר">
+                <Tabs tabs={kinds} value={kind} onChange={onKind} />
+              </div>
+            ) : null}
+          </div>
+        }
         filters={
           <>
             <Select options={categories} value={category} onChange={setCategory} allLabel="כל הקטגוריות" placeholder="קטגוריה" />
