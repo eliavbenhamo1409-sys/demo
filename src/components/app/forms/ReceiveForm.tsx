@@ -12,7 +12,7 @@ import { QtyField } from "./QtyField";
 import { NEW_OPTION, productOptions, supplierOptions, workerOptions } from "./options";
 import { REQUIRED, submitOnEnter, useForm } from "./useForm";
 
-type Field = "product" | "qty";
+type Field = "product" | "qty" | "place";
 
 /**
  * קליטת סחורה — the delivery-note flow is the primary path:
@@ -110,6 +110,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
   const onWorker = (v: string) => {
     if (v === NEW_OPTION) { openAction("new-worker"); return; }
     setWorkerId(v);
+    form.clearField("place");
   };
 
   const approvePending = async () => {
@@ -130,6 +131,8 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
     const errors: Partial<Record<Field, string>> = {};
     if (!productId) errors.product = REQUIRED;
     if (!Number.isFinite(qty) || qty < 1) errors.qty = "כמות לא תקינה (1 ומעלה)";
+    // A receipt from a worker says where the goods went; the database refuses it without.
+    if (workerId && !place) errors.place = "חובה כשנבחר עובד";
     form.setErrors(errors);
     if (Object.keys(errors).length > 0 || !selected) return;
     void form.run(async () => {
@@ -202,7 +205,7 @@ export function ReceiveForm({ ctx }: { ctx: ActionContext }) {
         {form.errors.product ? <span className="sa-error" role="alert">{form.errors.product}</span> : null}
       </div>
       <QtyField label="כמות" value={qty} onChange={(n) => { setQty(n); form.clearField("qty"); }} unit={unit || undefined} min={1} error={form.errors.qty} required />
-      {selected ? <PlaceField key={selected.id} optional product={selected} value={place} onChange={setPlace} /> : null}
+      {selected ? <PlaceField key={selected.id} optional={!workerId} product={selected} value={place} onChange={(p) => { setPlace(p); form.clearField("place"); }} error={form.errors.place} /> : null}
 
       <MoreFields>
         {supplierId ? (
