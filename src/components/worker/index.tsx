@@ -68,10 +68,13 @@ function BigActionEnd(): ReactElement {
   return pending ? <ThinkingMark /> : <Icon name="chevron-left" className="sa-bigaction-chev" />;
 }
 
-export function BigAction({ title, sub, icon, href }: { title: string; sub?: string; icon: IconName; href: string }): ReactElement {
+/** The colour of a home row's icon: goods in, goods out, or a fault. */
+export type BigActionTone = "in" | "out" | "fault";
+
+export function BigAction({ title, sub, icon, tone, href }: { title: string; sub?: string; icon: IconName; tone?: BigActionTone; href: string }): ReactElement {
   return (
     <Link href={href} className="sa-bigaction">
-      <Icon name={icon} className="sa-bigaction-icon" />
+      <Icon name={icon} className={tone ? `sa-bigaction-icon is-${tone}` : "sa-bigaction-icon"} />
       <span className="sa-bigaction-body">
         <span className="sa-bigaction-title">{title}</span>
         {sub ? <span className="sa-bigaction-sub">{sub}</span> : null}

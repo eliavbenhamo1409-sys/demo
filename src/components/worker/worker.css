@@ -53,6 +53,11 @@ body:has(.wk-root) .sa-modal .sa-btn-icon.sa-btn-sm { width: 48px; height: 48px;
 .sa-bigaction + .sa-bigaction { border-top: var(--hair) solid var(--border-base); }
 .sa-bigaction:active { background: var(--bg-muted); }
 .sa-bigaction-icon { width: 24px; height: 24px; color: var(--text-secondary); flex-shrink: 0; }
+/* The home rows tell their way by colour, as the figures do: goods in green and down, goods out red and up, a fault yellow. */
+.sa-bigaction .sa-bigaction-icon.is-in { color: var(--qty-in); }
+.sa-bigaction .sa-bigaction-icon.is-out { color: var(--danger-text); }
+.sa-bigaction .sa-bigaction-icon.is-fault { color: #f2c10c; }
+[data-theme$="dark"] .sa-bigaction .sa-bigaction-icon.is-fault { color: #ffd60a; }
 .sa-bigaction-body { flex: 1; min-width: 0; }
 .sa-bigaction-title { display: block; font-size: 19px; line-height: 26px; font-weight: 600; color: var(--text-primary); }
 .sa-bigaction-sub { display: block; font-size: var(--t-16); line-height: var(--l-24); color: var(--text-secondary); }
