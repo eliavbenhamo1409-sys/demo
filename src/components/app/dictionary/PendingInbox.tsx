@@ -39,8 +39,9 @@ function InboxRow({ item, busy, productOptions, supplierName, onApprove, onNewPr
       <div className="sa-dict-inbox-info">
         <span className="sa-dict-inbox-name"><bdi>{item.external_name}</bdi></span>
         <span className="sa-dict-inbox-meta">
-          {supplierName(item.supplier_id)}
-          {item.external_sku ? <> · <span className="sa-mono ltr">{item.external_sku}</span></> : null}
+          {/* Isolated, so a supplier abroad (Latin letters) and its code keep their own order in the line. */}
+          <bdi>{supplierName(item.supplier_id)}</bdi>
+          {item.external_sku ? <> · <bdi className="sa-mono ltr">{item.external_sku}</bdi></> : null}
           {item.times_seen > 0 ? ` · ${seenText(item.times_seen)}` : null}
           {item.times_seen > 0 && item.last_seen_at ? ` · ${fmtRelative(item.last_seen_at)}` : null}
           {saving ? ` · ${SAVING}` : null}

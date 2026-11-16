@@ -17,10 +17,12 @@ The scripts ran in this order through the Supabase MCP, each as one transaction.
 | `06_paper_and_floor.sql` | Exit passes, receipts, supplier names, faults and item requests. |
 | `07_trucks_before_orders.sql` | Moves a delivery ahead of the orders that needed it, so no running balance dips under zero inside a day. |
 | `08_day_closings.sql` | Freezes every day of the year, with the stock of that night rebuilt from the ledger. |
+| `09_foreign_suppliers.sql` | Four suppliers abroad (ids `de9…`: Marmara Ekstrüzyon AŞ, Axios Aluminium SA, Changzhou Tianhe Composite, Brianza Accessori Srl) take over 24 deliveries that fit their trade, with their own English names and codes; no supplier keeps two names for one product. Stock is untouched. |
+| `receipts-foreign.mjs` | Redraws those 24 papers as English packing lists with the warehouse's Hebrew stamp, uploads them and writes `paths.json` for the `storage_path` update. No packages: cached Chrome for Testing headless, then `sips`. |
 | `receipts.mjs` | Draws one photographed paper per document and uploads it to the path its row names. Needs `playwright-core`. Anon can add to the bucket but not replace, so a redraw needs a new `storage_path`. |
 
 Generated rows carry an id prefix, which is how they are taken out and rebuilt: `de1` movements, `de2` orders, `de3` order
-lines, `de4` faults, `de6` documents, `de7` item requests, `de8` exit passes. After deleting them, recount with
+lines, `de4` faults, `de6` documents, `de7` item requests, `de8` exit passes, `de9` the suppliers abroad. After deleting them, recount with
 `recount_reserved`.
 
 Checks worth repeating after any change: replaying each product's movements lands on `products.qty` and never goes under

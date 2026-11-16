@@ -4,6 +4,8 @@
  * ספקים (until 2026-11-03 מיפוי קטלוג) — product first. Every product has one name in the factory;
  * each row lists what every supplier calls it. Pending names from delivery
  * notes sit in an inbox at the top until someone says which product they are.
+ * The aluminium style (מינימל) draws the same rows as a map since 2026-11-16: a wire from each
+ * supplier's name to our product, in the categories (`NameMap`); the other styles keep the rows.
  */
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { isTempId, normalizeName, useData, type Product, type SupplierItem } from "@/lib/store";
@@ -12,7 +14,9 @@ import { Button, Card, Count, EmptyState, Modal, PageHead, Showing, Toolbar } fr
 import { productOptions } from "@/components/app/forms/options";
 import { PendingInbox } from "@/components/app/dictionary/PendingInbox";
 import { ProductRow } from "@/components/app/dictionary/ProductRow";
+import { NameMap } from "@/components/app/dictionary/map/NameMap";
 import { ProductThumb } from "@/components/app/Viz";
+import { splitTheme, useTheme } from "@/lib/theme";
 
 type Row = { product: Product; aliases: SupplierItem[]; pending: number };
 
@@ -21,6 +25,8 @@ const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 export default function SuppliersPage() {
   const { state, product, supplier, mapSupplierItem, approveSupplierItem, deleteSupplierItem } = useData();
   const { openAction, openProduct, notify } = useUi();
+  const { theme } = useTheme();
+  const asMap = splitTheme(theme).style === "minimal";
 
   const [query, setQuery] = useState("");
   const [openRowId, setOpenRowId] = useState<string | null>(null);
@@ -143,6 +149,10 @@ export default function SuppliersPage() {
   }, [pendingDelete, deleteSupplierItem, notify, supplierName, stillSaving]);
 
   const closeRow = useCallback(() => setOpenRowId(null), []);
+  const onOpenName = useCallback((item: SupplierItem) => openAction("map-supplier-item", { supplierItemId: item.id }), [openAction]);
+  const onApprove = useCallback((item: SupplierItem) => void approveInRow(item), [approveInRow]);
+  // A supplier's word on a wire opens the supplier itself: who they are and how to reach them.
+  const onSupplier = useCallback((id: string) => openAction("edit-supplier", { supplierId: id }), [openAction]);
 
   /* ── list body ── */
   let body: ReactNode;
@@ -178,6 +188,8 @@ export default function SuppliersPage() {
         <Button variant="secondary" onClick={() => setQuery("")}>ניקוי סינון</Button>
       </EmptyState>
     );
+  } else if (asMap) {
+    body = null;
   } else {
     body = (
       <div className="sa-dict-list" role="list" aria-label="מוצרים ושמות של ספקים">
@@ -242,9 +254,29 @@ export default function SuppliersPage() {
         />
       ) : null}
 
-      <Card flush footer={q && visible.length > 0 ? <Showing shown={visible.length} total={rows.length} /> : undefined}>
-        {body}
-      </Card>
+      {body === null ? (
+        <>
+          <NameMap
+            rows={visible}
+            flat={!!q}
+            supplierName={supplierName}
+            openRowId={openRowId}
+            onOpenRow={setOpenRowId}
+            onCloseRow={closeRow}
+            onOpenProduct={openProduct}
+            onOpenName={onOpenName}
+            onApprove={onApprove}
+            onRemove={requestDelete}
+            onSupplier={onSupplier}
+            approvingId={approvingId}
+          />
+          {q ? <p className="sa-map-foot"><Showing shown={visible.length} total={rows.length} /></p> : null}
+        </>
+      ) : (
+        <Card flush footer={q && visible.length > 0 ? <Showing shown={visible.length} total={rows.length} /> : undefined}>
+          {body}
+        </Card>
+      )}
 
       {pendingDelete ? (
         <Modal

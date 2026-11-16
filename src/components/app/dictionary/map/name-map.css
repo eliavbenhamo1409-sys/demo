@@ -1,0 +1,224 @@
+/* ספקים as a map, in the aluminium style (`minimal` / `minimal-dark`). One white sheet on the silver desk; our products on
+   the right, every supplier's name on the left, and a thin wire between them. Only this page renders `.sa-map`, so every
+   rule here is under it and reaches nothing else. */
+
+.sa-map-frame { container-type: inline-size; }
+
+.sa-map {
+  --map-row: 60px;
+  --map-top: var(--topbar);
+  --map-head: 44px;
+  /* The wires take what a wider window adds, so a name never drifts from its supplier. */
+  --map-wire: clamp(64px, calc(42% - 300px), 260px);
+  --map-cols: minmax(0, 0.85fr) var(--map-wire) minmax(0, 1.6fr);
+  /* The name as the supplier writes it, the supplier, and the one key that removes it. */
+  --map-name: minmax(0, 1fr) minmax(150px, 0.6fr) 36px;
+  --map-line: var(--border-control);
+  --map-gutter: var(--inset);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  /* Clip, not hidden: the corners stay round and the heads still hold the top of the window. */
+  overflow: clip;
+  padding-bottom: var(--space-2);
+}
+@supports (corner-shape: squircle) { .sa-map { corner-shape: squircle; } }
+/* A phone's top bar scrolls away and its row of tabs stays (minimal.css: the rail sticks at -48px, 109px tall), so the
+   heads hold under the tabs. */
+@media (max-width: 899px) { .sa-map { --map-top: 61px; } }
+
+/* ── The head: what each side is, held under the top bar ── */
+.sa-map-head {
+  position: sticky;
+  top: var(--map-top);
+  z-index: 3;
+  display: grid;
+  grid-template-columns: var(--map-cols);
+  align-items: center;
+  height: var(--map-head);
+  padding-inline: var(--map-gutter);
+  background: var(--bg-surface);
+  box-shadow: 0 var(--hair) 0 var(--border-base);
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.sa-map-head-names { display: grid; grid-template-columns: var(--map-name); column-gap: var(--space-4); padding-inline-start: var(--space-4); }
+
+/* ── A category is a section: its word holds the place while its products pass under it, and folds them away ── */
+.sa-map-section-head {
+  position: sticky;
+  top: calc(var(--map-top) + var(--map-head));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  margin: 0;
+  padding: 0 var(--map-gutter);
+  border: 0;
+  background: var(--bg-surface);
+  box-shadow: 0 var(--hair) 0 var(--border-subtle);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.sa-map-section + .sa-map-section .sa-map-section-head { margin-top: var(--space-2); }
+.sa-map-section-word { font-size: var(--t-16); line-height: var(--l-22); font-weight: 600; }
+.sa-map-section-note { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sa-map-section-head svg { margin-inline-start: auto; color: var(--text-tertiary); stroke-width: 1.5; }
+.sa-map-section-head:hover .sa-map-section-word { color: var(--accent-text); }
+.sa-map-section-head:active { background: var(--bg-hover); transition-duration: 0ms; }
+
+/* ── One product and its names ── */
+.sa-map-band {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--map-cols);
+  padding-inline: var(--map-gutter);
+  /* Offscreen products skip their paint; there are hundreds. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--map-row);
+}
+/* A product starts with a light rule at the text, as on an iPhone. */
+.sa-map-band + .sa-map-band::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: calc(var(--map-gutter) + 58px) var(--map-gutter);
+  border-top: var(--hair) solid var(--border-subtle);
+}
+
+.sa-map-product { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: var(--map-row); padding-inline-end: var(--space-4); align-self: start; }
+.sa-map-product-text { display: flex; flex-direction: column; min-width: 0; }
+.sa-map-product-name {
+  display: block;
+  max-width: 100%;
+  padding: 2px 0 0;
+  margin-top: -2px;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--t-14);
+  line-height: var(--l-20);
+  font-weight: 500;
+  text-align: start;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color var(--dur-1) linear;
+}
+.sa-map-product-name:hover { color: var(--accent-text); }
+.sa-map-product-code { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sa-map-add { padding: 0 0 6px; margin-bottom: -6px; border: 0; background: none; color: var(--accent-text); font: inherit; font-weight: 500; cursor: pointer; }
+.sa-map-add:hover { color: var(--accent-hover); }
+
+/* ── The channel the wires run in ── */
+.sa-map-channel { position: relative; min-width: 0; }
+.sa-map-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sa-map-line { fill: none; stroke: var(--map-line); stroke-width: 1.25; transition: opacity var(--dur-1) var(--ease); }
+.sa-map-line-lit { fill: none; stroke: var(--accent); stroke-width: 1.75; stroke-dasharray: 1; stroke-dashoffset: 1; visibility: hidden; }
+/* A wire that just appeared draws itself once, then settles into the others. */
+.sa-map .is-fresh .sa-map-line-lit { visibility: visible; animation: sa-map-draw 320ms var(--ease) forwards, sa-map-settle 500ms var(--ease) 1s forwards; }
+.sa-map-jack { fill: var(--text-tertiary); }
+.sa-map-jack.is-open { fill: var(--bg-surface); stroke: var(--warning-text); stroke-width: 1.25; }
+
+/* A product with no names yet: one open port on our side, and pressing it starts a name. */
+.sa-map-port {
+  position: absolute;
+  top: calc(var(--map-row) / 2 - 12px);
+  inset-inline-start: -6px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.sa-map-port i { width: 9px; height: 9px; border-radius: 50%; border: 1.25px solid var(--border-control); background: var(--bg-surface); transition: border-color var(--dur-1) linear; }
+.sa-map-port:hover i { border-color: var(--accent); }
+
+/* ── A supplier's name: the name as it writes it, its code and how often it came, the supplier, the keys ── */
+.sa-map-names { min-width: 0; }
+.sa-map-none { display: flex; align-items: center; min-height: var(--map-row); padding-inline-start: var(--space-4); color: var(--text-quiet); font-size: var(--t-14); }
+.sa-map-name { position: relative; display: grid; grid-template-columns: var(--map-name); column-gap: var(--space-4); align-items: start; min-height: var(--map-row); padding-inline-start: var(--space-4); }
+.sa-map-port-mark { position: absolute; top: calc(var(--map-row) / 2); inset-inline-start: 0; width: 0; height: 0; }
+.sa-map-name-cell { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; min-width: 0; min-height: var(--map-row); padding-block: 6px; }
+.sa-map-name-open { display: flex; flex-direction: column; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text-primary); font: inherit; text-align: start; cursor: pointer; }
+.sa-map-name-text { font-size: var(--t-14); line-height: var(--l-20); overflow-wrap: anywhere; transition: color var(--dur-1) linear; }
+.sa-map-name-open:hover .sa-map-name-text { color: var(--accent-text); }
+.sa-map-name-meta { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sa-map-sup { display: flex; align-items: center; min-width: 0; min-height: var(--map-row); padding: 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: var(--t-14); line-height: var(--l-20); text-align: start; overflow-wrap: anywhere; cursor: pointer; transition: color var(--dur-1) linear; }
+.sa-map-sup:hover { color: var(--accent-text); }
+.sa-map-end { display: flex; align-items: center; justify-content: flex-end; min-height: var(--map-row); }
+.sa-map-wait { display: flex; align-items: center; gap: var(--space-2); font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--warning-text); }
+.sa-map-wait .sa-btn-link { min-height: 28px; }
+.sa-map-remove { flex: none; opacity: 0; transition: opacity var(--dur-1) linear; }
+.sa-map-name:hover .sa-map-remove, .sa-map-name:focus-within .sa-map-remove { opacity: 1; }
+.sa-map-name.is-form { display: block; padding-block: 10px; }
+/* The form's menus reach past the band, so it stops skipping its paint while one is open. */
+.sa-map-band:has(.is-form) { content-visibility: visible; z-index: 4; }
+
+/* ── Pointing lights a whole path and the others recede, after a breath, so crossing the list stays still ── */
+.sa-map-band > *, .sa-map-name { transition: opacity var(--dur-1) var(--ease); }
+.sa-map-wires { transition: opacity var(--dur-2) var(--ease); }
+.sa-map[data-lit] .sa-map-band:not([data-on]) .sa-map-wires { opacity: 0.25; transition-delay: 120ms; }
+.sa-map[data-lit] .sa-map-band:not([data-on]) > :not(.sa-map-channel) { opacity: 0.5; transition-delay: 120ms; }
+.sa-map-band[data-on="name"] .sa-map-name:not([data-on]) { opacity: 0.5; }
+.sa-map-band[data-on="name"] g[data-wire]:not([data-on]) { opacity: 0.3; }
+.sa-map-band[data-on] .sa-map-line-lit { visibility: visible; animation: sa-map-draw 260ms var(--ease) forwards; }
+.sa-map-band[data-on="band"] .sa-map-line-lit { stroke-dashoffset: -1; }
+.sa-map-band[data-on="name"] g[data-wire]:not([data-on]) .sa-map-line-lit { visibility: hidden; }
+.sa-map-band[data-on="band"] .sa-map-jack:not(.is-open),
+.sa-map-band[data-on="name"] g[data-on] .sa-map-jack:not(.is-open),
+.sa-map-band[data-on] > .sa-map-channel > svg > .sa-map-jack { fill: var(--accent); }
+
+.sa-map :is(.sa-map-product-name, .sa-map-add, .sa-map-name-open, .sa-map-sup, .sa-map-port):focus-visible { outline: none; border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+.sa-map .sa-map-section-head:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+@keyframes sa-map-draw { to { stroke-dashoffset: 0; } }
+@keyframes sa-map-settle { to { opacity: 0; } }
+
+/* Less room: the supplier stands under its name, and the names keep their width. */
+@container (max-width: 1000px) {
+  .sa-map { --map-name: minmax(0, 1fr) 36px; --map-wire: clamp(56px, 11%, 120px); }
+  .sa-map-head-names > :nth-child(2) { display: none; }
+  .sa-map-name-cell { grid-column: 1; min-height: 0; padding-block: 9px 0; }
+  .sa-map-sup { grid-column: 1; grid-row: 2; min-height: 0; padding-block-end: 9px; font-size: var(--t-13); line-height: var(--l-18); }
+  .sa-map-end { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* No room for a channel: the product stands over its names, and one spine carries them down its edge. */
+@container (max-width: 680px) {
+  .sa-map { --map-cols: minmax(0, 1fr); --map-head: 0px; --map-gutter: var(--space-4); }
+  .sa-map-head { display: none; }
+  .sa-map-band { display: block; padding-block: 6px; }
+  .sa-map-band + .sa-map-band::before { inset-inline-start: calc(var(--map-gutter) + 58px); }
+  .sa-map-product { padding-inline-end: 0; }
+  .sa-map-band:not(.is-free) .sa-map-channel { display: none; }
+  .sa-map-band.is-free .sa-map-channel { position: absolute; inset-inline-end: var(--map-gutter); top: 6px; width: 36px; height: var(--map-row); }
+  .sa-map-names { margin-inline-start: 21px; border-inline-start: var(--hair) solid var(--map-line); }
+  .sa-map-band.is-free .sa-map-names { border-inline-start: 0; }
+  .sa-map-name { padding-inline-start: var(--space-4); }
+  .sa-map-name::before { content: ""; position: absolute; inset-inline-start: 0; top: calc(var(--map-row) / 2); width: 10px; border-top: var(--hair) solid var(--map-line); }
+  .sa-map-name.is-form::before { display: none; }
+}
+
+/* A finger: the keys are always there, and each gets its reach. */
+@media (hover: none) {
+  .sa-map-remove { opacity: 1; }
+  .sa-map-add { min-height: 44px; margin-block: -13px; padding-block: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-map :is(.is-fresh .sa-map-line-lit, .sa-map-band[data-on] .sa-map-line-lit) { animation-duration: 0s; animation-delay: 0s; }
+}
+
+/* Under a narrowed map: how many of all the products the search left. */
+.sa-map-foot { margin: var(--space-3) var(--inset) 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
