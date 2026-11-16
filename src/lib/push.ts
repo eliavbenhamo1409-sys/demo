@@ -59,17 +59,29 @@ function cachedKey(): string | null {
   }
 }
 
-async function fetchKey(): Promise<string> {
-  const res = await fetch(functionUrl());
-  const body = (await res.json().catch(() => null)) as { publicKey?: string } | null;
-  if (!res.ok || !body?.publicKey) throw new Error("שירות ההתראות לא זמין כרגע");
-  try {
-    window.localStorage.setItem(KEY_CACHE, body.publicKey);
-  } catch {
-    /* private mode: it is fetched again next time */
-  }
-  return body.publicKey;
+/** Asked once per visit: every return to the home would otherwise ask again. */
+let keyRequest: Promise<string> | null = null;
+
+function fetchKey(): Promise<string> {
+  keyRequest ??= (async () => {
+    const res = await fetch(functionUrl());
+    const body = (await res.json().catch(() => null)) as { publicKey?: string } | null;
+    if (!res.ok || !body?.publicKey) throw new Error("שירות ההתראות לא זמין כרגע");
+    try {
+      window.localStorage.setItem(KEY_CACHE, body.publicKey);
+    } catch {
+      /* private mode: it is fetched again next time */
+    }
+    return body.publicKey;
+  })().catch((e: unknown) => {
+    keyRequest = null;
+    throw e;
+  });
+  return keyRequest;
 }
+
+/** Subscriptions already filed in this visit, as endpoint|worker, so a return to the home sends nothing. */
+const filed = new Set<string>();
 
 function keyBytes(text: string): Uint8Array<ArrayBuffer> {
   const pad = "=".repeat((4 - (text.length % 4)) % 4);
@@ -111,6 +123,8 @@ async function register(): Promise<ServiceWorkerRegistration> {
 }
 
 async function file(sub: PushSubscription, workerId: string): Promise<void> {
+  const mark = `${sub.endpoint}|${workerId}`;
+  if (filed.has(mark)) return;
   const keys = sub.toJSON().keys ?? {};
   const { error } = await supabase().rpc("push_register", {
     p_worker: workerId,
@@ -120,6 +134,7 @@ async function file(sub: PushSubscription, workerId: string): Promise<void> {
     p_agent: navigator.userAgent,
   });
   if (error) throw new Error(error.message);
+  filed.add(mark);
 }
 
 /** The phone's side: where notifications stand for the worker chosen on it, and the tap that turns them on. */
@@ -218,6 +233,7 @@ export function usePush(workerId: string | null) {
     try {
       const reg = registration.current ?? (canPush() ? await navigator.serviceWorker.getRegistration(SW_SCOPE) : undefined);
       const sub = await reg?.pushManager.getSubscription();
+      filed.clear();
       if (sub) await supabase().rpc("push_unregister", { p_endpoint: sub.endpoint });
     } catch {
       /* the next worker chosen here takes the subscription over anyway */

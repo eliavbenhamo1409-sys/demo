@@ -32,6 +32,8 @@ export default function FaultPage() {
   const [qty, setQty] = useState(1);
   const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  // Started when the worker moves on to the summary, so sending waits on little; one upload per photo.
+  const [upload, setUpload] = useState<{ file: File; path: Promise<string> } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -56,6 +58,14 @@ export default function FaultPage() {
   const p = product(productId);
   const described = description.trim().length > 0;
 
+  const startUpload = () => {
+    if (!photo || !worker || upload?.file === photo.file) return;
+    const path = uploadFaultPhoto(photo.file, worker.id);
+    // Settled when sending; a failure there only drops the picture.
+    path.catch(() => undefined);
+    setUpload({ file: photo.file, path });
+  };
+
   const submit = async () => {
     if (!worker) return;
     setBusy(true);
@@ -64,7 +74,7 @@ export default function FaultPage() {
       let photoPath: string | null = null;
       if (photo) {
         try {
-          photoPath = await uploadFaultPhoto(photo.file, worker.id);
+          photoPath = await (upload?.file === photo.file ? upload.path : uploadFaultPhoto(photo.file, worker.id));
         } catch (e) {
           // The report still goes through; the manager just won't get the picture.
           setPhotoError(e instanceof Error ? e.message : String(e));
@@ -100,7 +110,10 @@ export default function FaultPage() {
         title="מה קרה?"
         foot={{
           label: "המשך לאישור",
-          onClick: () => go("summary"),
+          onClick: () => {
+            startUpload();
+            go("summary");
+          },
           blocked: described ? null : { reason: "חסר תיאור התקלה", onTap: () => pointAt("what") },
         }}
         overlay={pick ? <Picker title="מוצר קשור" items={items} placeholder='חיפוש לפי שם, מק"ט או ברקוד' onPick={(id) => { setProductId(id); setPick(false); }} onClose={() => setPick(false)} emptyTitle="לא נמצאו מוצרים" /> : null}

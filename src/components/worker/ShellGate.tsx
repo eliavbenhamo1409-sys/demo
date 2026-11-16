@@ -12,7 +12,8 @@ const under = (pathname: string, base: string) => pathname === base || pathname.
 export function ShellGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (under(pathname, "/catalog")) return <>{children}</>;
-  if (under(pathname, "/worker")) return <DataProvider>{children}</DataProvider>;
+  // The phone reads only what the worker's screens use, and opens on its last read.
+  if (under(pathname, "/worker")) return <DataProvider scope="worker">{children}</DataProvider>;
   return (
     <DataProvider>
       <AppShell>{children}</AppShell>

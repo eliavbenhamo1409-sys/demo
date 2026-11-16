@@ -231,7 +231,7 @@ export function Cta({ label, onClick, blocked, busy }: CtaProps): ReactElement {
 }
 
 /** The last button of a step and the save button are one DOM node, so a double tap must not reach the next step. */
-const STEP_GUARD_MS = 500;
+const STEP_GUARD_MS = 300;
 
 export function Flow({ flow, steps, current, dir, title, lead, onBack, foot, overlay, children }: {
   /** The process this is, shown above the title. */

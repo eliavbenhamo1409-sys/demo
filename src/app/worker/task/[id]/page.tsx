@@ -42,6 +42,8 @@ export default function TaskPage() {
   const f = state.faults.find((row) => row.id === id);
   // Closed, or handed to someone else, since the list was opened. While saving, the closed row is this worker's own.
   if (!busy && (!f || f.status !== "open" || f.assigned_to !== worker.id)) {
+    // Opened from a notification on what the phone kept from its last visit: the fresh read decides whether it's gone.
+    if (state.cached) return <Boot />;
     return (
       <main className="wk-home">
         <SystemBar live={state.live} />
@@ -60,17 +62,14 @@ export default function TaskPage() {
   const written = note.trim().length > 0;
   const received = acked || Boolean(f.acknowledged_at);
 
-  const receive = async () => {
-    setBusy(true);
+  // Answered at once; the press goes out behind it, and only a failure brings the button back.
+  const receive = () => {
+    setAcked(true);
     setFailed(false);
-    try {
-      await acknowledgeFault(f.id);
-      setAcked(true);
-    } catch {
+    acknowledgeFault(f.id).catch(() => {
+      setAcked(false);
       setFailed(true);
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const submit = async () => {
@@ -104,7 +103,7 @@ export default function TaskPage() {
               blocked: written ? null : { reason: "חסר מה נעשה", onTap: () => pointAt("done-note") },
               busy: busy ? "שומר" : null,
             }
-          : { label: "קיבלתי", onClick: receive, blocked: null, busy: busy ? "שולח למנהל" : null }
+          : { label: "קיבלתי", onClick: receive, blocked: null }
       }
     >
       {failed ? <Hint tone="attention" title="לא נשמר. לבדוק אינטרנט וללחוץ שוב." /> : null}

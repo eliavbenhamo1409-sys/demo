@@ -90,7 +90,7 @@ body:has(.wk-root) .sa-modal .sa-btn-icon.sa-btn-sm { width: 48px; height: 48px;
 .wk-progress-step.is-done .wk-progress-label { color: var(--text-secondary); }
 
 /* ── Step: title, what's expected, then the work ───────────── */
-.wk-page { width: 100%; max-width: var(--worker); margin: 0 auto; padding: var(--space-5) var(--space-4) calc(var(--space-8) + 132px); display: flex; flex-direction: column; gap: var(--space-5); flex: 1; animation: wk-step-in 0.2s var(--wk-enter) both; }
+.wk-page { width: 100%; max-width: var(--worker); margin: 0 auto; padding: var(--space-5) var(--space-4) calc(var(--space-8) + 132px); display: flex; flex-direction: column; gap: var(--space-5); flex: 1; animation: wk-step-in 0.16s var(--wk-enter) both; }
 /* Hebrew reads right to left, so going forward the next step arrives from the left. */
 .wk-page[data-dir="forward"] { --wk-from: -16px; }
 .wk-page[data-dir="back"] { --wk-from: 16px; }
@@ -352,10 +352,8 @@ body:has(.wk-root) .sa-modal .sa-btn-icon.sa-btn-sm { width: 48px; height: 48px;
 
 /* ── Home ──────────────────────────────────────────────────── */
 [data-theme^="minimal"] .wk-home { gap: 0; padding-top: calc(var(--space-2) + env(safe-area-inset-top)); padding-bottom: max(var(--space-4), env(safe-area-inset-bottom)); animation: none; }
-/* The screen arrives once, its surfaces one after another, as the admin's pages do. */
-[data-theme^="minimal"] .wk-home > * { animation: sa-enter 420ms var(--ease) backwards; }
-[data-theme^="minimal"] .wk-home > :nth-child(n + 4) { animation-delay: 40ms; }
-[data-theme^="minimal"] .wk-home > :nth-child(n + 5) { animation-delay: 80ms; }
+/* The home is where every flow ends, so it is there at once: one short fade, all of it together. */
+[data-theme^="minimal"] .wk-home > * { animation: wk-fade 140ms ease-out backwards; }
 [data-theme^="minimal"] .wk-sys { min-height: 36px; border-bottom: 0; }
 [data-theme^="minimal"] .wk-sys-name { font-size: 17px; line-height: 24px; color: var(--text-tertiary); }
 [data-theme^="minimal"] .wk-live { font-size: 17px; line-height: 24px; color: var(--text-primary); font-weight: 600; }

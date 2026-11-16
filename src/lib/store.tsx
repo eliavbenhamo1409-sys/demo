@@ -75,9 +75,41 @@ type State = {
   loadedAt: number | null;
   /** When the store last heard anything: a full read, or one row arriving. */
   heardAt: number | null;
+  /** The worker's phone opened on what it kept from its last visit, and the fresh read hasn't landed yet. */
+  cached: boolean;
 };
 
 export const RECENT_MOVEMENTS = 400;
+
+/** What a family of screens reads: the worker's phone needs six tables, every other screen all eleven. */
+export type DataScope = "worker" | "full";
+const ALL_TABLES: readonly TableName[] = ["products", "movements", "suppliers", "supplier_items", "faults", "workers", "item_requests", "documents", "agents", "orders", "order_lines"];
+const WORKER_TABLES: readonly TableName[] = ["products", "suppliers", "supplier_items", "faults", "workers", "item_requests"];
+
+/** The worker's last read, kept on the phone so the app opens on it at once while a fresh read runs. */
+const WORKER_CACHE_KEY = "worker.data.v1";
+const WORKER_CACHE_MAX_AGE = 3 * 24 * 60 * 60 * 1000;
+type WorkerData = Pick<State, "products" | "suppliers" | "supplierItems" | "faults" | "workers" | "itemRequests">;
+
+function readWorkerCache(): WorkerData | null {
+  try {
+    const raw = window.localStorage.getItem(WORKER_CACHE_KEY);
+    if (!raw) return null;
+    const kept = JSON.parse(raw) as { at?: unknown; data?: WorkerData };
+    if (typeof kept.at !== "number" || Date.now() - kept.at > WORKER_CACHE_MAX_AGE || !kept.data || !Array.isArray(kept.data.workers)) return null;
+    return kept.data;
+  } catch {
+    return null;
+  }
+}
+
+function keepWorkerCache(data: WorkerData): void {
+  try {
+    window.localStorage.setItem(WORKER_CACHE_KEY, JSON.stringify({ at: Date.now(), data }));
+  } catch {
+    /* full or private storage: the next visit simply waits for the read */
+  }
+}
 
 /** The most rows the API returns for one request. */
 const API_PAGE = 1000;
@@ -106,7 +138,9 @@ async function allPages<T>(read: (from: number, to: number) => PromiseLike<PageR
 }
 
 type Action =
-  | { type: "loaded"; data: Omit<State, "status" | "error" | "live" | "loadedAt" | "heardAt"> }
+  | { type: "loaded"; data: Partial<Omit<State, "status" | "error" | "live" | "loadedAt" | "heardAt" | "cached">> }
+  | { type: "cached"; data: WorkerData }
+  | { type: "loading" }
   | { type: "error"; error: string }
   | { type: "live"; live: boolean }
   | { type: "upsert"; table: TableName; row: Row }
@@ -147,7 +181,12 @@ function sortFor(table: TableName, rows: Row[]): Row[] {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "loaded":
-      return { ...state, ...action.data, status: "ready", error: null, loadedAt: Date.now(), heardAt: Date.now() };
+      return { ...state, ...action.data, status: "ready", error: null, loadedAt: Date.now(), heardAt: Date.now(), cached: false };
+    case "cached":
+      // Only before the first real read: a kept copy never replaces fresh rows.
+      return state.loadedAt ? state : { ...state, ...action.data, status: "ready", error: null, cached: true };
+    case "loading":
+      return { ...state, status: "loading" };
     case "error":
       return { ...state, status: "error", error: action.error };
     case "live":
@@ -200,6 +239,7 @@ const initial: State = {
   live: false,
   loadedAt: null,
   heardAt: null,
+  cached: false,
 };
 
 /** What can still be promised: the shelf minus what open orders hold. Negative when the shelf fell below the holds. */
@@ -407,8 +447,11 @@ export function dayKey(iso: string): string {
 
 const DAY_LABELS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
-export function DataProvider({ children }: { children: ReactNode }) {
+/** `scope="worker"` reads the six tables the worker's phone uses and opens on its last read; the admin reads all eleven. */
+export function DataProvider({ scope = "full", children }: { scope?: DataScope; children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
+  /** Which tables the store holds from the database so far: the worker's six, or all of them. */
+  const loadedScope = useRef<DataScope | null>(null);
   const sb = useMemo(() => supabase(), []);
   const stateRef = useRef(state);
   useEffect(() => {
@@ -429,7 +472,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [sb],
   );
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (which: DataScope = scope) => {
+    if (which === "worker") {
+      const [products, suppliers, supplierItems, faults, workers, itemRequests] = await Promise.all([
+        sb.from("products").select("*").order("name"),
+        sb.from("suppliers").select("*").order("name"),
+        sb.from("supplier_items").select("*").order("created_at", { ascending: false }),
+        sb.from("faults").select("*").order("created_at", { ascending: false }),
+        sb.from("workers").select("*").order("name"),
+        sb.from("item_requests").select("*").order("created_at", { ascending: false }),
+      ]);
+      const err = [products, suppliers, supplierItems, faults, workers, itemRequests].find((r) => r.error)?.error;
+      if (err) {
+        // A phone already showing rows keeps them through a weak line; only a first read with nothing to show fails.
+        if (stateRef.current.status !== "ready") dispatch({ type: "error", error: err.message });
+        return;
+      }
+      const data: WorkerData = {
+        products: products.data ?? [],
+        suppliers: suppliers.data ?? [],
+        supplierItems: supplierItems.data ?? [],
+        faults: faults.data ?? [],
+        workers: workers.data ?? [],
+        itemRequests: itemRequests.data ?? [],
+      };
+      dispatch({ type: "loaded", data });
+      loadedScope.current ??= "worker";
+      keepWorkerCache(data);
+      return;
+    }
     const [products, movements, suppliers, supplierItems, faults, workers, itemRequests, documents, agents, orders, orderLines] = await Promise.all([
       sb.from("products").select("*").order("name"),
       sb.from("movements").select("*").order("created_at", { ascending: false }).limit(RECENT_MOVEMENTS),
@@ -464,15 +535,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
         orderLines: orderLines.data ?? [],
       },
     });
-  }, [sb]);
+    loadedScope.current = "full";
+  }, [sb, scope]);
 
-  // initial load + realtime
+  // initial load + realtime, for the tables this family of screens reads
   useEffect(() => {
     let cancelled = false;
-    reload().catch((e) => !cancelled && dispatch({ type: "error", error: String(e?.message ?? e) }));
+    const first = loadedScope.current === null;
+    // A worker's phone that opens an admin page needs what the worker never read; the admin's screens wait for it as on a first load.
+    const widen = scope === "full" && loadedScope.current === "worker";
+    if (first && scope === "worker") {
+      const kept = readWorkerCache();
+      if (kept) dispatch({ type: "cached", data: kept });
+    }
+    if (widen) dispatch({ type: "loading" });
+    if (first || widen) reload(scope).catch((e) => !cancelled && dispatch({ type: "error", error: String(e?.message ?? e) }));
 
-    const tables: TableName[] = ["products", "movements", "suppliers", "supplier_items", "faults", "workers", "item_requests", "documents", "agents", "orders", "order_lines"];
-    let channel = sb.channel("super-admin-db");
+    const tables = scope === "worker" ? WORKER_TABLES : ALL_TABLES;
+    let channel = sb.channel(scope === "worker" ? "worker-db" : "super-admin-db");
     for (const table of tables) {
       channel = channel.on(
         "postgres_changes",
@@ -493,7 +573,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (status === "SUBSCRIBED" && stateRef.current.loadedAt) reload().catch(() => {});
     });
 
-    // light background re-sync as a safety net (quiet, no UI flash)
+    // light background re-sync as a safety net (quiet, no UI flash); on the worker's phone, only its six tables
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") reload().catch(() => {});
     }, 60_000);
@@ -503,7 +583,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       clearInterval(timer);
       sb.removeChannel(channel);
     };
-  }, [sb, reload]);
+  }, [sb, reload, scope]);
 
   /* ───────── lookups ───────── */
   const productMap = useMemo(() => new Map(state.products.map((p) => [p.id, p])), [state.products]);
