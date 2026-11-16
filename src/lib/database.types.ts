@@ -128,6 +128,7 @@ export type Database = {
       }
       faults: {
         Row: {
+          acknowledged_at: string | null
           asset: string | null
           assigned_at: string | null
           assigned_by: string | null
@@ -137,6 +138,7 @@ export type Database = {
           id: string
           instruction: string | null
           movement_id: string | null
+          notified_at: string | null
           photo_path: string | null
           product_id: string | null
           reported_by: string | null
@@ -146,6 +148,7 @@ export type Database = {
           status: Database["public"]["Enums"]["fault_status"]
         }
         Insert: {
+          acknowledged_at?: string | null
           asset?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
@@ -155,6 +158,7 @@ export type Database = {
           id?: string
           instruction?: string | null
           movement_id?: string | null
+          notified_at?: string | null
           photo_path?: string | null
           product_id?: string | null
           reported_by?: string | null
@@ -164,6 +168,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["fault_status"]
         }
         Update: {
+          acknowledged_at?: string | null
           asset?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
@@ -173,6 +178,7 @@ export type Database = {
           id?: string
           instruction?: string | null
           movement_id?: string | null
+          notified_at?: string | null
           photo_path?: string | null
           product_id?: string | null
           reported_by?: string | null
@@ -693,6 +699,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      push_register: {
+        Args: { p_agent?: string; p_auth: string; p_endpoint: string; p_p256dh: string; p_worker: string }
+        Returns: undefined
+      }
+      push_unregister: { Args: { p_endpoint: string }; Returns: undefined }
+      push_workers: {
+        Args: never
+        Returns: { devices: number; worker_id: string }[]
+      }
       approve_item_request: {
         Args: { request_id: string; target_product_id: string }
         Returns: Database["public"]["Tables"]["item_requests"]["Row"]

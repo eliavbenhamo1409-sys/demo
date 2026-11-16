@@ -621,3 +621,11 @@ body:has(.wk-root) .sa-modal .sa-btn-icon.sa-btn-sm { width: 48px; height: 48px;
 html:has(.wk-root) { overscroll-behavior-y: contain; }
 /* The fixed bar covers the strip on a flow, so there it could only add a dead scroll. */
 body:has(:is(.wk-foot, .wk-done)) .sys-switch { display: none; }
+
+/* Notifications: a row of the footer group, with one word for where they stand. Classic keeps the group on one line, so this row takes its own. */
+.wk-push-state { flex-shrink: 0; font-size: var(--t-15); line-height: var(--l-22); color: var(--text-tertiary); }
+.wk-push-state.is-on { color: var(--success-text); font-weight: 500; }
+.wk-push .wk-textlink:disabled { opacity: 0.6; }
+:root:not([data-theme^="minimal"]) .wk-who { flex-wrap: wrap; }
+:root:not([data-theme^="minimal"]) .wk-who-row.wk-push { display: flex; order: 1; flex-basis: 100%; align-items: center; gap: var(--space-2); }
+[data-theme^="minimal"] .wk-push-state { font-size: 17px; line-height: 24px; }

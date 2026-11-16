@@ -777,7 +777,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: tempId(), product_id: input.productId ?? null, movement_id: movementId, description: input.description,
         reported_by: input.workerId ?? null, status: "open", created_at: new Date().toISOString(), resolved_at: null,
         photo_path: input.photoPath ?? null, asset: input.asset ?? null, resolution: null, resolved_by: null,
-        assigned_to: null, instruction: null, assigned_at: null, assigned_by: null,
+        assigned_to: null, instruction: null, assigned_at: null, assigned_by: null, notified_at: null, acknowledged_at: null,
       };
       return (await insert("faults", {
         product_id: input.productId ?? null, movement_id: movementId, description: input.description,

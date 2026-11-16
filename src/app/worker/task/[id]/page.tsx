@@ -1,11 +1,15 @@
 "use client";
 
-/** A fault the manager handed to this worker: what to do, where, and the one field that closes it. */
+/**
+ * A fault the manager handed to this worker: what to do and where. The first press says "קיבלתי", so the
+ * manager sees it reached someone; then the one field that closes it. A notification opens this page.
+ */
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { useData } from "@/lib/store";
 import { DEFAULT_OBJECTS } from "@/lib/map3d/layout";
+import { acknowledgeFault } from "@/lib/push";
 import { faultPhotoUrl, useCurrentWorker } from "@/lib/worker-store";
 import { fmtName } from "@/lib/format";
 import { Boot, Cta, Done, Flow, Hint, Section, SystemBar, pointAt, useSteps } from "@/components/worker";
@@ -25,6 +29,8 @@ export default function TaskPage() {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [closed, setClosed] = useState(false);
+  // Pressed here, ahead of the row's own update arriving.
+  const [acked, setAcked] = useState(false);
 
   useEffect(() => {
     if (ready && !worker) router.replace("/worker");
@@ -52,6 +58,20 @@ export default function TaskPage() {
   const where = p ? fmtName(p.name) : f.asset ? DEFAULT_OBJECTS.find((o) => o.id === f.asset)?.name ?? f.asset : null;
   const photo = faultPhotoUrl(f.photo_path);
   const written = note.trim().length > 0;
+  const received = acked || Boolean(f.acknowledged_at);
+
+  const receive = async () => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      await acknowledgeFault(f.id);
+      setAcked(true);
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async () => {
     setBusy(true);
@@ -76,23 +96,30 @@ export default function TaskPage() {
       onBack={() => router.replace("/worker")}
       title={f.instruction ?? f.description}
       lead={[f.description, where].filter(Boolean).join(" · ")}
-      foot={{
-        label: "סגירת התקלה",
-        onClick: submit,
-        blocked: written ? null : { reason: "חסר מה נעשה", onTap: () => pointAt("done-note") },
-        busy: busy ? "שומר" : null,
-      }}
+      foot={
+        received
+          ? {
+              label: "סגירת התקלה",
+              onClick: submit,
+              blocked: written ? null : { reason: "חסר מה נעשה", onTap: () => pointAt("done-note") },
+              busy: busy ? "שומר" : null,
+            }
+          : { label: "קיבלתי", onClick: receive, blocked: null, busy: busy ? "שולח למנהל" : null }
+      }
     >
       {failed ? <Hint tone="attention" title="לא נשמר. לבדוק אינטרנט וללחוץ שוב." /> : null}
+      {acked && !failed ? <Hint tone="success" title="המנהל רואה שקיבלת" /> : null}
       {photo ? (
         <div className="wk-shot">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photo} alt="תצלום התקלה" />
         </div>
       ) : null}
-      <Section id="done-note" title="מה נעשה" need="required" done={written}>
-        <Input size="touch" multiline aria-label="מה נעשה" placeholder="לדוגמה: הוחלף חלק והאזור נוקה" value={note} onChange={(e) => setNote(e.target.value)} />
-      </Section>
+      {received ? (
+        <Section id="done-note" title="מה נעשה" need="required" done={written}>
+          <Input size="touch" multiline aria-label="מה נעשה" placeholder="לדוגמה: הוחלף חלק והאזור נוקה" value={note} onChange={(e) => setNote(e.target.value)} />
+        </Section>
+      ) : null}
     </Flow>
   );
 }

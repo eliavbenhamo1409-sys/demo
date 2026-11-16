@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { useData } from "@/lib/store";
+import { usePush } from "@/lib/push";
 import { useCurrentWorker } from "@/lib/worker-store";
 import { BigAction, Boot, Cta, Hint, Row, SystemBar } from "@/components/worker";
 
@@ -13,7 +14,9 @@ export default function WorkerHome() {
   const router = useRouter();
   const { state, reload } = useData();
   const { worker, workers, ready, choose } = useCurrentWorker();
+  const push = usePush(worker?.id ?? null);
   const [retrying, setRetrying] = useState(false);
+  const [howTo, setHowTo] = useState(false);
 
   if (!ready) return <Boot />;
 
@@ -66,6 +69,20 @@ export default function WorkerHome() {
     .filter((f) => f.status === "open" && f.assigned_to === worker.id)
     .sort((a, b) => (a.assigned_at ?? a.created_at).localeCompare(b.assigned_at ?? b.created_at));
 
+  // Notifications: one word for where they stand, and the one press that moves them on.
+  const pushEnd: ReactNode =
+    push.status === "off" ? (
+      <button type="button" className="wk-textlink" disabled={push.busy} onClick={() => void push.enable()}>{push.busy ? "מפעיל" : "הפעלה"}</button>
+    ) : push.status === "install" ? (
+      <button type="button" className="wk-textlink" aria-expanded={howTo} onClick={() => setHowTo((open) => !open)}>איך מפעילים</button>
+    ) : push.status === "on" ? (
+      <span className="wk-push-state is-on">פועלות</span>
+    ) : push.status === "blocked" ? (
+      <span className="wk-push-state">חסומות בטלפון</span>
+    ) : push.status === "unsupported" ? (
+      <span className="wk-push-state">לא בדפדפן הזה</span>
+    ) : null;
+
   return (
     <main className="wk-home">
       <SystemBar live={state.live} />
@@ -91,7 +108,21 @@ export default function WorkerHome() {
         <div className="wk-who-row">
           <Icon name="user" className="wk-who-icon" />
           <span className="wk-who-name">{worker.name}</span>
-          <button type="button" className="wk-textlink" onClick={() => choose(null)}>החלפת עובד</button>
+          <button
+            type="button"
+            className="wk-textlink"
+            onClick={() => {
+              void push.release();
+              choose(null);
+            }}
+          >
+            החלפת עובד
+          </button>
+        </div>
+        <div className="wk-who-row wk-push">
+          <Icon name="bell" className="wk-who-icon" />
+          <span className="wk-who-name">התראות</span>
+          {pushEnd}
         </div>
         <div className="wk-who-row">
           <Icon name="settings" className="wk-who-icon" />
@@ -99,6 +130,8 @@ export default function WorkerHome() {
           <Icon name="chevron-left" className="wk-who-chev" />
         </div>
       </div>
+      {push.status === "install" && howTo ? <Hint title="מוסיפים למסך הבית">שיתוף ← הוספה למסך הבית, ופותחים את „מחסן” משם</Hint> : null}
+      {push.error ? <Hint tone="attention" title={push.error} /> : null}
     </main>
   );
 }

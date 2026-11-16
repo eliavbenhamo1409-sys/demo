@@ -1,0 +1,17 @@
+{
+  "id": "/worker",
+  "name": "מחסן · אפליקציית עובד",
+  "short_name": "מחסן",
+  "description": "משימות מהמנהל, קליטה, הוצאה ודיווח תקלות",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/worker",
+  "scope": "/worker",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/app-icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/app-icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
