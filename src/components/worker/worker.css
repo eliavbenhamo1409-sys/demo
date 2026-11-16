@@ -629,3 +629,17 @@ body:has(:is(.wk-foot, .wk-done)) .sys-switch { display: none; }
 :root:not([data-theme^="minimal"]) .wk-who { flex-wrap: wrap; }
 :root:not([data-theme^="minimal"]) .wk-who-row.wk-push { display: flex; order: 1; flex-basis: 100%; align-items: center; gap: var(--space-2); }
 [data-theme^="minimal"] .wk-push-state { font-size: 17px; line-height: 24px; }
+
+/* The first-time notifications banner: one card in the middle of the screen, over everything. */
+.wk-prompt-scrim { position: fixed; inset: 0; z-index: 100; animation: wk-fade 0.2s ease both; }
+.wk-prompt { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; padding: var(--space-6) var(--space-5) var(--space-4); border-radius: var(--radius-xl); background: var(--bg-surface); box-shadow: var(--shadow-modal); text-align: center; animation: wk-prompt-in 0.24s var(--wk-sheet) both; }
+@keyframes wk-prompt-in { from { opacity: 0; transform: translateY(12px); } }
+.wk-prompt-icon { width: 30px; height: 30px; color: var(--text-tertiary); stroke-width: 1.6; }
+.wk-prompt-title { margin: var(--space-3) 0 0; font-size: 21px; line-height: 28px; font-weight: 600; color: var(--text-primary); text-wrap: balance; }
+.wk-prompt-text { margin: var(--space-1) 0 0; font-size: 17px; line-height: 24px; color: var(--text-secondary); text-wrap: pretty; }
+.wk-prompt-error { margin: var(--space-2) 0 0; font-size: var(--t-15); line-height: var(--l-22); color: var(--danger-text); }
+.wk-prompt-actions { align-self: stretch; display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-5); }
+.wk-prompt-actions .sa-btn { width: 100%; }
+.wk-prompt-later { min-height: 48px; font-size: 17px; line-height: 24px; font-weight: 500; color: var(--text-secondary); }
+.wk-prompt-later:disabled { opacity: 0.5; }
+@media (prefers-reduced-motion: reduce) { .wk-prompt, .wk-prompt-scrim { animation: none; } }

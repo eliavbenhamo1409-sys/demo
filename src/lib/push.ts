@@ -9,7 +9,7 @@
  * the home screen (iOS 16.4 and later), so there the first step is that.
  * The manager: which workers have a phone that will ring (push_workers).
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 const SW_URL = "/worker-sw.js";
@@ -88,6 +88,24 @@ function madeWith(sub: PushSubscription, key: string): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
+const ENABLE_LIMIT_MS = 20_000;
+
+function within<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("לא הצליח להפעיל. לנסות שוב")), ms);
+    work.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (e: unknown) => {
+        window.clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 async function register(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register(SW_URL, { scope: SW_SCOPE, updateViaCache: "none" });
 }
@@ -110,32 +128,38 @@ export function usePush(workerId: string | null) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const registration = useRef<ServiceWorkerRegistration | null>(null);
+  // Once the worker has pressed, what they did decides; a slower check started earlier never overrides it.
+  const acted = useRef(false);
 
   useEffect(() => {
     if (!workerId) return;
     let live = true;
+    acted.current = false;
     const settle = (next: PushStatus) => {
-      if (live) setStatus(next);
+      if (live && !acted.current) setStatus(next);
     };
     void (async () => {
       if (!canPush()) return settle(noPush());
+      // Known without the network, so the first-time banner opens at once.
+      if (Notification.permission === "denied") settle("blocked");
+      else if (Notification.permission === "default") settle("off");
       try {
         const reg = await register();
         registration.current = reg;
         // Fetched now, so the tap that subscribes has it at hand: Safari keeps the permission question to the tap itself.
         const key = await fetchKey().catch(() => cachedKey());
-        if (Notification.permission === "denied") return settle("blocked");
+        if (Notification.permission !== "granted") return;
         let sub = await reg.pushManager.getSubscription();
         if (sub && key && !madeWith(sub, key)) {
           await sub.unsubscribe();
           sub = null;
         }
-        if (Notification.permission !== "granted" || !sub) return settle("off");
+        if (!sub) return settle("off");
         // Keeps this phone filed under whoever is chosen on it now.
         await file(sub, workerId);
         settle("on");
       } catch {
-        settle("off");
+        if (Notification.permission === "granted") settle("off");
       }
     })();
     return () => {
@@ -143,11 +167,14 @@ export function usePush(workerId: string | null) {
     };
   }, [workerId]);
 
-  const enable = useCallback(async () => {
-    if (!workerId || busy) return;
+  /** Asks the phone, subscribes and files it; answers where notifications stand after, or null when it failed. */
+  const enable = useCallback(async (): Promise<PushStatus | null> => {
+    if (!workerId || busy) return null;
+    acted.current = true;
     if (!canPush()) {
-      setStatus(noPush());
-      return;
+      const next = noPush();
+      setStatus(next);
+      return next;
     }
     setBusy(true);
     setError(null);
@@ -155,22 +182,32 @@ export function usePush(workerId: string | null) {
       // Asked first, before anything that waits on the network.
       const answer = await Notification.requestPermission();
       if (answer !== "granted") {
-        setStatus(answer === "denied" ? "blocked" : "off");
-        return;
+        const next = answer === "denied" ? "blocked" : "off";
+        setStatus(next);
+        return next;
       }
-      if (!registration.current) registration.current = await register();
-      const reg = await navigator.serviceWorker.ready;
-      const key = cachedKey() ?? (await fetchKey());
-      let sub = await reg.pushManager.getSubscription();
-      if (sub && !madeWith(sub, key)) {
-        await sub.unsubscribe();
-        sub = null;
-      }
-      sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
-      await file(sub, workerId);
+      // The push service can stall on a weak line; the worker gets the button back instead of a spinner that never ends.
+      // A subscription that lands after the limit is filed on the next visit.
+      await within(
+        (async () => {
+          if (!registration.current) registration.current = await register();
+          const reg = await navigator.serviceWorker.ready;
+          const key = cachedKey() ?? (await fetchKey());
+          let sub = await reg.pushManager.getSubscription();
+          if (sub && !madeWith(sub, key)) {
+            await sub.unsubscribe();
+            sub = null;
+          }
+          sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+          await file(sub, workerId);
+        })(),
+        ENABLE_LIMIT_MS,
+      );
       setStatus("on");
+      return "on";
     } catch (e) {
       setError(e instanceof Error && /[֐-׿]/.test(e.message) ? e.message : "ההתראות לא הופעלו");
+      return null;
     } finally {
       setBusy(false);
     }
@@ -188,6 +225,54 @@ export function usePush(workerId: string | null) {
   }, []);
 
   return { status, busy, error, enable, release };
+}
+
+const PROMPTED_KEY = "push.prompted";
+/** Closed in this visit, for a phone whose storage refuses writes; the banner still closes. */
+const promptedNow = new Set<string>();
+const promptedListeners = new Set<() => void>();
+
+function subscribePrompted(cb: () => void) {
+  promptedListeners.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    promptedListeners.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+function promptedStored(): string {
+  try {
+    return window.localStorage.getItem(PROMPTED_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function promptedSnapshot(): string {
+  return `${promptedStored()}|${[...promptedNow].join(",")}`;
+}
+
+/**
+ * The first time a worker opens the app on this phone with notifications off, one banner in the middle of the screen
+ * offers them. Closing it, or answering the phone's question, is remembered per worker; the footer row stays the way back.
+ */
+export function usePushPrompt(workerId: string | null, status: PushStatus) {
+  const seen = useSyncExternalStore(subscribePrompted, promptedSnapshot, () => null);
+  const asked = seen === null || !workerId || seen.split(/[|,]/).includes(workerId);
+  const dismiss = useCallback(() => {
+    if (!workerId) return;
+    promptedNow.add(workerId);
+    const ids = new Set(promptedStored().split(",").filter(Boolean));
+    ids.add(workerId);
+    try {
+      window.localStorage.setItem(PROMPTED_KEY, [...ids].join(","));
+    } catch {
+      /* private mode: it may offer once more on a later visit */
+    }
+    promptedListeners.forEach((cb) => cb());
+  }, [workerId]);
+  return { open: !asked && (status === "off" || status === "install" || status === "blocked"), dismiss };
 }
 
 /** The manager's side: workers with a phone that will ring, checked every minute and when the tab comes back. Null until known. */

@@ -6,15 +6,17 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { ThemeSettingsButton } from "@/components/ui/ThemeSettings";
 import { useData } from "@/lib/store";
-import { usePush } from "@/lib/push";
+import { usePush, usePushPrompt } from "@/lib/push";
 import { useCurrentWorker } from "@/lib/worker-store";
 import { BigAction, Boot, Cta, Hint, Row, SystemBar } from "@/components/worker";
+import { PushPrompt } from "@/components/worker/PushPrompt";
 
 export default function WorkerHome() {
   const router = useRouter();
   const { state, reload } = useData();
   const { worker, workers, ready, choose } = useCurrentWorker();
   const push = usePush(worker?.id ?? null);
+  const prompt = usePushPrompt(worker?.id ?? null, push.status);
   const [retrying, setRetrying] = useState(false);
   const [howTo, setHowTo] = useState(false);
 
@@ -131,7 +133,19 @@ export default function WorkerHome() {
         </div>
       </div>
       {push.status === "install" && howTo ? <Hint title="מוסיפים למסך הבית">שיתוף ← הוספה למסך הבית, ופותחים את „מחסן” משם</Hint> : null}
-      {push.error ? <Hint tone="attention" title={push.error} /> : null}
+      {push.error && !prompt.open ? <Hint tone="attention" title={push.error} /> : null}
+      {prompt.open ? (
+        <PushPrompt
+          status={push.status}
+          busy={push.busy}
+          error={push.error}
+          onEnable={async () => {
+            // Whatever the phone answered, the card has done its part; only a failure keeps it open to try again.
+            if (await push.enable()) prompt.dismiss();
+          }}
+          onClose={prompt.dismiss}
+        />
+      ) : null}
     </main>
   );
 }
