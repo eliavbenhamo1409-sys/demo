@@ -40,7 +40,7 @@ export interface Lane {
   /** What the owner does with these rows, as a verb: the line under the count. */
   ask: string;
   rows: LaneRow[];
-  /** The page that holds them all. A lane with no page of its own opens in place. */
+  /** The page that holds them all. A lane without one opens in place, so the owner stays on the overview. */
   href?: string;
   more?: string;
 }

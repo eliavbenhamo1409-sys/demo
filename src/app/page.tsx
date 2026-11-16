@@ -100,8 +100,7 @@ function OwnerOverview() {
         tone: "bad",
         calm: "אין תקלות פתוחות",
         ask: "לטפל, ולסגור עם תיעוד",
-        href: "/faults",
-        more: "כל התקלות",
+        more: `עוד ${fmtQty(faults.length - 3)}`,
         rows: faults.map((f) => {
           const p = product(f.product_id);
           const what = p ? fmtName(p.name) : DEFAULT_OBJECTS.find((o) => o.id === f.asset)?.name ?? f.asset;
