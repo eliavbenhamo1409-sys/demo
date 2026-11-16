@@ -1,0 +1,74 @@
+/* שיוך לעובד: the dialog from a fault's row, and the row's line of whose hands the fault is in. */
+.sa-assign .sa-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sa-assign-fault {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sa-assign-title {
+  margin: 0;
+  font-size: var(--t-15);
+  line-height: var(--l-22);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sa-assign-place {
+  margin: 0;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+}
+
+/* Whether the chosen worker's phone will ring, said before sending. */
+.sa-assign-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--t-13);
+  line-height: var(--l-18);
+  color: var(--text-tertiary);
+}
+
+.sa-assign-ring svg {
+  flex-shrink: 0;
+}
+
+.sa-assign-ring.is-on {
+  color: var(--success-text);
+}
+
+/* In the row: who has it and whether the message reached them, on its own line above the quiet facts. */
+.sa-fault-hand {
+  display: block;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sa-fault-hand .is-ok {
+  color: var(--success-text);
+}
+
+.sa-fault-hand .is-quiet {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* The worker list opens past the dialog's edge, as a list does anywhere else; the foot keeps the dialog's rounded corners. */
+.sa-modal.sa-assign {
+  overflow: visible;
+}
+
+.sa-assign .sa-modal-foot {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}

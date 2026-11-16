@@ -3,17 +3,20 @@
 /**
  * תקלות — every fault reported from the floor, open ones first. A fault stays
  * open until its drawer closes it with a note of what was done; resolved ones
- * remain here as a record and can be reopened.
+ * remain here as a record and can be reopened. An open fault can be handed to a
+ * worker, whose phone is notified; its row then says whether the worker received it.
  */
 import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { isTempId, normalizeName, useData, type Fault } from "@/lib/store";
+import { AssignFault } from "@/components/app/AssignFault";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, Card, Count, EmptyState, PageHead, Select, Showing, Tabs, Toolbar, type SelectOption } from "@/components/ui";
-import { fmtAge, fmtDay, fmtElapsed, fmtName, fmtQty } from "@/lib/format";
+import { fmtAge, fmtDay, fmtElapsed, fmtFull, fmtName, fmtQty } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { DEFAULT_OBJECTS } from "@/lib/map3d/layout";
+import { usePushWorkers } from "@/lib/push";
 
 type Tab = "open" | "resolved";
 
@@ -70,6 +73,8 @@ function FaultsInner() {
   const [query, setQuery] = useState("");
   const [workerId, setWorkerId] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState<string | null>(null);
+  const reachable = usePushWorkers();
 
   const loading = state.status === "loading";
 
@@ -95,7 +100,7 @@ function FaultsInner() {
       if (!q) return true;
       const p = product(f.product_id);
       const w = worker(f.reported_by);
-      const hay = normalizeName([f.description, p?.name, p?.sku, p?.barcode, w?.name].filter(Boolean).join(" "));
+      const hay = normalizeName([f.description, p?.name, p?.sku, p?.barcode, w?.name, worker(f.assigned_to)?.name].filter(Boolean).join(" "));
       return hay.includes(q);
     });
   }, [tab, open, resolved, workerId, q, product, worker]);
@@ -174,6 +179,21 @@ function FaultsInner() {
           const busy = busyId === f.id;
           const done = f.status === "resolved";
           const took = done && f.resolved_at ? fmtDuration(f.created_at, f.resolved_at) : null;
+          const holder = worker(f.assigned_to);
+          // Whose hands an open fault is in, and whether the message reached them, comes first: it answers "is someone on it".
+          const hand =
+            holder && !done ? (
+              <span className="sa-fault-hand">
+                אצל {holder.name}
+                {f.acknowledged_at ? (
+                  <span className="is-ok" title={fmtFull(f.acknowledged_at)}> · התקבלה</span>
+                ) : f.notified_at ? (
+                  <span className="is-quiet" title={fmtFull(f.notified_at)}> · נשלחה התראה</span>
+                ) : reachable && !reachable.has(holder.id) ? (
+                  <span className="is-quiet"> · בלי התראות</span>
+                ) : null}
+              </span>
+            ) : null;
           const meta: ReactNode[] = [];
           if (w) meta.push(<>דווח ע&quot;י {w.name}</>);
           // An open fault counts how long it has waited; a closed one is a record, so it keeps its date.
@@ -208,6 +228,7 @@ function FaultsInner() {
                   <span className="sa-fault-meta">{DEFAULT_OBJECTS.find((o) => o.id === f.asset)?.name ?? f.asset ?? "ללא מוצר"}</span>
                 )}
                 <span className="sa-fault-meta">
+                  {hand}
                   {meta.map((m, i) => (
                     <span key={i}>
                       {i > 0 ? " · " : null}
@@ -220,7 +241,10 @@ function FaultsInner() {
                 {done ? (
                   <Button variant="ghost" icon="refresh" isLoading={busy} onClick={() => void onReopen(f)}>פתיחה מחדש</Button>
                 ) : (
-                  <Button variant="secondary" icon="check" onClick={() => openFault(f.id)}>סגירה עם תיעוד</Button>
+                  <>
+                    <Button variant="secondary" icon="user-plus" onClick={() => setAssigning(f.id)}>{holder ? "שיוך מחדש" : "שיוך לעובד"}</Button>
+                    <Button variant="secondary" icon="check" onClick={() => openFault(f.id)}>סגירה עם תיעוד</Button>
+                  </>
                 )}
               </div>
             </li>
@@ -254,6 +278,11 @@ function FaultsInner() {
       >
         {body}
       </Card>
+
+      {assigning ? (() => {
+        const f = state.faults.find((row) => row.id === assigning && row.status === "open");
+        return f ? <AssignFault key={f.id} fault={f} reachable={reachable} onClose={() => setAssigning(null)} /> : null;
+      })() : null}
     </div>
   );
 }

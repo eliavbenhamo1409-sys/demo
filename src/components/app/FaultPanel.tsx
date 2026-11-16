@@ -53,6 +53,7 @@ function FaultPanelInner({ id }: { id: string }) {
   const isOpen = f.status === "open";
   const p = product(f.product_id);
   const reporter = worker(f.reported_by)?.name;
+  const holder = worker(f.assigned_to)?.name;
   const photo = faultPhotoUrl(f.photo_path);
   const objectName = f.asset ? floor.find((o) => o.id === f.asset)?.name ?? f.asset : null;
   // A closed fault says what its row says, so one fault never shows two times.
@@ -99,6 +100,9 @@ function FaultPanelInner({ id }: { id: string }) {
 
   const steps: TimelineItem[] = [
     { id: "reported", title: reporter ? `דווח ע"י ${reporter}` : "דיווח", when: fmtFull(f.created_at) },
+    ...(holder && f.assigned_at ? [{ id: "assigned", title: `הועברה ל${holder}${f.assigned_by ? ` ע"י ${f.assigned_by}` : ""}`, when: fmtFull(f.assigned_at) }] : []),
+    // The worker's קיבלתי, on the phone or on the notification.
+    ...(holder && f.acknowledged_at ? [{ id: "received", title: `התקבלה אצל ${holder}`, when: fmtFull(f.acknowledged_at) }] : []),
     ...(isOpen ? [] : [{ id: "closed", title: f.resolved_by ? `נסגרה ע"י ${f.resolved_by}` : "נסגרה", when: f.resolved_at ? fmtFull(f.resolved_at) : undefined }]),
   ];
 
@@ -178,6 +182,8 @@ function FaultPanelInner({ id }: { id: string }) {
           </ul>
         </section>
       ) : null}
+
+      {holder && f.instruction ? <Fields columns={1} items={[{ label: `הוראה ל${holder}`, value: <span className="whitespace-pre-wrap">{f.instruction}</span> }]} /> : null}
 
       {f.resolution ? <Fields columns={1} items={[{ label: "מה נעשה", value: <span className="whitespace-pre-wrap">{f.resolution}</span> }]} /> : null}
 
