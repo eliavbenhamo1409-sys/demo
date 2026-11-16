@@ -178,10 +178,13 @@ export default function ReceivePage() {
     const others = l.stored.slice(1).reduce((sum, part) => sum + part.qty, 0);
     return [{ place: l.stored[0].place, qty: l.qty - others }, ...l.stored.slice(1)];
   };
-  // Without the shelves the step has nothing to offer, and the receipt must not stop for it.
-  const placing = shelfRows !== null;
-  const unplaced = placing ? toReceive.filter((l) => l.stored.length === 0) : [];
-  const badSplit = placing ? toReceive.filter((l) => partsOf(l).some((part) => part.qty <= 0)) : [];
+  // Every line that enters stock says where it went. The racks come from the layout, so the step never waits for the shelves.
+  const unplaced = toReceive.filter((l) => l.stored.length === 0);
+  const badSplit = toReceive.filter((l) => partsOf(l).some((part) => part.qty <= 0));
+  /** Kept on the save too: a name the manager approves meanwhile turns a line into stock that has no place yet. */
+  const placeBlock = unplaced.length
+    ? { reason: unplaced.length === 1 ? "חסר מיקום" : `חסר מיקום ל-${unplaced.length} שורות`, line: unplaced[0] }
+    : badSplit.length ? { reason: "הכמויות לא מסתדרות", line: badSplit[0] } : null;
   const suggestionsFor = (p: Product) => suggestPlaces(p, shelfRows ?? [], usual, floor);
   /** The usual place of every line that has one and has no answer yet. */
   const usualLines = unplaced.flatMap((l) => {
@@ -226,7 +229,7 @@ export default function ReceivePage() {
 
   /* ── submit ── */
   const submit = async () => {
-    if (!worker || !supplier) return;
+    if (!worker || !supplier || placeBlock) return;
     setBusy(true);
     setError(null);
     const servicesNote = services.length ? `עבודות: ${services.map((sv) => `${sv.externalName}${sv.qty !== 1 ? ` ×${sv.qty}` : ""}`).join(", ")}` : "";
@@ -240,12 +243,10 @@ export default function ReceivePage() {
         const p = effectiveProduct(l)!;
         // A line split over two shelves is two receipts, each of a place. One that failed halfway doesn't repeat what landed.
         const parts = partsOf(l);
-        const each: (Stored | null)[] = parts.length > 0 ? parts : [null];
-        for (let i = 0; i < each.length; i++) {
-          const part = each[i];
+        for (let i = 0; i < parts.length; i++) {
           const mark = `${l.id}#${i}`;
           if (savedParts.current.has(mark)) continue;
-          await receive({ productId: p.id, qty: part?.qty ?? l.qty, supplierId, workerId: worker.id, note, externalName: l.externalName.trim(), documentId, place: part?.place ?? null });
+          await receive({ productId: p.id, qty: parts[i].qty, supplierId, workerId: worker.id, note, externalName: l.externalName.trim(), documentId, place: parts[i].place });
           savedParts.current.add(mark);
         }
         saved.current.set(l.id, { key: l.id, title: fmtName(p.name), sub: placesText(l) ?? (l.externalName.trim() !== p.name ? l.externalName.trim() : undefined), qty: l.qty, unit: p.unit, product: p });
@@ -285,7 +286,7 @@ export default function ReceivePage() {
   const back = () => {
     if (step === "start") router.replace("/worker");
     else if (step === "lines") go("start");
-    else if (step === "place" || !placing || toReceive.length === 0) go("lines");
+    else if (step === "place" || toReceive.length === 0) go("lines");
     else go("place");
   };
 
@@ -405,7 +406,7 @@ export default function ReceivePage() {
         title="מה הגיע מהספק?"
         lead={lead}
         overlay={overlay}
-        foot={{ label: placing && toReceive.length > 0 ? "המשך למיקום" : "המשך לאישור", onClick: () => go(placing && toReceive.length > 0 ? "place" : "summary"), blocked }}
+        foot={{ label: toReceive.length > 0 ? "המשך למיקום" : "המשך לאישור", onClick: () => go(toReceive.length > 0 ? "place" : "summary"), blocked }}
       >
         <div className="wk-lines">
           {lines.map((l, i) => {
@@ -501,9 +502,7 @@ export default function ReceivePage() {
 
   /* ── step 3: where each line was put ── */
   if (step === "place") {
-    const blocked = unplaced.length
-      ? { reason: unplaced.length === 1 ? "חסר מיקום" : `חסר מיקום ל-${unplaced.length} שורות`, onTap: () => pointAt(`place-${unplaced[0].id}`) }
-      : badSplit.length ? { reason: "הכמויות לא מסתדרות", onTap: () => pointAt(`place-${badSplit[0].id}`) } : null;
+    const blocked = placeBlock ? { reason: placeBlock.reason, onTap: () => pointAt(`place-${placeBlock.line.id}`) } : null;
     return (
       <Flow
         flow={`קליטת סחורה מ${supplier?.name ?? "הספק"}`}
@@ -581,7 +580,7 @@ export default function ReceivePage() {
       title="בדיקה ואישור"
       lead="עדיין לא נשמר כלום"
       overlay={overlay}
-      foot={{ label: toReceive.length ? "אישור הקליטה" : "העברה למנהל", onClick: submit, busy: busy ? (total > 1 ? `שומר ${Math.min(progress + 1, total)} מתוך ${total}` : "שומר") : null }}
+      foot={{ label: toReceive.length ? "אישור הקליטה" : "העברה למנהל", onClick: submit, busy: busy ? (total > 1 ? `שומר ${Math.min(progress + 1, total)} מתוך ${total}` : "שומר") : null, blocked: placeBlock ? { reason: placeBlock.reason, onTap: () => go("place") } : null }}
     >
       {error ? <Hint tone="attention" title="לא נשמר. לבדוק אינטרנט וללחוץ שוב." /> : null}
       <Summary
