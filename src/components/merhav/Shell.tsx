@@ -112,13 +112,16 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
   const variant = useMerhavVariant();
   const own = VARIANTS[variant];
   const [commandOpen, setCommandOpen] = useState(false);
+  // מרחב 3 opens פעולה חדשה on the actions alone; the search and a typed key open it to find.
+  const [commandMode, setCommandMode] = useState<"find" | "do">("find");
   // An address with no page reaches here as "overview": it gets the shared 404 on a closed door, not סקירה under a wrong address.
   const known = pathname === "/" || active !== "overview";
   const door = known ? (DOOR[active] ?? "closed") : "closed";
 
   const openCommand = useCallback(
-    (seed?: string) => {
+    (seed?: string, mode: "find" | "do" = "find") => {
       if (seed) search.onQuery(seed);
+      setCommandMode(mode);
       setCommandOpen(true);
     },
     [search],
@@ -220,7 +223,7 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
             offline={offline}
             onSearch={() => openCommand()}
             action={
-              <button type="button" className="mh-seek" onClick={() => openCommand()}>
+              <button type="button" className="mh-seek" onClick={() => openCommand(undefined, variant === "merhav3" ? "do" : "find")}>
                 <Icon name="plus" size={16} />
                 <span>פעולה חדשה</span>
               </button>
@@ -241,7 +244,7 @@ export function MerhavShell({ items, active, foot, morePages, actions, onAction,
           </main>
           {overlays}
           <PanelKeys />
-          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3" || variant === "merhav5" || variant === "merhav6"} />
+          <Command open={commandOpen} onOpen={openCommand} onClose={closeCommand} search={search} actions={actions} onAction={onAction} pages={pages} pageWords={own.pages ? {} : undefined} wide={variant === "merhav3" || variant === "merhav5" || variant === "merhav6"} mode={commandMode} />
         </div>
       )}
     </TwinProvider>

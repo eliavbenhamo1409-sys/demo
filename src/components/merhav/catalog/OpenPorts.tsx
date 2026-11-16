@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import { seenText } from "@/components/app/dictionary/ProductRow";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, Select, type SelectOption } from "@/components/ui";
@@ -71,17 +71,19 @@ function OpenPort({ item, busy, seating, productOptions, supplierName, onApprove
 /** How many stand open before the rest fold away: the work stays at the top without burying the bay. */
 const SHOWN = 6;
 
-/** Names that still need a decision: at the top, because that is where the work is. */
-export function OpenPorts({ items, approvingId, seatingId, ...rest }: OpenPortsProps): ReactElement {
+/** Names that still need a decision: at the top, because that is where the work is. A style may stand other kinds of waiting
+ * name at their head (`lead`, counted in `leadCount`), so one count and one list hold everything that waits for an approval. */
+export function OpenPorts({ items, approvingId, seatingId, lead, leadCount = 0, ...rest }: OpenPortsProps & { lead?: ReactNode; leadCount?: number }): ReactElement {
   const [all, setAll] = useState(false);
   const shown = all ? items : items.slice(0, SHOWN);
   const more = items.length - shown.length;
   return (
     <section className="mh-cat-opens" aria-label="ממתינים לאישור">
       <header className="mh-col-head">
-        <h2><Figure className="mh-cat-opens-n mh-tone-warn" text={fmtQty(items.filter((item) => item.id !== seatingId).length)} /> ממתינים לאישור</h2>
+        <h2><Figure className="mh-cat-opens-n mh-tone-warn" text={fmtQty(items.filter((item) => item.id !== seatingId).length + leadCount)} /> ממתינים לאישור</h2>
         <span className="mh-col-note">שמות מתעודות משלוח שצריך לשייך למוצר</span>
       </header>
+      {lead}
       {shown.map((item) => <OpenPort key={item.id} item={item} busy={approvingId === item.id} seating={seatingId === item.id} {...rest} />)}
       {more > 0 ? <button type="button" className="mh-cat-opens-more" onClick={() => setAll(true)}>עוד <span className="ltr">{fmtQty(more)}</span> ממתינים</button> : null}
     </section>

@@ -19,6 +19,7 @@ import type { LabelAnchor, MapObject, MapPoint, MapRoute } from "@/lib/map3d/typ
 import { available, normalizeName, orderTotal, useData, type Order, type OrderLine, type Product } from "@/lib/store";
 import { Figure } from "../Figure";
 import { useTwin } from "../twin/Twin";
+import { useMerhavVariant } from "../use-merhav";
 
 type Status = Order["status"];
 
@@ -518,6 +519,23 @@ function OrdersInner(): ReactElement {
   const listGroups = useMemo(() => shortFirst(groups), [groups]);
 
   const worth = useMemo(() => rows.reduce((sum, r) => sum + (r.total ?? 0), 0), [rows]);
+
+  // מרחב 3: the line under the title says what of the promises needs a hand, in סקירה's words; reserved stock is מוצרים'.
+  const m3 = useMerhavVariant() === "merhav3";
+  const pressing = useMemo(() => {
+    let short = 0;
+    let late = 0;
+    for (const o of state.orders) {
+      if (o.status !== "open") continue;
+      if (linesOf(o.id).some((l) => isShort(product(l.product_id)))) short += 1;
+      else if (o.promised_on !== null && o.promised_on < today) late += 1;
+    }
+    return { short, late };
+  }, [state.orders, linesOf, product, today]);
+  const pressingLine =
+    pressing.short + pressing.late === 0
+      ? "כל ההזמנות הפתוחות בזמן ועל המדף"
+      : [pressing.short > 0 ? (pressing.short === 1 ? "הזמנה אחת בחוסר" : `${fmtQty(pressing.short)} הזמנות בחוסר`) : null, pressing.late > 0 ? (pressing.late === 1 ? "הזמנה אחת באיחור" : `${fmtQty(pressing.late)} הזמנות באיחור`) : null].filter(Boolean).join(" · ");
   const unpriced = useMemo(() => rows.filter((r) => r.total === null).length, [rows]);
 
   /* ───────── an order reaches for the model ───────── */
@@ -667,7 +685,7 @@ function OrdersInner(): ReactElement {
     <div ref={door} className={cx("mh-ord", !open && "is-closed")}>
       <PageHead
         title="הזמנות"
-        sub={<Count n={stats.reservedProducts} one="מוצר משוריין" many="מוצרים משוריינים" />}
+        sub={m3 ? pressingLine : <Count n={stats.reservedProducts} one="מוצר משוריין" many="מוצרים משוריינים" />}
         actions={
           state.orders.length > 0 ? (
             <div className="mh-ord-sum">

@@ -75,6 +75,8 @@ interface CommandProps {
   pageWords?: Record<string, string>;
   /** מרחב 3: the plate finds places on the floor too, and a product whose name was typed with a slip. */
   wide?: boolean;
+  /** "do": opened by פעולה חדשה, so the plate holds the actions alone and the words narrow them. */
+  mode?: "find" | "do";
 }
 
 const inField = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select, [role="textbox"], [role="searchbox"], [role="combobox"]'));
@@ -92,7 +94,7 @@ const modelInView = (world: HTMLElement | null) => world !== null && getComputed
  * The search is nowhere until it is wanted: anywhere in the admin, just start typing. One plate holds what the words
  * find and what can be done, and walking through the results lights their shelves on the model as you go.
  */
-export function Command({ open, onOpen, onClose, search, actions, onAction, pages, pageWords = PAGE_WORD, wide = false }: CommandProps): ReactElement | null {
+export function Command({ open, onOpen, onClose, search, actions, onAction, pages, pageWords = PAGE_WORD, wide = false, mode = "find" }: CommandProps): ReactElement | null {
   const router = useRouter();
   const { state, linesOf } = useData();
   const { world, itemsOf, spotOver, aimProduct, objects } = useTwin();
@@ -139,6 +141,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
   const rows = useMemo<Row[]>(() => {
     const named = pages.map((p) => ({ ...p, label: pageWords[p.href] ?? p.label, also: p.label }));
     const q = query.trim();
+    if (mode === "do") return actions.filter((a) => !q || a.label.includes(q)).map((item): Row => ({ type: "action", item }));
     if (q) {
       // A place on the floor, by its code or its name, or a shelf as a receipt writes it.
       const key = placeKey(q);
@@ -167,7 +170,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
       ];
     }
     return [...actions.map((item): Row => ({ type: "action", item })), ...named.map(({ label, href }): Row => ({ type: "page", label, href }))];
-  }, [query, hits, actions, pages, pageWords, wide, objects, state.products]);
+  }, [query, hits, actions, pages, pageWords, wide, objects, state.products, mode]);
 
   const at = Math.min(index, Math.max(rows.length - 1, 0));
   const current = rows[at];
@@ -259,6 +262,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
   if (!open) return null;
 
   const lead = (i: number) => {
+    if (mode === "do") return null;
     const group = GROUP[rows[i].type];
     const before = i > 0 ? GROUP[rows[i - 1].type] : null;
     return group && group !== before ? <p className="mh-command-group" role="presentation">{group}</p> : null;
@@ -271,7 +275,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
         className="mh-command"
         role="dialog"
         aria-modal="true"
-        aria-label="חיפוש"
+        aria-label={mode === "do" ? "פעולה חדשה" : "חיפוש"}
         onKeyDown={onKey}
         onMouseDown={(e) => {
           // The field keeps the focus whatever is pressed, so the keys never get lost on the plate.
@@ -279,7 +283,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
         }}
       >
         <div className="mh-command-field">
-          <Icon name="search" size={20} />
+          <Icon name={mode === "do" ? "plus" : "search"} size={20} />
           <input
             ref={input}
             value={query}
@@ -287,8 +291,8 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
               onQuery(e.target.value);
               setIndex(0);
             }}
-            placeholder='מוצר, מק"ט, הזמנה או ספק'
-            aria-label="חיפוש"
+            placeholder={mode === "do" ? "איזו פעולה?" : 'מוצר, מק"ט, הזמנה או ספק'}
+            aria-label={mode === "do" ? "פעולה חדשה" : "חיפוש"}
             role="combobox"
             aria-expanded="true"
             aria-controls="mh-command-list"
@@ -301,7 +305,7 @@ export function Command({ open, onOpen, onClose, search, actions, onAction, page
         </div>
         {/* A listbox holds options and nothing else, so with none it steps aside and the empty word speaks for itself. */}
         <div ref={list} id="mh-command-list" className="mh-command-list" role={rows.length > 0 ? "listbox" : undefined} aria-label={rows.length > 0 ? "תוצאות" : undefined}>
-          {rows.length === 0 ? <p className="mh-command-empty" role="status">לא נמצאו תוצאות</p> : null}
+          {rows.length === 0 ? <p className="mh-command-empty" role="status">{mode === "do" ? "אין פעולה בשם הזה" : "לא נמצאו תוצאות"}</p> : null}
           {rows.map((row, i) => {
             const selected = i === at;
             const key = row.type === "hit" || row.type === "near" ? `${row.type}:${row.hit.kind}:${row.hit.id}` : row.type === "action" ? row.item.key : `${row.type}:${row.href}`;

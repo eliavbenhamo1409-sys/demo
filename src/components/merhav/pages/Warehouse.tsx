@@ -16,7 +16,7 @@ import { Labels, type LabelView } from "@/components/map3d/Labels";
 import { EditBar, LayoutPanel, useLayoutEditor } from "@/components/map3d/LayoutEditor";
 import { MapSearch } from "@/components/map3d/MapSearch";
 import { ObjectCard } from "@/components/map3d/ObjectCard";
-import { StatusRail } from "@/components/map3d/StatusRail";
+import { StatusRail, Tray } from "@/components/map3d/StatusRail";
 import { TimeRuler } from "@/components/map3d/TimeRuler";
 import { useCoarsePointer, useFullscreen, useNarrow } from "@/components/map3d/use-device";
 import { useMovementHistory } from "@/components/map3d/use-history";
@@ -41,6 +41,7 @@ import { BackHome } from "../twin/BackHome";
 import { useTwin } from "../twin/Twin";
 import { aimOf, litRows, pointOf, productAim, ROW, type Aim, type LensData } from "../warehouse/lens";
 import { Reach } from "../warehouse/Reach";
+import { Places } from "@/components/merhav3/warehouse/Places";
 
 /** The figures over the list. Pointing at one asks the model where. */
 type Lens = "needing" | "orders" | "value";
@@ -49,6 +50,9 @@ type Lens = "needing" | "orders" | "value";
 type Mode = "all" | "short" | "faults" | "moves";
 
 const MODE_WORD: Record<Mode, string> = { all: "הכל", short: "חוסרים", faults: "תקלות", moves: "פעילות" };
+
+/** מרחב 3 says the modes in the words its other pages use for the same things. */
+const MODE_WORD_3: Record<Mode, string> = { all: "הכל", short: "להשלמה", faults: "תקלות", moves: "תנועות השבוע" };
 
 /** What a week is, for the mode that shows where goods moved. */
 const MOVES_WINDOW = 7 * 86_400_000;
@@ -171,6 +175,8 @@ function WarehouseInner(): ReactElement {
   const narrow = useNarrow();
   const coarse = useCoarsePointer();
   const variant = useMerhavVariant();
+  // מרחב 3 keeps this page to where things stand: a list of places, and no figure another page already owns.
+  const m3 = variant === "merhav3";
   const [mode, setMode] = useState<Mode>("all");
 
   const editing = editor.draft !== null;
@@ -664,6 +670,14 @@ function WarehouseInner(): ReactElement {
   const rail = () => {
     if (editing) return <LayoutPanel editor={editor} model={model} />;
     if (selectedObject) return <ObjectCard map={map} object={selectedObject} hit={selected} past={past?.stock ?? null} onShelf={setSelected} onBack={() => setSelected(null)} />;
+    if (m3 && !past) {
+      return (
+        <>
+          <Places map={map} mode={mode} />
+          {map.model.tray.length > 0 && mode === "all" ? <Tray map={map} /> : null}
+        </>
+      );
+    }
     return <StatusRail map={map} past={past?.stock ?? null} at={at} words={variant === "merhav3" || variant === "merhav5" || variant === "merhav6"} />;
   };
 
@@ -723,7 +737,7 @@ function WarehouseInner(): ReactElement {
         </div>
         <p className="sa-page-sub">{sub}</p>
 
-        {at === null && !editing ? (
+        {at === null && !editing && !m3 ? (
           <div className="mh-wh-figures">
             <button type="button" className="mh-wh-figure" onClick={toNeeding} onPointerEnter={() => pointFigure("needing")} onPointerLeave={() => pointFigure(null)} onFocus={() => pointFigure("needing")} onBlur={() => pointFigure(null)}>
               <span className="mh-label">{needing.count === 0 ? "הכול תקין" : "דורשים טיפול"}</span>
@@ -748,8 +762,9 @@ function WarehouseInner(): ReactElement {
           <div className="m3-modes" role="group" aria-label="תצוגה">
             {(Object.keys(MODE_WORD) as Mode[]).map((key) => (
               <button key={key} type="button" className="m3-mode" aria-pressed={mode === key} onClick={() => setMode(key)}>
-                <span>{MODE_WORD[key]}</span>
-                {key !== "all" ? <span className={cx("m3-mode-n ltr", modeIds[key].length === 0 && "mh-tone-quiet")}>{fmtQty(modeIds[key].length)}</span> : null}
+                <span>{(m3 ? MODE_WORD_3 : MODE_WORD)[key]}</span>
+                {/* מרחב 3 counts products elsewhere and places here, so its modes carry no number; the list under them counts the places. */}
+                {key !== "all" && !m3 ? <span className={cx("m3-mode-n ltr", modeIds[key].length === 0 && "mh-tone-quiet")}>{fmtQty(modeIds[key].length)}</span> : null}
               </button>
             ))}
           </div>

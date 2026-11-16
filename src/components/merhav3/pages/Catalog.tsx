@@ -11,6 +11,7 @@ import { useCallback, useDeferredValue, useMemo, useState, type ReactElement } f
 import { productOptions } from "@/components/app/forms/options";
 import { useUi } from "@/components/app/ui-state";
 import { Button, Count, EmptyState, Icon, Modal, SearchBar, Showing } from "@/components/ui";
+import { fmtQty, fmtRelative } from "@/lib/format";
 import { isTempId, normalizeName, useData, type Product, type SupplierItem } from "@/lib/store";
 import { OpenPorts } from "@/components/merhav/catalog/OpenPorts";
 import { Band } from "../catalog/Band";
@@ -26,7 +27,7 @@ const SEAT = 460;
 const byWork = (a: SupplierItem, b: SupplierItem) => b.times_seen - a.times_seen || b.created_at.localeCompare(a.created_at);
 
 export function Catalog(): ReactElement {
-  const { state, product, supplier, mapSupplierItem, approveSupplierItem, unapproveSupplierItem, deleteSupplierItem } = useData();
+  const { state, product, supplier, worker, mapSupplierItem, approveSupplierItem, unapproveSupplierItem, deleteSupplierItem } = useData();
   const { openAction, openProduct, notify } = useUi();
 
   const [query, setQuery] = useState("");
@@ -192,6 +193,35 @@ export function Catalog(): ReactElement {
     ? waiting.filter((i) => normalizeName(i.external_name).includes(q) || normalizeName(i.external_sku).includes(q) || normalizeName(supplierName(i.supplier_id)).includes(q))
     : waiting;
 
+  /* ── lines of a goods-out receipt a worker could not name: they wait here too, so every approval stands on one list ── */
+  const requests = useMemo(
+    () => state.itemRequests.filter((r) => r.status === "pending" && (!q || normalizeName(r.external_name).includes(q) || normalizeName(r.customer ?? "").includes(q))).sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [state.itemRequests, q],
+  );
+  const requestRows =
+    requests.length > 0 ? (
+      <ul className="m3-requests" aria-label="שורות מקבלות הוצאה">
+        {requests.map((r) => (
+          <li key={r.id} className="m3-request">
+            <span className="mh-row-main">
+              <span className="mh-cat-open-text"><bdi>{r.external_name}</bdi></span>
+              <span className="mh-row-sub">
+                {r.kind === "new_product" ? "מוצר חדש מקבלת הוצאה" : "שורה מקבלת הוצאה"}
+                {` · ${fmtQty(r.qty)} יח׳`}
+                {r.customer ? <> · ללקוח <bdi>{r.customer}</bdi></> : null}
+                {worker(r.worker_id) ? ` · ${worker(r.worker_id)?.name}` : null}
+                {` · ${fmtRelative(r.created_at)}`}
+              </span>
+            </span>
+            {/* Under the name, where a name's product and its אישור stand: what it is, then what to do. */}
+            <span className="m3-request-key">
+              <Button variant="secondary" icon="check" onClick={() => openAction("review-item-request", { requestId: r.id })}>שיוך ואישור</Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    ) : null;
+
   const deleteSupplierLabel = pendingDelete ? supplierName(pendingDelete.supplier_id) : "";
   const light = useLight();
 
@@ -228,8 +258,10 @@ export function Catalog(): ReactElement {
         </div>
       </header>
 
-      {inboxShown.length > 0 ? (
+      {inboxShown.length > 0 || requests.length > 0 ? (
         <OpenPorts
+          lead={requestRows}
+          leadCount={requests.length}
           items={inboxShown}
           productOptions={prodOpts}
           supplierName={supplierName}

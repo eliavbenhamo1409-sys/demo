@@ -24,6 +24,7 @@ import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { useData, type Movement as MovementRow, type MovementType, type Product } from "@/lib/store";
 import { Figure } from "../Figure";
 import { useTwin } from "../twin/Twin";
+import { useMerhavVariant } from "../use-merhav";
 
 type Period = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
@@ -797,6 +798,8 @@ export function Movements(): ReactElement {
 function MovementsInner(): ReactElement {
   const { state, product, supplier, worker, reload } = useData();
   const ui = useUi();
+  // In מרחב 3 the page of what came in and went out is where goods are received and issued.
+  const m3 = useMerhavVariant() === "merhav3";
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -1120,8 +1123,14 @@ function MovementsInner(): ReactElement {
 
   return (
     <div className="mh-mv">
-      <header className="mh-mv-head">
+      <header className={cx("mh-mv-head", m3 && "m3-mv-head")}>
         <h1 className="sa-page-title">תנועות</h1>
+        {m3 ? (
+          <div className="m3-mv-actions">
+            <Button variant="secondary" icon="arrow-up-right" onClick={() => ui.openAction("issue")}>הוצאת סחורה</Button>
+            <Button variant="primary" icon="arrow-down-left" onClick={() => ui.openAction("receive")}>קליטת סחורה</Button>
+          </div>
+        ) : null}
         {isLoading ? null : <Figure className="mh-mv-count" text={fmtQty(visible.length)} label={`${fmtQty(visible.length)} תנועות`} />}
         <dl className="mh-mv-sums">
           {isLoading

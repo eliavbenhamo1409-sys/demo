@@ -1,0 +1,78 @@
+/* מרחב 3, one purpose a page: what each page keeps once it no longer repeats another, in the language of מרחב's own pages.
+   Every rule hooks on html[data-merhav3], so מרחב and its other variants never see one. */
+
+html[data-merhav3] {
+  /* ── מחסן: a row for each place, its code, what stands there, and the one word that needs a hand ── */
+  /* Every row is its own grid, so the word's column is a fixed width: the words stand on one edge down the list. */
+  .m3d-ledger.m3-places { --ledger-columns: 52px minmax(0, 1fr) 100px; }
+  .m3-place .m3d-line-place { font-size: var(--t-15); font-weight: 500; }
+  .m3-place .m3d-line-percent.is-words { font-size: var(--t-14); font-weight: 500; }
+  .m3-place .m3d-line-unit.sa-truncate { overflow: hidden; text-overflow: ellipsis; }
+  .m3-places + .m3d-section { margin-top: 8px; }
+
+  /* ── מוצרים: להשלמה stands as an order list, a group for each supplier, its name, how many, and the number to call ── */
+  .m3-led-group { display: flex; align-items: baseline; gap: 10px; padding: 22px 0 8px; border-bottom: 1px solid var(--border-strong); }
+  .m3-led-group:first-child { padding-top: 14px; }
+  .m3-led-group-name { font-size: var(--t-15); line-height: var(--l-21); font-weight: 600; color: var(--text-primary); }
+  /* The count takes the room, so the number to call stands at the row's far end; the number itself runs left to right. */
+  .m3-led-group-n { margin-inline-end: auto; font-size: var(--t-13); color: var(--text-tertiary); }
+  .m3-led-group-tel { font-size: var(--t-14); color: var(--accent-text); text-decoration: none; }
+  .m3-led-group-tel:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ── קטלוג: a receipt line a worker could not name waits at the head of ממתינים לאישור, one key away from its decision ── */
+  .m3-requests { list-style: none; margin: 0; padding: 0; }
+  .m3-request { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 6px; padding-block: 12px; border-bottom: 1px solid var(--border-subtle); }
+  .m3-request > .mh-row-main { min-width: 0; }
+  .m3-request .mh-row-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m3-request-key { position: relative; justify-self: start; padding-inline-start: 24px; }
+  .m3-request-key::before { content: "↓"; position: absolute; inset-inline-start: 2px; top: 50%; margin-top: -11px; font-size: var(--t-16); line-height: 22px; color: var(--text-quiet); }
+
+  /* ── תנועות: the title and its count, the two ways goods move at the row's end, and the sums under them ── */
+  .m3-mv-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title count actions" "sums sums sums"; align-items: baseline; gap: 6px 14px; }
+  .m3-mv-head .sa-page-title { grid-area: title; }
+  .m3-mv-head .mh-mv-count { grid-area: count; justify-self: start; }
+  .m3-mv-head .mh-mv-sums { grid-area: sums; margin-inline: 0; }
+  .m3-mv-actions { grid-area: actions; align-self: center; display: flex; gap: 10px; }
+}
+
+/* ── One scale for every list: a head of 36, a name of 15/500 over a 13 line, a figure of 20/400 with its word under it,
+   a group head of 15/600. The page's own figure stays the large light one; nothing in a row competes with it. ── */
+html[data-merhav3] {
+  .mh-ord-heads { height: 36px; }
+  .mh-ord-row > .mh-row-main > .mh-row-title { font-size: var(--t-15); line-height: var(--l-21); }
+  .mh-ord-worth { font-size: 20px; line-height: 26px; font-weight: 400; }
+  .mh-ord-daytitle h2 { font-size: var(--t-15); line-height: var(--l-21); }
+  .mh-ord-daysum .ltr { font-size: var(--t-14); }
+
+  .mh-mv-dayhead h2 { font-size: var(--t-15); line-height: var(--l-21); font-weight: 600; letter-spacing: 0; }
+  .mh-mv-n { font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -0.01em; }
+
+  .mh-team-fig { font-weight: 400; }
+  /* A roster of a dozen names reads as one table, not as names at one edge and figures at the other. */
+  .mh-team { max-width: 920px; }
+
+  .m3-place .m3d-line-name { font-size: var(--t-15); line-height: var(--l-21); }
+
+  /* תקלות as a ledger: the photo a thumbnail, the days and the place in the row's figures, the key at the end. */
+  .mh-fl-body { --cols: 64px minmax(0, 1fr) 64px 132px; }
+  .mh-fl-body.is-record { --cols: 64px minmax(0, 1fr) 88px 132px; }
+  .mh-fl-row { padding-block: 12px; }
+  .mh-fl-photo { width: 64px; height: 64px; }
+  .mh-fl-what { font-size: var(--t-15); line-height: var(--l-21); }
+  .mh-fl-n { font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -0.01em; }
+  .mh-fl-code { font-size: var(--t-15); line-height: var(--l-21); font-weight: 500; letter-spacing: 0; }
+}
+@container (min-width: 880px) {
+  html[data-merhav3] .mh-fl-body { --cols: 64px minmax(0, 1fr) 84px 150px 150px; }
+  html[data-merhav3] .mh-fl-body.is-record { --cols: 64px minmax(0, 1fr) 112px 150px 150px; }
+  html[data-merhav3] .mh-fl-photo { width: 64px; height: 64px; }
+  html[data-merhav3] .mh-fl-what { font-size: var(--t-15); line-height: var(--l-21); }
+}
+@container (max-width: 600px) {
+  html[data-merhav3] .mh-fl-body, html[data-merhav3] .mh-fl-body.is-record { --cols: 56px minmax(0, 1fr) 118px; }
+  html[data-merhav3] .mh-fl-photo { width: 56px; height: 56px; }
+}
+
+@media (max-width: 899px) {
+  html[data-merhav3] .m3-mv-head { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title count" "actions actions" "sums sums"; }
+}

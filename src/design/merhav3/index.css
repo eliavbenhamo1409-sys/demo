@@ -3,6 +3,7 @@
    sets only while מרחב 3 is chosen on the admin, so מרחב itself never sees a rule of it. */
 @import "./catalog.css";
 @import "./overview.css";
+@import "./pages.css";
 
 html[data-merhav3] {
   /* ── The rail is a ruler: an area is a word at a long tick, its pages are rows at short ticks under it ── */

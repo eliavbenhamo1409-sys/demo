@@ -49,9 +49,13 @@ html[data-merhav3] {
   /* The same carriage as the rail, in the gutter of the row you are on. */
   .m3-prio::before { content: ""; position: absolute; inset-inline-end: calc(100% + 14px); top: 50%; width: 3px; height: 22px; margin-top: -11px; background: var(--accent); transform: scaleY(0); transition: transform var(--dur-press) var(--spring-press); }
   .m3-prio:hover::before, .m3-prio:focus-within::before { transform: scaleY(1); }
-  .m3-prios-more { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 10px 0 0; font-size: var(--t-13); line-height: var(--l-18); }
-  .m3-prios-more a { color: var(--accent-text); text-decoration: none; }
-  .m3-prios-more a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  /* Everything that waits, by kind: ways to the pages that hold it, under the sentence. Inline, so a line that runs out of
+     room breaks at a space between two counts and the lines balance, never one count alone at the end. */
+  .m3-waiting { display: block; margin: 10px 0 0; font-size: var(--t-14); line-height: var(--l-22); word-spacing: 14px; text-wrap: balance; }
+  .m3-waiting a { color: var(--accent-text); text-decoration: none; white-space: nowrap; word-spacing: normal; }
+  .m3-waiting a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .m3-waiting a:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+  .m3-waiting + .m3-pulse-sub { margin-top: 4px; }
 
   /* The money: two figures, quiet, each a way to its page. */
   .m3-ov-strip { display: flex; gap: clamp(28px, 3vw, 56px); margin: clamp(18px, 3vh, 32px) 0 0; }

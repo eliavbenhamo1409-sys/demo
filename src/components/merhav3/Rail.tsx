@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
 import { Icon } from "@/components/ui";
 import { fmtQty } from "@/lib/format";
+import { useData } from "@/lib/store";
 import type { RailItem } from "@/components/merhav/Rail";
 import { AREAS, areaOf } from "./areas";
 
@@ -14,6 +15,19 @@ interface RailProps {
   offline: boolean;
   onSearch: () => void;
   action: ReactNode;
+}
+
+/**
+ * The counts on the words, by page. קטלוג's is everything its ממתינים לאישור list holds, names and a worker's receipt lines
+ * alike, so the number on the rail is the number on the page and on סקירה.
+ */
+function useCounts(items: RailItem[]): Record<string, number | undefined> {
+  const { state, product } = useData();
+  const waiting = useMemo(
+    () => state.supplierItems.filter((i) => i.status === "pending" || !i.product_id || !product(i.product_id)).length + state.itemRequests.filter((r) => r.status === "pending").length,
+    [state.supplierItems, state.itemRequests, product],
+  );
+  return { ...Object.fromEntries(items.map((i) => [i.key, i.count])), suppliers: waiting > 0 ? waiting : undefined };
 }
 
 /** A row that is really on screen: the rail and the bar each hide what the other holds. */
@@ -51,7 +65,7 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
   const more = moreOn === active;
   const closeMore = useCallback(() => setMoreOn(null), []);
 
-  const counts: Record<string, number | undefined> = Object.fromEntries(items.map((i) => [i.key, i.count]));
+  const counts = useCounts(items);
   const area = areaOf(active);
 
   /**
@@ -295,8 +309,8 @@ export function Rail({ items, active, foot, offline, onSearch, action }: RailPro
 /** On a phone the rail has no room for an area's pages, so they stand over the page as one ruled row. Hidden on wider windows by CSS. */
 export function AreaBar({ items, active }: { items: RailItem[]; active: string }): ReactElement | null {
   const area = areaOf(active);
+  const counts = useCounts(items);
   if (!area || area.views.length < 2) return null;
-  const counts: Record<string, number | undefined> = Object.fromEntries(items.map((i) => [i.key, i.count]));
   return (
     <nav className="m3-areabar" aria-label={area.label}>
       <div className="m3-seg">

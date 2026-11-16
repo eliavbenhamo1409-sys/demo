@@ -33,11 +33,13 @@ function byNeed(a: Line, b: Line): number {
   return RANK[a.state] - RANK[b.state] || (a.share ?? Infinity) - (b.share ?? Infinity) || a.product.name.localeCompare(b.product.name, "he");
 }
 
-/** A share of the minimum said in words rather than a bare percent: how many minimums stand, or what part of one. */
-function shareWords(share: number): string {
+/** A share of the minimum said in words rather than a bare percent: how many minimums stand, or what part of one. Nothing free is
+ * אזל only when the shelf is bare: stock that orders took all of is still on it. */
+function shareWords(share: number, p: Product): string {
   if (share >= 2) return `פי ${fmtQty(share >= 10 ? Math.round(share) : Math.round(share * 10) / 10)} מהמינימום`;
   if (share > 0) return `${fmtQty(Math.round(share * 100))}% מהמינימום`;
-  return "אזל";
+  if (p.qty <= 0) return "אזל";
+  return p.reserved > p.qty ? `חסר ${fmtQty(p.reserved - p.qty)}` : "הכל משוריין";
 }
 
 /** The rail's first tab: every product with where it stands and how it stands against its minimum. `words` says the share as a phrase instead of a percent. */
@@ -141,7 +143,7 @@ function LedgerLine({ map, line, words }: { map: MapView; line: Line; words?: bo
           state === "ok" ? <span className="m3d-line-unit">ללא מינימום</span> : <span className={cx("m3d-line-percent", STATE_NUM[state])}>{STATE_WORD[state]}</span>
         ) : (
           <>
-            <span className={cx("m3d-line-percent", STATE_NUM[state], words && "is-words")}>{words ? shareWords(share) : percentText(share)}</span>
+            <span className={cx("m3d-line-percent", STATE_NUM[state], words && "is-words")}>{words ? shareWords(share, p) : percentText(share)}</span>
             <StockMeter value={Math.max(share, 0)} min={1} tone={METER_TONE[state]} />
           </>
         )}
@@ -215,7 +217,7 @@ export function MovesRail({ map, at }: { map: MapView; at: number | null }) {
 }
 
 /** What stands nowhere on the map: a product with no place, or the part of one no shelf holds. */
-function Tray({ map }: { map: MapView }) {
+export function Tray({ map }: { map: MapView }) {
   const { openAction } = useUi();
   const [picking, setPicking] = useState<string | null>(null);
   const [change, setChange] = useState<PlaceChange | null>(null);

@@ -1,21 +1,20 @@
 "use client";
 
 /**
- * סקירה as mission control. The model keeps the stage, as in מרחב; where the big figure stood there is now one sentence
- * that says how the factory is, worked out from the rows by plain rules, and under it the few things that need a
+ * סקירה as mission control, and only that: what waits for a person. The model keeps the stage, as in מרחב; where the big
+ * figure stood there is one sentence that says how the factory is, worked out from the rows by plain rules, then one
+ * line that counts everything waiting, each count a way to the page that owns it, then the few things that need a
  * decision, each with what it is, what it costs, where it is and the one press that starts dealing with it. The money
- * stands under them, quiet. What changed since this browser last looked is said in one line. The sums are the shared
- * ones (src/lib/snapshot.ts), so this page and every other style can never disagree.
+ * stands under them, quiet. Lists of products and orders are their pages' own, so none stands here. The sums are the
+ * shared ones (src/lib/snapshot.ts), and the counts are the ones those pages show, so the two can never disagree.
  */
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useUi } from "@/components/app/ui-state";
-import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, Notice } from "@/components/ui";
-import { useDismissedAlerts } from "@/lib/dismissed-alerts";
-import { byPromise, daysUntil, fmtAge, fmtCompact, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtToday } from "@/lib/format";
+import { byPromise, daysUntil, fmtAge, fmtCompact, fmtName, fmtPrice, fmtQty, fmtRelative, fmtToday } from "@/lib/format";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { movedWorth, PACE_DAYS, pctChange, runway, shelfWorth, type Runway } from "@/lib/snapshot";
 import { available, orderTotal, useData, type Fault, type Movement, type Order, type Product } from "@/lib/store";
@@ -105,35 +104,18 @@ function PriorityRow({ item, onSpot }: { item: Priority; onSpot: (ids: readonly 
   );
 }
 
-/* ───────── one list on the sheet ───────── */
-
-function Column({ title, note, href, link, children }: { title: string; note?: string; href?: string; link?: string; children: ReactNode }): ReactElement {
-  return (
-    <section className="mh-col">
-      <header className="mh-col-head">
-        <h2>{title}</h2>
-        {note ? <span className="mh-col-note">{note}</span> : null}
-        {href ? <Link href={href} className="mh-col-link">{link}</Link> : null}
-      </header>
-      {children}
-    </section>
-  );
-}
-
-function runwayWord(r: Runway): { word: string; tone: string } {
-  if (r.state === "short") return { word: `חסר ${fmtQty(-r.free)}`, tone: "mh-tone-short" };
-  if (r.state === "out") return { word: "אזל", tone: "mh-tone-out" };
-  if (r.free <= 0) return { word: "הכל משוריין", tone: "mh-tone-warn" };
-  if (r.days === null) return { word: "מתחת למינימום", tone: "mh-tone-warn" };
-  return { word: fmtDays(r.days), tone: r.state === "low" ? "mh-tone-warn" : "" };
+/** How long a product under its minimum has left at this month's pace, when there is a pace to go by. */
+function runwayWord(r: Runway): string | null {
+  if (r.state === "short" || r.state === "out") return null;
+  if (r.free <= 0) return "הכל משוריין";
+  return r.days === null ? null : fmtDays(r.days);
 }
 
 /* ───────── the page ───────── */
 
 export function Overview(): ReactElement {
   const { state, stats, product, linesOf } = useData();
-  const { openProduct, openOrder, openFault, openAction } = useUi();
-  const { dismissed, dismiss } = useDismissedAlerts();
+  const { openProduct, openOrder, openFault } = useUi();
   const { spotProduct, spotObjects, itemsOf, placeOf } = useTwin();
   const router = useRouter();
   const lastSeen = useLastSeen();
@@ -149,10 +131,8 @@ export function Overview(): ReactElement {
     return { outWeek: moved("out", week), outBefore: moved("out", weekBefore, week), inWeek: moved("in", week), inBefore: moved("in", weekBefore, week) };
   }, [month, product]);
 
-  const soon = useMemo(() => {
-    const removed = (r: Runway) => (r.state === "out" || r.state === "low") && dismissed[`${r.state}:${r.product.id}`] === r.free;
-    return runway(state.products, month).filter((r) => (r.days !== null || r.state !== "ok") && !removed(r));
-  }, [state.products, month, dismissed]);
+  // Every product under its minimum, as מוצרים counts it under להשלמה: a count here that its page can't show would be a second truth.
+  const soon = useMemo(() => runway(state.products, month).filter((r) => r.state !== "ok"), [state.products, month]);
 
   /* ───────── the facts the sentence and the rows are made of ───────── */
   const openOrders = useMemo(() => state.orders.filter((o) => o.status === "open").reverse().sort(byPromise), [state.orders]);
@@ -164,8 +144,10 @@ export function Overview(): ReactElement {
 
   const atRisk = useMemo(() => openOrders.map((o) => ({ order: o, short: shortOf(o), late: lateBy(o) })).filter((r) => r.short.length > 0 || r.late > 0), [openOrders, shortOf]);
   const openFaults = useMemo(() => state.faults.filter((f) => f.status === "open").slice().reverse(), [state.faults]);
-  const pendingNames = useMemo(() => state.supplierItems.filter((i) => i.status === "pending"), [state.supplierItems]);
+  // The names קטלוג keeps under ממתינים לאישור: waiting for a decision, or left with no product.
+  const pendingNames = useMemo(() => state.supplierItems.filter((i) => i.status === "pending" || !i.product_id || !product(i.product_id)), [state.supplierItems, product]);
   const pendingRequests = useMemo(() => state.itemRequests.filter((r) => r.status === "pending"), [state.itemRequests]);
+  const pending = pendingNames.length + pendingRequests.length;
   const shortProducts = useMemo(() => soon.filter((r) => r.state === "short"), [soon]);
   const emptyProducts = useMemo(() => soon.filter((r) => r.state === "out" || r.state === "low"), [soon]);
 
@@ -177,16 +159,17 @@ export function Overview(): ReactElement {
     const rows: Priority[] = [];
     for (const { order: o, short, late } of atRisk) {
       const firstShort = product(short[0]?.product_id);
+      // The kind is said once, in the word הזמנות groups it under; the line under says what the word doesn't.
       const impact = [
-        short.length > 0 ? `חסר במלאי ל-${count(short.length, "שורה אחת", "שורות")}` : null,
-        late > 0 ? `באיחור ${late === 1 ? "של יום" : `של ${fmtQty(late)} ימים`}` : null,
+        short.length > 0 ? `${count(short.length, "שורה אחת", "שורות")} בלי מלאי` : null,
+        late > 0 ? (short.length > 0 ? `באיחור ${late === 1 ? "של יום" : `של ${fmtQty(late)} ימים`}` : `${late === 1 ? "יום אחד" : `${fmtQty(late)} ימים`} אחרי מועד המסירה`) : null,
         orderTotal(linesOf(o.id)) !== null ? fmtPrice(orderTotal(linesOf(o.id))) : null,
       ].filter(Boolean).join(" · ");
       rows.push({
         key: `order:${o.id}`,
         rank: short.length > 0 ? 0 : 2,
         tone: short.length > 0 ? "short" : "warn",
-        word: short.length > 0 ? "הזמנה בסיכון" : "הזמנה באיחור",
+        word: short.length > 0 ? "חסר במלאי" : "באיחור",
         title: `${o.customer} · הזמנה ${o.number}`,
         impact,
         where: placeWord(firstShort),
@@ -211,21 +194,20 @@ export function Overview(): ReactElement {
       });
     }
     for (const r of emptyProducts) {
-      const { word } = runwayWord(r);
+      const left = runwayWord(r);
       rows.push({
         key: `stock:${r.product.id}`,
         rank: r.state === "out" ? 3 : 4,
         tone: r.state === "out" ? "out" : "warn",
         word: r.state === "out" ? "אזל" : "מתחת למינימום",
         title: fmtName(r.product.name),
-        impact: r.state === "out" ? (r.product.reserved > 0 ? `${count(r.product.reserved, "יחידה אחת משוריינת", "יחידות משוריינות")} להזמנות` : "אין על המדף") : `זמין ${fmtQty(r.free)} · מינימום ${fmtQty(r.product.min_qty)}${r.days !== null ? ` · ${word}` : ""}`,
+        impact: r.state === "out" ? (r.product.reserved > 0 ? `${count(r.product.reserved, "יחידה אחת משוריינת", "יחידות משוריינות")} להזמנות` : "אין על המדף") : `זמין ${fmtQty(r.free)} · מינימום ${fmtQty(r.product.min_qty)}${left ? ` · ${left}` : ""}`,
         where: placeWord(r.product),
         action: "להזמין מהספק",
         productIds: [r.product.id],
         run: () => openProduct(r.product.id),
       });
     }
-    const pending = pendingNames.length + pendingRequests.length;
     if (pending > 0) {
       rows.push({
         key: "pending",
@@ -237,24 +219,34 @@ export function Overview(): ReactElement {
         where: null,
         action: "לאשר",
         productIds: [],
-        run: () => (pendingRequests[0] ? openAction("review-item-request", { requestId: pendingRequests[0].id }) : router.push("/suppliers")),
+        // Everything that waits for an approval stands on קטלוג, so the key goes to that one list.
+        run: () => router.push("/suppliers"),
       });
     }
     return rows.sort((a, b) => a.rank - b.rank).slice(0, PRIORITIES);
-  }, [atRisk, openFaults, emptyProducts, pendingNames, pendingRequests, product, linesOf, placeWord, faultPlace, openOrder, openFault, openProduct, openAction, router]);
+  }, [atRisk, openFaults, emptyProducts, pending, pendingNames.length, pendingRequests.length, product, linesOf, placeWord, faultPlace, openOrder, openFault, openProduct, router]);
 
-  const decisions = atRisk.length + openFaults.length + emptyProducts.length + (pendingNames.length + pendingRequests.length > 0 ? 1 : 0);
+  const shortOrders = atRisk.filter((r) => r.short.length > 0).length;
+  const lateOrders = atRisk.length - shortOrders;
 
   /* ───────── the sentence: the gravest fact first, in plain rules ───────── */
   const pulse = useMemo(() => {
-    const shortOrders = atRisk.filter((r) => r.short.length > 0).length;
-    const lateOrders = atRisk.filter((r) => r.short.length === 0).length;
     if (shortOrders > 0) return { text: `${count(shortProducts.length, "חוסר אחד עלול", "חוסרים עלולים")} לעכב ${count(shortOrders, "הזמנה אחת", "הזמנות")}.`, tone: "short" as const };
     if (lateOrders > 0) return { text: `${count(lateOrders, "הזמנה אחת", "הזמנות")} באיחור מול הלקוח.`, tone: "warn" as const };
     if (openFaults.length > 0) return { text: `${count(openFaults.length, "תקלה אחת פתוחה", "תקלות פתוחות")} במחסן.`, tone: "out" as const };
     if (emptyProducts.length > 0) return { text: `הפעילות תקינה. ${count(emptyProducts.length, "מוצר אחד", "מוצרים")} להשלמה מהספק.`, tone: "warn" as const };
-    return { text: decisions > 0 ? `הפעילות תקינה. ${count(decisions, "נושא אחד דורש", "נושאים דורשים")} החלטה.` : "הפעילות תקינה. אין מה לטפל.", tone: "ok" as const };
-  }, [atRisk, shortProducts.length, openFaults.length, emptyProducts.length, decisions]);
+    if (pending > 0) return { text: `הפעילות תקינה. ${count(pending, "שם אחד ממתין", "שמות ממתינים")} לאישור.`, tone: "ok" as const };
+    return { text: "הפעילות תקינה. אין מה לטפל.", tone: "ok" as const };
+  }, [shortOrders, lateOrders, shortProducts.length, openFaults.length, emptyProducts.length, pending]);
+
+  /* ───────── everything that waits, counted as the page that owns it counts it ───────── */
+  const waiting = [
+    shortOrders > 0 ? { key: "short", href: "/orders", text: count(shortOrders, "הזמנה אחת בחוסר", "הזמנות בחוסר") } : null,
+    lateOrders > 0 ? { key: "late", href: "/orders", text: count(lateOrders, "הזמנה אחת באיחור", "הזמנות באיחור") } : null,
+    openFaults.length > 0 ? { key: "faults", href: "/faults", text: count(openFaults.length, "תקלה פתוחה", "תקלות פתוחות") } : null,
+    emptyProducts.length > 0 ? { key: "restock", href: "/inventory?filter=restock", text: count(emptyProducts.length, "מוצר אחד להשלמה", "מוצרים להשלמה") } : null,
+    pending > 0 ? { key: "pending", href: "/suppliers", text: count(pending, "ממתין אחד לאישור", "ממתינים לאישור") } : null,
+  ].filter((item): item is { key: string; href: string; text: string } => item !== null);
 
   /* ───────── what came in since this browser last looked ───────── */
   const fresh = useMemo(() => {
@@ -278,7 +270,6 @@ export function Overview(): ReactElement {
   const covered = promises.open > 0 ? Math.floor(((promises.open - promises.uncovered) / promises.open) * 100) : 0;
 
   /* ───────── the model answers what you point at ───────── */
-  const onSpot = useCallback((id: string | null | undefined) => spotProduct(id ?? null), [spotProduct]);
   const onSpotMany = useCallback(
     (ids: readonly string[] | null) => {
       if (!ids || ids.length === 0) {
@@ -350,24 +341,27 @@ export function Overview(): ReactElement {
 
           {/* The sentence: how the factory is, in the gravest fact. */}
           <p className={cx("m3-pulse", `is-${pulse.tone}`)} role="status">{pulse.text}</p>
-          <p className="m3-pulse-sub">
-            {decisions > 0 ? count(decisions, "נושא אחד דורש החלטה", "נושאים דורשים החלטה") : "אין נושאים פתוחים"}
-            {fresh ? <> · <span className={fresh.grave ? "mh-tone-warn" : undefined}>{fresh.text}</span></> : null}
-          </p>
+          {/* Everything that waits, by kind, each a way to the one page that holds it. Never a sum of unlike things. */}
+          {waiting.length > 0 ? (
+            <nav className="m3-waiting" aria-label="מה מחכה">
+              {/* A space between two counts is where a line may break. */}
+              {waiting.map((item, i) => (
+                <Fragment key={item.key}>
+                  {i > 0 ? " " : null}
+                  <Link href={item.href}>{item.text}</Link>
+                </Fragment>
+              ))}
+            </nav>
+          ) : null}
+          {fresh ? <p className="m3-pulse-sub"><span className={fresh.grave ? "mh-tone-warn" : undefined}>{fresh.text}</span></p> : null}
+          {monthFailed ? (
+            <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>הסכומים מחושבים רק לפי מה שנטען</Notice>
+          ) : null}
 
           {priorities.length > 0 ? (
             <ol className="m3-prios" aria-label="דורש החלטה">
               {priorities.map((item) => <PriorityRow key={item.key} item={item} onSpot={onSpotMany} />)}
             </ol>
-          ) : null}
-
-          {decisions > PRIORITIES ? (
-            <p className="m3-prios-more">
-              {atRisk.length > 0 ? <Link href="/orders">{count(atRisk.length, "הזמנה אחת בסיכון", "הזמנות בסיכון")}</Link> : null}
-              {openFaults.length > 0 ? <Link href="/faults">{count(openFaults.length, "תקלה אחת", "תקלות")}</Link> : null}
-              {emptyProducts.length > 0 ? <Link href={stats.out > 0 ? "/inventory?filter=out" : "/inventory?filter=low"}>{count(emptyProducts.length, "מוצר אחד להשלמה", "מוצרים להשלמה")}</Link> : null}
-              {pendingNames.length + pendingRequests.length > 0 ? <Link href="/suppliers">{count(pendingNames.length + pendingRequests.length, "ממתין אחד", "ממתינים")}</Link> : null}
-            </p>
           ) : null}
 
           {/* The money, quiet, each figure a way to its page. */}
@@ -380,7 +374,7 @@ export function Overview(): ReactElement {
             <Link href="/orders" className="m3-ov-fig">
               <dt>הזמנות מכוסות</dt>
               <dd><Figure className={cx(promises.open === 0 ? "" : promises.uncovered > 0 ? "mh-tone-short" : "mh-tone-ok")} text={promises.open === 0 ? "—" : `${covered}%`} /></dd>
-              <dd className="m3-ov-note">{promises.open === 0 ? "אין הזמנות פתוחות" : promises.uncovered > 0 ? `חסר מלאי ל-${fmtQty(promises.uncovered)} מתוך ${fmtQty(promises.open)}` : `${fmtQty(promises.open)} פתוחות, הכל על המדף`}</dd>
+              <dd className="m3-ov-note">{promises.open === 0 ? "אין הזמנות פתוחות" : promises.uncovered > 0 ? `${fmtQty(promises.open - promises.uncovered)} מתוך ${fmtQty(promises.open)} פתוחות` : `${fmtQty(promises.open)} פתוחות, הכל על המדף`}</dd>
             </Link>
           </dl>
         </div>
@@ -408,68 +402,6 @@ export function Overview(): ReactElement {
           <DayStrip onHover={onSpotMove} onOpen={(m) => openProduct(m.product_id, "history")} />
         </div>
       </section>
-
-      <div className="mh-sheet">
-        {monthFailed ? (
-          <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>הסכומים מחושבים רק לפי מה שנטען</Notice>
-        ) : null}
-
-        <div className="mh-sheet-split">
-          <Column title="מה ייגמר ראשון" note="לפי קצב ההוצאה בחודש האחרון" href="/inventory" link="כל המלאי">
-            <ul className="mh-rows">
-              {soon.slice(0, 6).map((r) => {
-                const { word, tone } = runwayWord(r);
-                const removable = r.state === "out" || r.state === "low";
-                return (
-                  <li key={r.product.id} onPointerEnter={() => onSpot(r.product.id)} onPointerLeave={() => onSpot(null)} onFocus={() => onSpot(r.product.id)} onBlur={() => onSpot(null)}>
-                    <button type="button" className="mh-row" onClick={() => openProduct(r.product.id)}>
-                      <ProductThumb product={r.product} />
-                      <span className="mh-row-main">
-                        <span className="mh-row-title">{fmtName(r.product.name)}</span>
-                        <span className="mh-row-sub">{r.product.qty > 0 ? `זמין ${fmtQty(r.free)} ${r.product.unit}` : r.product.sku}{itemsOf(r.product.id)[0] ? ` · ${itemsOf(r.product.id)[0].place}` : ""}</span>
-                      </span>
-                      <span className={cx("mh-row-word", tone)}>{word}</span>
-                    </button>
-                    {removable ? <Button variant="ghost" size="sm" iconOnly icon="x" title="הסרה מהרשימה" aria-label={`הסרה מהרשימה: ${fmtName(r.product.name)}`} onClick={() => dismiss(`${r.state}:${r.product.id}`, r.free)} /> : null}
-                  </li>
-                );
-              })}
-              {soon.length === 0 ? <li className="mh-empty">אין מוצרים שעומדים להיגמר</li> : null}
-            </ul>
-          </Column>
-
-          <Column title="הזמנות פתוחות" note="לפי מועד המסירה" href="/orders" link="כל ההזמנות">
-            <ul className="mh-rows">
-              {openOrders.slice(0, 6).map((o) => {
-                const lines = linesOf(o.id);
-                const first = product(lines[0]?.product_id);
-                const total = orderTotal(lines);
-                const short = shortOf(o).length > 0;
-                const spots = lines.flatMap((l) => itemsOf(l.product_id).map((item) => item.objectId));
-                return (
-                  <li key={o.id} onPointerEnter={() => spotObjects(spots)} onPointerLeave={() => spotObjects(null)} onFocus={() => spotObjects(spots)} onBlur={() => spotObjects(null)}>
-                    <button type="button" className="mh-row" onClick={() => openOrder(o.id)}>
-                      <ProductThumb product={first} />
-                      <span className="mh-row-main">
-                        <span className="mh-row-title">{o.customer}</span>
-                        <span className="mh-row-sub">
-                          {first ? fmtName(first.name) : "—"}{lines.length > 1 ? ` +${lines.length - 1}` : ""}
-                          {o.promised_on ? <span className={daysUntil(o.promised_on) < 0 ? "mh-tone-warn" : undefined}> · מסירה {fmtPromised(o.promised_on)}</span> : <span> · {fmtAge(o.created_at)}</span>}
-                        </span>
-                      </span>
-                      <span className="mh-row-end">
-                        <span className="mh-row-fig ltr">{fmtPrice(total)}</span>
-                        <span className={cx("mh-row-state", short ? "mh-tone-short" : "mh-tone-ok")}>{short ? "חסר במלאי" : "מכוסה"}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-              {openOrders.length === 0 ? <li className="mh-empty">אין הזמנות פתוחות</li> : null}
-            </ul>
-          </Column>
-        </div>
-      </div>
     </div>
   );
 }
