@@ -233,17 +233,18 @@ function Horizon({ slots, today, at, hot, onSlab, onDay, onOpen, onJump }: Horiz
     onDay(null);
   };
 
-  // One stop on the way through the page: the arrows walk the days, along time, whatever the direction of the text.
+  // One stop on the way through the page: the arrows walk the days as they stand, so the left arrow goes on in time.
   const walk = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
     const days = [...e.currentTarget.querySelectorAll<HTMLElement>("button.mh-hz-day")];
     const from = days.indexOf(document.activeElement as HTMLElement);
-    days[Math.min(Math.max(from + (e.key === "ArrowRight" ? 1 : -1), 0), days.length - 1)]?.focus();
+    days[Math.min(Math.max(from + (e.key === "ArrowLeft" ? 1 : -1), 0), days.length - 1)]?.focus();
   };
 
+  // Time runs the way the page reads: what is late stands at the right, and the days go on to the left.
   return (
-    <div className={cx("mh-hz", hot && "is-hot")} dir="ltr" role="group" aria-label="מסירות לפי יום" style={{ "--units": units } as CSSProperties} onPointerLeave={leave} onKeyDown={walk}>
+    <div className={cx("mh-hz", hot && "is-hot")} dir="rtl" role="group" aria-label="מסירות לפי יום" style={{ "--units": units } as CSSProperties} onPointerLeave={leave} onKeyDown={walk}>
       {slots.map((slot, i) => {
         const x = ((starts[i] + slot.span / 2) / units) * 100;
         const word = slotWord(slot, today);
@@ -269,7 +270,6 @@ function Horizon({ slots, today, at, hot, onSlab, onDay, onOpen, onJump }: Horiz
               <button
                 type="button"
                 className="mh-hz-day"
-                dir="rtl"
                 tabIndex={i === stop ? 0 : -1}
                 // Starts with the words on the key, so a voice can press it by what it reads.
                 aria-label={[`${word} ${slotDate(slot) ?? ""}`.trim(), name !== word && name, slot.rows.length === 1 ? "הזמנה אחת" : `${fmtQty(slot.rows.length)} הזמנות`].filter(Boolean).join(", ")}
@@ -281,7 +281,7 @@ function Horizon({ slots, today, at, hot, onSlab, onDay, onOpen, onJump }: Horiz
                 {label}
               </button>
             ) : (
-              <span className="mh-hz-day" dir="rtl">{label}</span>
+              <span className="mh-hz-day">{label}</span>
             )}
             <div className="mh-hz-pile" style={{ "--i": i } as CSSProperties}>
               {slot.rows.map((row) => (
@@ -306,7 +306,7 @@ function Horizon({ slots, today, at, hot, onSlab, onDay, onOpen, onJump }: Horiz
       })}
       {here >= 0 ? <i className="mh-hz-carriage" style={{ "--at": starts[here], "--span": slots[here].span } as CSSProperties} aria-hidden="true" /> : null}
       {tip ? (
-        <span className="mh-hz-tip" dir="rtl" style={{ "--x": `${tip.x}%` } as CSSProperties}>{tip.body}</span>
+        <span className="mh-hz-tip" style={{ "--x": `${tip.x}%` } as CSSProperties}>{tip.body}</span>
       ) : null}
     </div>
   );

@@ -23,7 +23,8 @@
 .mh-ord-tab-n.mh-tone-short { color: var(--short); font-weight: 400; }
 .mh-ord .sa-toolbar-tools .sa-select { flex: 0 1 clamp(108px, 12cqi, 164px); min-width: 96px; }
 
-/* ── The horizon. It scrolls away with the list and leaves its ruled scale behind, with the carriage on it ── */
+/* ── The horizon. It scrolls away with the list and leaves its ruled scale behind, with the carriage on it.
+   It reads like the page, right to left: what is late stands at the right and the days go on leftwards, so every side below is physical ── */
 .mh-ord-stick { position: sticky; top: calc(var(--hz-pile) * -1); z-index: 3; margin-top: 14px; background: var(--bg-surface); }
 .mh-ord.is-closed .mh-ord-stick { top: 0; }
 .mh-hz { position: relative; display: grid; grid-template-columns: repeat(var(--units), minmax(0, 1fr)); }
@@ -61,11 +62,11 @@
 .mh-hz-slab.is-short { background: var(--short); }
 .mh-hz.is-hot .mh-hz-slab:not(.is-hot) { opacity: 0.22; }
 
-/* A cut where a week starts, a taller one at today. */
+/* A cut where a week starts, a taller one at today: on the right edge of its day, where the day begins. */
 .mh-hz-slot.is-week::before, .mh-hz-slot.is-today::before {
   content: "";
   position: absolute;
-  left: 0;
+  right: 0;
   width: 1px;
   background: var(--border-control);
 }
@@ -99,23 +100,23 @@ span.mh-hz-day .mh-hz-word, span.mh-hz-day .mh-hz-date { color: var(--text-quiet
 /* Narrow days give up a word before they collide, then keep only what anchors the scale. */
 @container mh-slot (max-width: 31px) {
   .mh-hz-slot.is-next .mh-hz-word { visibility: hidden; }
-  .mh-hz-slot.is-today .mh-hz-day { align-items: flex-end; padding-inline-end: 3px; }
+  .mh-hz-slot.is-today .mh-hz-day { align-items: flex-start; padding-inline-start: 3px; }
 }
 @container mh-slot (max-width: 22px) {
   .mh-hz-slot:not(.is-today, .is-week) .mh-hz-word, .mh-hz-slot:not(.is-today, .is-week) .mh-hz-date { visibility: hidden; }
 }
 @container mh-slot (max-width: 44px) {
-  .mh-hz-slot.is-late .mh-hz-day { align-items: flex-start; }
+  .mh-hz-slot.is-late .mh-hz-day { align-items: flex-end; }
 }
 
 .mh-hz-carriage {
   position: absolute;
-  left: 0;
+  right: 0;
   top: var(--hz-pile);
   width: calc(100% / var(--units) * var(--span));
   height: 3px;
   background: var(--accent);
-  transform: translateX(calc(var(--at) * 100% / var(--span)));
+  transform: translateX(calc(var(--at) * -100% / var(--span)));
   transition: transform var(--dur-move) var(--spring-move);
   pointer-events: none;
 }
@@ -124,9 +125,9 @@ span.mh-hz-day .mh-hz-word, span.mh-hz-day .mh-hz-date { color: var(--text-quiet
 .mh-hz-tip {
   position: absolute;
   z-index: 2;
-  left: clamp(120px, var(--x), calc(100% - 120px));
+  right: clamp(120px, var(--x), calc(100% - 120px));
   top: calc(var(--hz-pile) + var(--hz-label) - 4px);
-  transform: translateX(-50%);
+  transform: translateX(50%);
   display: flex;
   flex-direction: column;
   max-width: 240px;
