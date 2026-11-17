@@ -12,7 +12,7 @@
 import type { NextRequest } from "next/server";
 import { isTicket, rpc, TicketError, type Handshake, type SqlResult } from "@/lib/assistant/server/db";
 import { Known } from "@/lib/assistant/server/grounding";
-import { addUsage, complete, modelKey, noUsage, type Message } from "@/lib/assistant/server/openai";
+import { addUsage, complete, modelKey, modelKeyStatus, noUsage, type Message } from "@/lib/assistant/server/openai";
 import { chatSystem, correction, QUERY_TOOL } from "@/lib/assistant/server/prompt";
 import { REFUSAL_TEXT, type Budget, type ChatEvent, type ChatTurn, type Source } from "@/lib/assistant/types";
 
@@ -48,6 +48,11 @@ function forModel(result: SqlResult): string {
     text = JSON.stringify({ ...result, rows, row_count: rows.length, truncated: true, note: "cut to fit; aggregate in SQL or narrow the query" });
   }
   return text.slice(0, MAX_RESULT_CHARS);
+}
+
+/** GET: whether the model's key reached this server. `named` says a variable with "open" in its name exists, `shaped` that it holds a secret key. */
+export function GET() {
+  return Response.json(modelKeyStatus(), { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: NextRequest) {

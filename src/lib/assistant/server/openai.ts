@@ -5,12 +5,25 @@
  * name that says "open" (openai, open_api_key), or one in OpenAI's own project form under any name.
  */
 export function modelKey(): string | undefined {
-  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
-  for (const [name, value] of Object.entries(process.env)) {
+  const usual = tidy(process.env.OPENAI_API_KEY);
+  if (usual) return usual;
+  for (const [name, raw] of Object.entries(process.env)) {
+    const value = tidy(raw);
     if (!value?.startsWith("sk-")) continue;
     if (/open/i.test(name) || value.startsWith("sk-proj-")) return value;
   }
   return undefined;
+}
+
+/** A value pasted by hand may carry a space, a line break or quotes around it. */
+function tidy(value: string | undefined): string | undefined {
+  return value?.trim().replace(/^["']+|["']+$/g, "") || undefined;
+}
+
+/** What this server sees of the key, for a check from outside. Booleans only: no name and no value leaves here. */
+export function modelKeyStatus(): { configured: boolean; named: boolean; shaped: boolean } {
+  const named = Object.entries(process.env).filter(([name]) => /open/i.test(name));
+  return { configured: modelKey() !== undefined, named: named.length > 0, shaped: named.some(([, value]) => tidy(value)?.startsWith("sk-") === true) };
 }
 
 export interface ToolCall {
