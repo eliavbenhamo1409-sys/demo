@@ -1,10 +1,14 @@
 /** One call to the model, and what it cost. The key stays on the server. */
 
-/** The key by its usual name, or by whatever name it was given in the host's settings, as long as the name says OpenAI and the value is a secret key. */
+/**
+ * The key by its usual name, or by whatever name it was given by hand in the host's settings: a secret key under a
+ * name that says "open" (openai, open_api_key), or one in OpenAI's own project form under any name.
+ */
 export function modelKey(): string | undefined {
   if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
   for (const [name, value] of Object.entries(process.env)) {
-    if (/open_?ai/i.test(name) && value?.startsWith("sk-")) return value;
+    if (!value?.startsWith("sk-")) continue;
+    if (/open/i.test(name) || value.startsWith("sk-proj-")) return value;
   }
   return undefined;
 }
