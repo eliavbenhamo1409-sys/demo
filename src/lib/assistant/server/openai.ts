@@ -3,27 +3,34 @@
 /**
  * The key by its usual name, or by whatever name it was given by hand in the host's settings: a secret key under a
  * name that says "open" (openai, open_api_key), or one in OpenAI's own project form under any name.
+ * It is lifted out of the value, because a value pasted by hand may carry more than the key: a hidden direction
+ * mark from a Hebrew page, quotes, a line break, or the "NAME=" in front of it.
  */
 export function modelKey(): string | undefined {
-  const usual = tidy(process.env.OPENAI_API_KEY);
+  const usual = keyIn(process.env.OPENAI_API_KEY);
   if (usual) return usual;
   for (const [name, raw] of Object.entries(process.env)) {
-    const value = tidy(raw);
-    if (!value?.startsWith("sk-")) continue;
-    if (/open/i.test(name) || value.startsWith("sk-proj-")) return value;
+    const key = keyIn(raw);
+    if (key && (/open/i.test(name) || key.startsWith("sk-proj-"))) return key;
   }
   return undefined;
 }
 
-/** A value pasted by hand may carry a space, a line break or quotes around it. */
-function tidy(value: string | undefined): string | undefined {
-  return value?.trim().replace(/^["']+|["']+$/g, "") || undefined;
+const KEY = /sk-[A-Za-z0-9_-]{20,}/;
+
+function keyIn(value: string | undefined): string | undefined {
+  return value ? KEY.exec(value)?.[0] : undefined;
 }
 
-/** What this server sees of the key, for a check from outside. Booleans only: no name and no value leaves here. */
-export function modelKeyStatus(): { configured: boolean; named: boolean; shaped: boolean } {
+/** What this server sees of the key, for a check from outside. No name and no value leaves here: three booleans and a length. */
+export function modelKeyStatus(): { configured: boolean; named: boolean; shaped: boolean; chars: number } {
   const named = Object.entries(process.env).filter(([name]) => /open/i.test(name));
-  return { configured: modelKey() !== undefined, named: named.length > 0, shaped: named.some(([, value]) => tidy(value)?.startsWith("sk-") === true) };
+  return {
+    configured: modelKey() !== undefined,
+    named: named.length > 0,
+    shaped: named.some(([, value]) => keyIn(value) !== undefined),
+    chars: Math.max(0, ...named.map(([, value]) => value?.length ?? 0)),
+  };
 }
 
 export interface ToolCall {
