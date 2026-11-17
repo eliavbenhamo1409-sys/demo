@@ -6,7 +6,7 @@ import { orderTotal, useData, type Movement, type Order, type Product } from "@/
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { EmptyState } from "@/components/ui";
-import { fmtName, fmtPrice, fmtQty } from "@/lib/format";
+import { DIRECT_ORDER, fmtName, fmtPrice, fmtQty } from "@/lib/format";
 import { agentShares, change, customerShares, leadDays, movedShares, rolling, topAndRest, WINDOW_DAYS, type Share } from "@/lib/control-room";
 import { Bars, ChartCard, Columns, Ring, type BarRow, type Hue, type Slice } from "./Charts";
 import { Money, Tile } from "./Tile";
@@ -83,7 +83,7 @@ export function SalesView({ room }: { room: Room }): ReactElement {
   }, [state.orders, room.from, room.to]);
 
   const categories = useMemo(() => categorySlices(room.rows, room.from, room.to, product), [room.rows, room.from, room.to, product]);
-  const agents = useMemo(() => agentShares(state.orders, { linesOf }, (id) => agent(id)?.name ?? "סוכן", room.from, room.to), [state.orders, linesOf, agent, room.from, room.to]);
+  const agents = useMemo(() => agentShares(state.orders, { linesOf }, (id) => (id ? agent(id)?.name ?? "סוכן" : DIRECT_ORDER), room.from, room.to), [state.orders, linesOf, agent, room.from, room.to]);
   const customers = useMemo(() => customerShares(state.orders, { linesOf }, room.from, room.to).slice(0, TOP), [state.orders, linesOf, room.from, room.to]);
   const products = useMemo(() => topProducts(room.rows, room.from, room.to, product), [room.rows, room.from, room.to, product]);
 

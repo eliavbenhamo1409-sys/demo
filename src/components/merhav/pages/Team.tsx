@@ -220,6 +220,7 @@ function AgentsRoster({ query }: { query: string }): ReactElement {
     const since = monthStartIso();
     const map = new Map<string, AgentOrders>();
     for (const o of state.orders) {
+      if (!o.agent_id) continue;
       let a = map.get(o.agent_id);
       if (!a) {
         a = { open: 0, month: 0, last: null };

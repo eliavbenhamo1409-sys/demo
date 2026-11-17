@@ -14,7 +14,7 @@ import { FigureLine, type CheckTone, type Figure } from "@/components/app/Snapsh
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, Card, EmptyState, Input, Modal, MovementQty, Notice, PageHead } from "@/components/ui";
 import { errorMessage, REQUIRED } from "@/components/app/forms/useForm";
-import { byPromise, fmtAge, fmtCompact, fmtDay, fmtName, fmtPrice, fmtPromised, fmtQty, fmtTime, fmtUnit } from "@/lib/format";
+import { byPromise, DIRECT_ORDER, fmtAge, fmtCompact, fmtDay, fmtName, fmtPrice, fmtPromised, fmtQty, fmtTime, fmtUnit } from "@/lib/format";
 import {
   canSign,
   dayEnd,
@@ -272,7 +272,7 @@ function Orders({ summary, asOf }: { summary: DaySummary; asOf?: number }): Reac
             key={o.id}
             lead={<ProductThumb product={product(lines[0]?.product_id)} small />}
             title={o.customer}
-            meta={joined(`הזמנה ${o.number}`, count(o.lines, "שורה אחת", "שורות"), o.agent)}
+            meta={joined(`הזמנה ${o.number}`, count(o.lines, "שורה אחת", "שורות"), o.agent ?? DIRECT_ORDER)}
             figure={total === null ? undefined : <span className="ltr">{fmtPrice(total)}</span>}
             word={behind ? when : when ? `מסירה ${when}` : "פתוחה"}
             tone={behind ? "warn" : "none"}

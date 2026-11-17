@@ -1,17 +1,20 @@
 "use client";
 
 /**
- * תנועות as a journal one can really search: when, what was done, to which product, how much, by whom, from where.
+ * תנועות as a journal one can really search: when, what was done, to which product, how much, by whom, from or to whom.
+ * It opens on today, because the first question is what was done today; the other periods are one press away.
  * Time leads because this is the one list read as a record. The filters stand fixed over it and wait for החל, as on
- * the shared page; two questions a manager asks of a journal have a filter of their own: what left with no receipt,
- * and what was corrected by hand.
+ * the shared page; two questions a manager asks of a journal have a figure of their own that is also a filter: what
+ * left with no receipt, and what was corrected by hand. An exit with no receipt says in its own row to whom it went,
+ * why, and that a manager approved it, so it never reads as goods that left with no record.
  */
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { readNote } from "@/components/app/MovementPanel";
 import { useUi } from "@/components/app/ui-state";
 import { DateRangeFilter, dayValue, HoursFilter } from "@/components/app/WhenFilters";
 import { Button, cx, EmptyState, Icon, Movement, MovementQty, Notice, Select, Showing, Table, Tabs, Toolbar, type SelectOption, type TableColumn } from "@/components/ui";
-import { fmtCompact, fmtDayWord, fmtQty, fmtTime, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
+import { fmtCompact, fmtDayWord, fmtTime, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { useData, type Movement as MovementRow, type MovementType } from "@/lib/store";
 import { ProductCell } from "../cells";
@@ -19,15 +22,16 @@ import { Page, Word, type Metric } from "../parts";
 
 type Period = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
-const PERIODS: { value: Period; label: string; words: string }[] = [
-  { value: "today", label: "היום", words: "היום" },
-  { value: "yesterday", label: "אתמול", words: "אתמול" },
-  { value: "week", label: "7 ימים", words: "בשבעת הימים האחרונים" },
-  { value: "month", label: "30 ימים", words: "ב-30 הימים האחרונים" },
-  { value: "all", label: "הכל", words: "מאז תחילת הרישום" },
-  { value: "custom", label: "טווח תאריכים", words: "בטווח שנבחר" },
+const PERIODS: { value: Period; label: string }[] = [
+  { value: "today", label: "היום" },
+  { value: "yesterday", label: "אתמול" },
+  { value: "week", label: "7 ימים" },
+  { value: "month", label: "30 ימים" },
+  { value: "all", label: "הכל" },
+  { value: "custom", label: "טווח תאריכים" },
 ];
-const DEFAULT_PERIOD: Period = "month";
+/** The journal opens on what was done today. */
+const DEFAULT_PERIOD: Period = "today";
 const MOVEMENT_TYPES: MovementType[] = ["in", "out", "fault", "adjust"];
 /** A reading of the journal that is not a kind of movement: an exit a manager let out with no receipt. */
 const NO_RECEIPT = "no-receipt";
@@ -191,8 +195,6 @@ function MovementsInner(): ReactElement {
     }
     return s;
   }, [rows, product]);
-  const words = PERIODS.find((p) => p.value === period)?.words ?? "";
-
   const hasFilters = period !== DEFAULT_PERIOD || q !== "" || differs(chosen, { ...chosen, ...NO_FILTERS });
   const clear = () => {
     setQuery("");
@@ -201,23 +203,17 @@ function MovementsInner(): ReactElement {
   /** A figure that is also a filter: pressed, the journal shows only that; pressed again, everything. */
   const toggleKind = (kind: string) => applyNow({ ...chosen, ...NO_FILTERS, kind: applied.kind === kind ? "" : kind }, period);
 
-  const lead: ReactNode = isLoading
-    ? "טוען את התנועות."
-    : rows.length === 0 ? `לא נרשמו תנועות ${words}.`
-    : <>{rows.length === 1 ? "תנועה אחת נרשמה" : <><strong>{fmtQty(rows.length)}</strong> תנועות נרשמו</>} {words}. {sums.noReceipt === 0 ? "כל הוצאה יצאה עם קבלה." : sums.noReceipt === 1 ? "הוצאה אחת אושרה בלי קבלה." : `${fmtQty(sums.noReceipt)} הוצאות אושרו בלי קבלה.`}{sums.adjusted > 0 ? ` ${sums.adjusted === 1 ? "תיקון ספירה אחד נעשה" : `${fmtQty(sums.adjusted)} תיקוני ספירה נעשו`} ידנית.` : ""}</>;
-
+  // In is green and out is red wherever goods move; the sums themselves stay ink, so only what needs a look is coloured.
   const metrics: Metric[] = [
-    { key: "in", label: "נכנס", icon: "arrow-down-to-line", value: <span className="ltr">{isLoading ? "…" : fmtCompact(sums.inWorth)}</span>, tone: "ok", note: "קליטות, במחירון" },
-    { key: "out", label: "יצא", icon: "arrow-up-from-line", value: <span className="ltr">{isLoading ? "…" : fmtCompact(sums.outWorth)}</span>, note: "הוצאות, במחירון" },
+    { key: "in", label: "נכנס", icon: "arrow-down-to-line", iconTone: "ok", value: <span className="ltr">{isLoading ? "…" : fmtCompact(sums.inWorth)}</span> },
+    { key: "out", label: "יצא", icon: "arrow-up-from-line", iconTone: "bad", value: <span className="ltr">{isLoading ? "…" : fmtCompact(sums.outWorth)}</span> },
     {
-      key: "no-receipt", label: "הוצאות בלי קבלה", icon: "package-search", value: isLoading ? "…" : sums.noReceipt, tone: sums.noReceipt > 0 ? "warn" : "ok",
+      key: "no-receipt", label: "יצא בלי קבלה", icon: "file-text", value: isLoading ? "…" : sums.noReceipt, tone: sums.noReceipt > 0 ? "warn" : "ok",
       onClick: sums.noReceipt > 0 || applied.kind === NO_RECEIPT ? () => toggleKind(NO_RECEIPT) : undefined, current: applied.kind === NO_RECEIPT,
-      note: sums.noReceipt === 0 ? <span className="is-ok">כל הוצאה יצאה עם קבלה</span> : applied.kind === NO_RECEIPT ? "מוצגות עכשיו ביומן" : "אושרו בקוד של מנהל",
     },
     {
       key: "adjust", label: "תיקוני ספירה", icon: "clipboard-check", value: isLoading ? "…" : sums.adjusted,
       onClick: sums.adjusted > 0 || applied.kind === "adjust" ? () => toggleKind("adjust") : undefined, current: applied.kind === "adjust",
-      note: sums.adjusted === 0 ? "לא תוקנה ספירה" : applied.kind === "adjust" ? "מוצגים עכשיו ביומן" : "כמות שעודכנה ידנית",
     },
   ];
 
@@ -227,22 +223,21 @@ function MovementsInner(): ReactElement {
         <Button variant="secondary" onClick={() => openAction("receive")}>קליטת סחורה</Button>
       </EmptyState>
     ) : hasFilters ? (
-      <EmptyState title="לא נמצאו תנועות" hint={q ? <>עבור „<bdi>{query.trim()}</bdi>”</> : "אפשר להסיר את הסינון"}>
+      <EmptyState title="לא נמצאו תנועות" hint={q ? <>עבור „<bdi>{query.trim()}</bdi>”</> : undefined}>
         <Button variant="secondary" onClick={clear}>ניקוי סינון</Button>
       </EmptyState>
     ) : (
-      <EmptyState title="אין תנועות ב-30 הימים האחרונים" hint="אפשר לראות תנועות ישנות יותר">
-        <Button variant="secondary" onClick={() => choosePeriod("all")}>כל התנועות</Button>
+      <EmptyState title="עוד אין תנועות היום">
+        <Button variant="secondary" onClick={() => choosePeriod("yesterday")}>אתמול</Button>
+        <Button variant="secondary" onClick={() => choosePeriod("week")}>7 ימים</Button>
       </EmptyState>
     );
 
   return (
     <Page
       title="תנועות"
-      state={!isLoading && sums.noReceipt > 0 ? { word: sums.noReceipt === 1 ? "הוצאה אחת בלי קבלה" : `${fmtQty(sums.noReceipt)} בלי קבלה`, tone: "warn" } : undefined}
-      lead={lead}
       metrics={metrics}
-      toolbar={<Toolbar tabs={<Tabs tabs={PERIODS} value={period} onChange={choosePeriod} />} query={query} onQuery={setQuery} placeholder='חיפוש לפי מוצר, מק"ט, עובד או ספק' />}
+      toolbar={<Toolbar tabs={<Tabs tabs={PERIODS} value={period} onChange={choosePeriod} />} query={query} onQuery={setQuery} placeholder='חיפוש מוצר, מק"ט, עובד, ספק או לקוח' />}
     >
       {failed ? (
         <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retry}>
@@ -300,7 +295,7 @@ function Journal({ rows, total, isLoading, empty }: { rows: MovementRow[]; total
         render: (m) => (
           <>
             <Movement type={m.type} />
-            {m.exit_pass ? <span className="mn2-cell-sub"><Word tone="warn">בלי קבלה, באישור מנהל</Word></span> : m.type === "adjust" ? <span className="mn2-cell-sub">נעשה ידנית</span> : null}
+            {m.exit_pass ? <span className="mn2-cell-sub"><Word tone="warn">בלי קבלה</Word></span> : null}
           </>
         ),
       },
@@ -328,18 +323,30 @@ function Journal({ rows, total, isLoading, empty }: { rows: MovementRow[]; total
           </span>
         ),
       },
-      { key: "worker", title: "עובד", render: (m) => (worker(m.worker_id)?.name ? <span className="mn2-cell-text mn2-nowrap">{worker(m.worker_id)?.name}</span> : <span className="mn2-cell-unset">לא נרשם</span>) },
       {
-        key: "source",
-        title: "מקור",
+        key: "worker",
+        title: "מי",
+        // Goods that left on a manager's code have no worker behind them: the code is who did it, and the row says so.
+        render: (m) =>
+          worker(m.worker_id)?.name ? <span className="mn2-cell-text mn2-nowrap">{worker(m.worker_id)?.name}</span>
+          : m.exit_pass ? <span className="mn2-cell-text mn2-nowrap">באישור מנהל</span>
+          : <span className="mn2-cell-unset">לא נרשם</span>,
+      },
+      {
+        key: "party",
+        title: "ספק / לקוח",
+        // From whom it came or to whom it went, then the order it left under, then why it left with no receipt.
         render: (m) => {
-          const name = supplier(m.supplier_id)?.name;
+          const note = readNote(m.note);
+          const name = supplier(m.supplier_id)?.name ?? note.customer;
           const order = orderRef(m.reference);
-          if (!name && !order) return <span className="mn2-cell-unset">—</span>;
+          const why = m.exit_pass && note.reason ? `סיבה: ${note.reason}` : null;
+          if (!name && !order && !why) return <span className="mn2-cell-unset">—</span>;
           return (
             <>
               {name ? <span className="mn2-cell-text"><bdi>{name}</bdi></span> : null}
               {order ? <span className={name ? "mn2-cell-sub" : "mn2-cell-text"}><bdi>{order}</bdi></span> : null}
+              {why ? <span className="mn2-cell-sub"><bdi>{why}</bdi></span> : null}
             </>
           );
         },

@@ -130,7 +130,8 @@ export function pendingNames(items: SupplierItem[], product: (id: string | null)
   return items.filter((i) => i.status === "pending" || !i.product_id || !product(i.product_id));
 }
 
-export type Waiting = { faults: number; approvals: number; shortages: number; total: number };
+/** `hurting` is how many of the shortages hold back an order already promised: the part of the count that is red. */
+export type Waiting = { faults: number; approvals: number; shortages: number; hurting: number; total: number };
 
 /* ───────── what was handled today ───────── */
 

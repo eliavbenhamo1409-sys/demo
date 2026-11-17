@@ -200,3 +200,6 @@ export const ORDER_STATUS_LABEL: Record<"open" | "delivered" | "cancelled", stri
   delivered: "נמסרה",
   cancelled: "בוטלה",
 };
+
+/** An order the owner placed from the admin, with no agent. Printed wherever an order's agent would stand. */
+export const DIRECT_ORDER = "הזמנה ישירה";

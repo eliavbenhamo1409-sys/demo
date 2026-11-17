@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useData } from "@/lib/store";
 
 export type MovedLine = { type: "in" | "out"; product_id: string; name: string; unit: string; party: string | null; qty: number; worth: number | null; no_receipt: number };
-export type DayOrder = { id: string; number: number; customer: string; agent: string; created_at: string; promised_on: string | null; lines: number };
+export type DayOrder = { id: string; number: number; customer: string; agent: string | null; created_at: string; promised_on: string | null; lines: number };
 export type DayRequest = { id: string; name: string; qty: number; customer: string | null; worker: string | null; created_at: string };
 export type DayFault = { id: string; description: string; product: string | null; worker: string | null; created_at: string };
 export type DayName = { id: string; name: string; supplier: string; created_at: string };

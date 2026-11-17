@@ -3,25 +3,25 @@
 /**
  * אישורים: everything that waits for the manager's yes or no, in one list. Two kinds of thing end up here: a line a worker
  * could not match while handing goods to a customer, and a name a supplier wrote that the warehouse doesn't know yet.
- * Each row says what the system would do with it, so most decisions are one press.
+ * Each kind has its own drawing at the head of its rows, and each row says what the system would do with it, so most
+ * decisions are one press. This is the one place a supplier's name is decided; the suppliers page only keeps the map
+ * of what was decided.
  */
 import { useCallback, useMemo, useState, type ReactElement } from "react";
 import { useUi } from "@/components/app/ui-state";
-import { Button, EmptyState, Showing, Table, Tabs, Toolbar, type TableColumn } from "@/components/ui";
+import { Button, EmptyState, Showing, Table, SearchBar, type TableColumn } from "@/components/ui";
 import { fmtAge, fmtName, fmtQty } from "@/lib/format";
 import { isTempId, normalizeName, useData, type ItemRequest, type Product, type SupplierItem } from "@/lib/store";
 import { only } from "../cells";
 import { Line } from "../icons";
-import { Check, JustHandled, Page, Word, type Metric } from "../parts";
-import { handledToday, listWords, pendingNames, pendingRequests } from "../work";
-
-type Kind = "all" | "line" | "name";
+import { Check, JustHandled, Page } from "../parts";
+import { pendingNames, pendingRequests } from "../work";
 
 type Row = {
   id: string;
   kind: "line" | "name";
   title: string;
-  /** What kind of decision this is, in words. */
+  /** What kind of decision this is, in two words. */
   word: string;
   who: string | null;
   at: string;
@@ -33,7 +33,6 @@ type Row = {
 export function Approvals(): ReactElement {
   const { state, product, supplier, worker, approveSupplierItem } = useData();
   const { openAction, notify } = useUi();
-  const [kind, setKind] = useState<Kind>("all");
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -42,7 +41,7 @@ export function Approvals(): ReactElement {
       id: r.id,
       kind: "line",
       title: `${fmtName(r.proposed_name?.trim() || r.external_name)} × ${fmtQty(r.qty)}`,
-      word: r.kind === "new_product" ? "מוצר חדש שעובד ביקש לפתוח" : "שורה שעובד לא זיהה בקבלה",
+      word: r.kind === "new_product" ? "עובד ביקש מוצר חדש" : "עובד לא זיהה בקבלה",
       who: [worker(r.worker_id)?.name, r.customer ? `ללקוח ${r.customer}` : null].filter(Boolean).join(" · ") || null,
       at: r.created_at,
       guess: undefined,
@@ -52,7 +51,7 @@ export function Approvals(): ReactElement {
       id: i.id,
       kind: "name",
       title: i.external_name,
-      word: "שם של ספק מתעודת משלוח",
+      word: "שם חדש של ספק",
       who: supplier(i.supplier_id)?.name ?? null,
       at: i.created_at,
       guess: product(i.product_id),
@@ -62,14 +61,8 @@ export function Approvals(): ReactElement {
     return [...lines, ...names].sort((a, b) => a.at.localeCompare(b.at));
   }, [state.itemRequests, state.supplierItems, product, supplier, worker]);
 
-  const counts = useMemo(() => ({ line: all.filter((r) => r.kind === "line").length, name: all.filter((r) => r.kind === "name").length }), [all]);
-  const decided = useMemo(() => handledToday(state.faults, state.itemRequests, state.supplierItems).approvals, [state.faults, state.itemRequests, state.supplierItems]);
-
   const q = normalizeName(query);
-  const rows = useMemo(
-    () => all.filter((r) => (kind === "all" || r.kind === kind) && (!q || normalizeName([r.title, r.who, r.guess?.name].filter(Boolean).join(" ")).includes(q))),
-    [all, kind, q],
-  );
+  const rows = useMemo(() => (q ? all.filter((r) => normalizeName([r.title, r.who, r.guess?.name].filter(Boolean).join(" ")).includes(q)) : all), [all, q]);
 
   const open = useCallback(
     (r: Row) => (r.kind === "line" ? openAction("review-item-request", { requestId: r.id }) : openAction("map-supplier-item", { supplierItemId: r.id })),
@@ -100,7 +93,7 @@ export function Approvals(): ReactElement {
         className: "mn2-cell-main",
         render: (r) => (
           <span className="mn2-cell-lead">
-            <Line name={r.kind === "line" ? "stamp" : "link-2"} size={22} />
+            <Line name={r.kind === "line" ? "stamp" : "link-2"} size={22} tone={r.kind === "line" ? "warn" : "accent"} />
             <span>
               <span className="mn2-cell-title"><bdi>{r.title}</bdi></span>
               <span className="mn2-cell-sub">{r.word}</span>
@@ -110,7 +103,7 @@ export function Approvals(): ReactElement {
       },
       {
         key: "who",
-        title: "ממי ומתי",
+        title: "ממי",
         render: (r) => (
           <>
             <span className="mn2-cell-text">{r.who ? <bdi>{r.who}</bdi> : "לא ידוע"}</span>
@@ -128,12 +121,12 @@ export function Approvals(): ReactElement {
               <span className="mn2-cell-sub"><span className="sa-mono ltr">{r.guess.sku}</span></span>
             </>
           ) : (
-            <span className="mn2-cell-unset">{r.kind === "line" ? "נבחרת בבדיקה" : "לא נמצאה התאמה"}</span>
+            <span className="mn2-cell-unset">—</span>
           ),
       },
       {
         key: "act",
-        title: "פעולה",
+        title: <span className="sr-only">פעולה</span>,
         className: "mn2-cell-act",
         // One blue button in the list: the row at its head, which has waited longest.
         render: (r, i) => {
@@ -141,11 +134,11 @@ export function Approvals(): ReactElement {
           return (
             <span className="mn2-acts">
               {r.kind === "line" ? (
-                <Button variant={lead} size="sm" disabled={isTempId(r.id)} onClick={only(() => open(r))}>בדיקת השורה</Button>
+                <Button variant={lead} size="sm" disabled={isTempId(r.id)} onClick={only(() => open(r))}>בדיקה</Button>
               ) : r.guess && r.item?.status === "pending" ? (
                 <>
-                  <Button variant={lead} size="sm" icon="check" isLoading={busyId === r.id} disabled={isTempId(r.id)} onClick={only(() => void approve(r))}>אישור ההתאמה</Button>
-                  <Button variant="ghost" size="sm" onClick={only(() => open(r))}>שיוך אחר</Button>
+                  <Button variant="ghost" size="sm" onClick={only(() => open(r))}>מוצר אחר</Button>
+                  <Button variant={lead} size="sm" icon="check" isLoading={busyId === r.id} disabled={isTempId(r.id)} onClick={only(() => void approve(r))}>אישור</Button>
                 </>
               ) : (
                 <Button variant={lead} size="sm" disabled={isTempId(r.id)} onClick={only(() => open(r))}>שיוך מוצר</Button>
@@ -157,49 +150,14 @@ export function Approvals(): ReactElement {
     ];
   }, [open, approve, busyId]);
 
-  const total = all.length;
-  const parts = [
-    counts.line > 0 ? (counts.line === 1 ? "שורה אחת שעובד לא זיהה" : `${fmtQty(counts.line)} שורות שעובדים לא זיהו`) : "",
-    counts.name > 0 ? (counts.name === 1 ? "שם אחד של ספק" : `${fmtQty(counts.name)} שמות של ספקים`) : "",
-  ].filter(Boolean);
-  const lead = total === 0
-    ? "אין מה לאשר. שורה שעובד לא זיהה או שם חדש של ספק יופיעו כאן."
-    : `${listWords(parts)} ${total === 1 ? "מחכה" : "מחכים"} להחלטה. כשהמערכת מזהה את המוצר היא מציעה אותו, ונשאר רק לאשר.`;
-
-  const metrics: Metric[] = [
-    { key: "line", label: "שורות מעובדים", icon: "stamp", value: counts.line, tone: counts.line > 0 ? "warn" : "ok", note: counts.line > 0 ? "סחורה שיצאה ועוד לא נרשמה" : <span className="is-ok">אין שורות ממתינות</span> },
-    { key: "name", label: "שמות של ספקים", icon: "link-2", value: counts.name, tone: counts.name > 0 ? "warn" : "ok", note: counts.name > 0 ? "עד לאישור, קליטה בשם הזה תישאל שוב" : <span className="is-ok">כל השמות משויכים</span> },
-    { key: "done", label: "הוחלטו היום", icon: "circle-check", value: decided, tone: decided > 0 ? "ok" : "none", note: decided > 0 ? "אישורים ודחיות מהיום" : all[0] ? `הוותיק ביותר מחכה ${fmtAge(all[0].at)}` : "עוד לא התקבלה החלטה היום" },
-  ];
-
-  const tabs = [
-    { value: "all", label: "הכל", count: total },
-    { value: "line", label: "שורות מעובדים", count: counts.line },
-    { value: "name", label: "שמות של ספקים", count: counts.name },
-  ];
-
   return (
-    <Page
-      title="אישורים"
-      state={total > 0 ? { word: `${fmtQty(total)} ממתינים`, tone: "warn" } : { word: "אין מה לאשר", tone: "ok" }}
-      lead={lead}
-      metrics={metrics}
-      toolbar={
-        <Toolbar
-          tabs={<Tabs tabs={tabs} value={kind} onChange={(v) => setKind(v === "line" || v === "name" ? v : "all")} />}
-          query={query}
-          onQuery={setQuery}
-          placeholder="חיפוש לפי שם, ספק או עובד"
-        />
-      }
-    >
+    <Page title="אישורים" tools={<SearchBar kbd={false} value={query} onChange={setQuery} placeholder="חיפוש שם, ספק או עובד" />}>
       <div className="sa-card mn2-sheet">
         <JustHandled kind="approval" />
-        {total === 0 ? (
+        {all.length === 0 ? (
           <div className="mn2-clear">
             <Check size={36} />
             <p className="mn2-clear-title">אין מה לאשר</p>
-            <p className="mn2-clear-hint">כל ההחלטות התקבלו.</p>
           </div>
         ) : (
           <Table<Row>
@@ -208,16 +166,15 @@ export function Approvals(): ReactElement {
             columns={columns}
             data={rows}
             empty={
-              <EmptyState title="לא נמצאו ממתינים" hint={q ? <>עבור „<bdi>{query.trim()}</bdi>”</> : "אין ממתינים מהסוג הזה"}>
-                <Button variant="secondary" onClick={() => { setQuery(""); setKind("all"); }}>כל הממתינים</Button>
+              <EmptyState title="לא נמצאו ממתינים" hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
+                <Button variant="secondary" onClick={() => setQuery("")}>ניקוי החיפוש</Button>
               </EmptyState>
             }
             onRowClick={open}
-            footer={rows.length > 0 && rows.length < total ? <Showing shown={rows.length} total={total} /> : undefined}
+            footer={q && rows.length > 0 ? <Showing shown={rows.length} total={all.length} /> : undefined}
           />
         )}
       </div>
-      {total > 0 ? <p className="mn2-foot-note"><Word>מה קורה אחרי אישור:</Word> שורה שאושרה מורידה את הכמות מהמלאי; שם שאושר יזוהה מעצמו בקליטה הבאה.</p> : null}
     </Page>
   );
 }

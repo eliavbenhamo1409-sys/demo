@@ -16,7 +16,7 @@ import { ExitNotice, History, ReceiptPhoto, useMovementsById } from "./MovementP
 import { Figure } from "./ProductPanel";
 import { ProductThumb } from "./Viz";
 import { Button, Dot, Fields, Modal, Notice, SidePanel, type TimelineItem, type Tone } from "@/components/ui";
-import { daysUntil, fmtFull, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtUnit, fmtWeekday, ORDER_STATUS_LABEL } from "@/lib/format";
+import { daysUntil, DIRECT_ORDER, fmtFull, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtUnit, fmtWeekday, ORDER_STATUS_LABEL } from "@/lib/format";
 
 /** The closing the manager is being asked to confirm. */
 type Closing = "deliver" | "cancel";
@@ -47,6 +47,8 @@ function OrderPanelInner({ id }: { id: string }) {
 
   const total = orderTotal(lines);
   const agentName = agent(o.agent_id)?.name;
+  // A direct order: the owner placed it from the admin, with no agent.
+  const seller = o.agent_id ? agentName : DIRECT_ORDER;
   const dot = STATUS_DOT[o.status];
   const isOpen = o.status === "open";
   const late = isOpen && !!o.promised_on && daysUntil(o.promised_on) < 0;
@@ -221,7 +223,7 @@ function OrderPanelInner({ id }: { id: string }) {
               label: "מסירה ללקוח",
               value: o.promised_on ? fmtWeekday(o.promised_on) : undefined,
             },
-            { label: "סוכן", value: agentName },
+            { label: "סוכן", value: seller },
             {
               label: "טלפון",
               value: o.customer_phone ? <a className="sa-btn sa-btn-link sa-mono ltr" href={`tel:${o.customer_phone.replace(/\s/g, "")}`}>{o.customer_phone}</a> : undefined,

@@ -2,22 +2,26 @@
 
 /**
  * The one frame every page of מינימל 2 stands in, so the same kind of thing is always in the same place:
- * the name and where it stands, one sentence, the figures, the one action, then tabs and search, then the work.
- * And the small things that say a thing is done: a count that comes down, a check that draws once.
+ * the name, the figures, then tabs and search, then the work. No sentence retells the figures, and a number stands
+ * once on a screen. And the small things that say a thing is done: a count that comes down, a check that draws once.
  */
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { CountUp } from "@/components/app/Viz";
 import { Icon } from "@/components/ui";
-import { fmtQty } from "@/lib/format";
 import { useData } from "@/lib/store";
 import { Line, type LineName, type LineTone } from "./icons";
 import { handledToday, openFaults, pendingNames, pendingRequests } from "./work";
 
 export type Tone = "ok" | "warn" | "bad" | "short" | "none";
 
-/** An icon is grey. It takes colour only for the one loud red, as the owner's own sketch has it; the figure beside it says the rest. */
-const LINE_TONE: Record<Tone, LineTone> = { ok: "quiet", warn: "quiet", bad: "quiet", short: "short", none: "quiet" };
+/**
+ * Colour is a state, never a decoration: green is fine or done, amber waits for someone, red is missing or wrong, blue
+ * is what gets pressed. An icon takes the colour of the state it stands for and is grey when it stands for none, so
+ * two things that differ look different before a word is read.
+ */
+const LINE_TONE: Record<Tone, LineTone> = { ok: "ok", warn: "warn", bad: "bad", short: "short", none: "quiet" };
 
 export const lineTone = (tone: Tone | undefined): LineTone => (tone ? LINE_TONE[tone] : "quiet");
 
@@ -33,9 +37,13 @@ export interface Metric {
   label: string;
   /** A number counts up to its value on arrival and when it changes; anything else is shown as it is. */
   value: number | ReactNode;
+  /** A second fact in a word or a figure, only where the page says it nowhere else. Never a sentence. */
   note?: ReactNode;
   tone?: Tone;
+  /** What the figure counts, drawn: it takes the figure's colour, so each figure of a row is told apart at a glance. */
   icon?: LineName;
+  /** A colour for the drawing alone, where the figure itself stays ink: goods in are green and goods out are red. */
+  iconTone?: Tone;
   href?: string;
   onClick?: () => void;
   /** This is the one the list under it shows now. */
@@ -46,7 +54,7 @@ function MetricBody({ m }: { m: Metric }): ReactElement {
   return (
     <>
       <span className="mn2-metric-label">
-        {m.icon ? <Line name={m.icon} size={18} tone={lineTone(m.tone)} /> : null}
+        {m.icon ? <Line name={m.icon} size={18} tone={lineTone(m.iconTone ?? m.tone)} /> : null}
         {m.label}
         {m.href || m.onClick ? <Icon name="chevron-left" size={14} className="mn2-metric-go" /> : null}
       </span>
@@ -80,50 +88,64 @@ export function Metrics({ items }: { items: Metric[] }): ReactElement {
   );
 }
 
+/** True under an area's head (`AreaHead` in Rail.tsx): the area is named there, so the page adds no title of its own. */
+export const UnderAreaHead = createContext(false);
+
+/** The free end of the rectangle's row in an area's head. A page with nothing but a search puts it there, so no row is spent on it. */
+export const AreaTools = createContext<HTMLElement | null>(null);
+
 export interface PageProps {
+  /** The page's name. Drawn only where the page stands alone; under an area's head the rectangle names it. */
   title: string;
-  /** Where the page stands, in a word beside its name. */
-  state?: { word: ReactNode; tone: Tone };
-  /** One sentence that says what is going on. It wraps; it is never cut. */
-  lead: ReactNode;
-  /** The page's one main action, always at the head's far end. */
+  /** A quiet word beside the name that is not a count, like the day. */
+  aside?: ReactNode;
+  /** News only this page has, in one line. Left out when there is none: the figures say the rest. */
+  lead?: ReactNode;
+  /** At the head's far end. */
   action?: ReactNode;
   metrics?: Metric[];
   /** Tabs, filters and the page's search: always between the figures and the work. */
   toolbar?: ReactNode;
+  /** A search alone, for a page with no tabs of its own: it stands at the end of the area's rectangle, or in a row of its own where there is none. */
+  tools?: ReactNode;
   className?: string;
   children?: ReactNode;
 }
 
-export function Page({ title, state, lead, action, metrics, toolbar, className, children }: PageProps): ReactElement {
+export function Page({ title, aside, lead, action, metrics, toolbar, tools, className, children }: PageProps): ReactElement {
+  const named = useContext(UnderAreaHead);
+  const slot = useContext(AreaTools);
   return (
     <div className={`sa-page mn2-page${className ? ` ${className}` : ""}`}>
-      <header className="mn2-head">
-        <div className="mn2-head-text">
-          <div className="mn2-head-title">
-            <h1 className="sa-page-title">{title}</h1>
-            {state ? <Word tone={state.tone}>{state.word}</Word> : null}
+      {named && !lead && !action ? null : (
+        <header className="mn2-head">
+          <div className="mn2-head-text">
+            {named ? null : (
+              <div className="mn2-head-title">
+                <h1 className="sa-page-title">{title}</h1>
+                {aside ? <Word>{aside}</Word> : null}
+              </div>
+            )}
+            {lead ? <p className="mn2-lead">{lead}</p> : null}
           </div>
-          <p className="mn2-lead">{lead}</p>
-        </div>
-        {action ? <div className="mn2-head-action">{action}</div> : null}
-      </header>
+          {action ? <div className="mn2-head-action">{action}</div> : null}
+        </header>
+      )}
       {metrics && metrics.length > 0 ? <Metrics items={metrics} /> : null}
       {toolbar}
+      {tools ? (slot ? createPortal(tools, slot) : named ? null : <div className="mn2-tools">{tools}</div>) : null}
       {children}
     </div>
   );
 }
 
-/** A block of a page: an icon and a name, what it is for, and what can be done with all of it. */
-export function Block({ icon, tone, eyebrow, title, sub, count, actions, id, className, children }: {
+/** A block of a page: an icon and a name, its figure at the far end, and the work under it. */
+export function Block({ icon, tone, title, sub, actions, id, className, children }: {
   icon?: LineName;
   tone?: Tone;
-  /** A quiet word over the name: which step of a process this is. */
-  eyebrow?: string;
   title: string;
+  /** Only what the name cannot say, in a few words. */
   sub?: ReactNode;
-  count?: number;
   actions?: ReactNode;
   id?: string;
   className?: string;
@@ -134,28 +156,11 @@ export function Block({ icon, tone, eyebrow, title, sub, count, actions, id, cla
       <header className="mn2-block-head">
         {icon ? <Line name={icon} size={22} tone={lineTone(tone)} /> : null}
         <div className="mn2-block-text">
-          {eyebrow ? <p className="mn2-block-eyebrow">{eyebrow}</p> : null}
-          <h2 className="mn2-block-title">
-            {title}
-            {count !== undefined ? <span className="mn2-block-count">{fmtQty(count)}</span> : null}
-          </h2>
+          <h2 className="mn2-block-title">{title}</h2>
           {sub ? <p className="mn2-block-sub">{sub}</p> : null}
         </div>
         {actions ? <div className="mn2-block-actions">{actions}</div> : null}
       </header>
-      {children}
-    </section>
-  );
-}
-
-/** A word on the desk over a part of a long page, and what the manager does there. */
-export function Chapter({ title, ask, id, children }: { title: string; ask?: ReactNode; id?: string; children: ReactNode }): ReactElement {
-  return (
-    <section id={id} className="mn2-chapter">
-      <h2 className="mn2-chapter-head">
-        <span className="mn2-chapter-title">{title}</span>
-        {ask ? <span className="mn2-chapter-ask">{ask}</span> : null}
-      </h2>
       {children}
     </section>
   );
@@ -280,20 +285,19 @@ export function DayRing({ progress, size = 28 }: { progress: DayProgress; size?:
   );
 }
 
-/** The same fact in words, for the top bar: always there, so every decision made is seen to count. */
-export function DayPulse(): ReactElement | null {
+/**
+ * What was decided today, at the far end of a head: the ring and one figure. It says nothing until the first decision
+ * of the day, so it arrives as the reward for it and not as a zero to look at. What still waits is the rail's number.
+ */
+export function DoneToday(): ReactElement | null {
   const { state } = useData();
   const progress = useDayProgress();
-  if (state.status !== "ready") return null;
-  const words =
-    progress.total === 0 ? "אין מה לטפל היום"
-    : progress.left === 0 ? `הכל טופל היום · ${fmtQty(progress.done)}`
-    : progress.done === 0 ? `${fmtQty(progress.left)} מחכים לטיפול`
-    : `טופלו היום ${fmtQty(progress.done)} מתוך ${fmtQty(progress.total)}`;
+  if (state.status !== "ready" || progress.done === 0) return null;
   return (
-    <Link href="/" className={`mn2-pulse${progress.left === 0 ? " is-full" : ""}`} title="ההתקדמות של היום: מה טופל מתוך מה שחיכה להחלטה">
-      <DayRing progress={progress} />
-      <span>{words}</span>
-    </Link>
+    <p className={`mn2-done${progress.left === 0 ? " is-full" : ""}`} title="החלטות מהיום: תקלות שנסגרו, שורות ושמות שאושרו">
+      <DayRing progress={progress} size={24} />
+      <span className="mn2-done-n"><CountUp value={progress.done} /></span>
+      {progress.done === 1 ? "טופלה היום" : "טופלו היום"}
+    </p>
   );
 }

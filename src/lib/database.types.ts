@@ -339,7 +339,7 @@ export type Database = {
       }
       orders: {
         Row: {
-          agent_id: string
+          agent_id: string | null
           changes: Json
           closed_at: string | null
           created_at: string
@@ -354,7 +354,7 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
         }
         Insert: {
-          agent_id: string
+          agent_id?: string | null
           changes?: Json
           closed_at?: string | null
           created_at?: string
@@ -369,7 +369,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
         }
         Update: {
-          agent_id?: string
+          agent_id?: string | null
           changes?: Json
           closed_at?: string | null
           created_at?: string
@@ -718,7 +718,7 @@ export type Database = {
       }
       create_order: {
         Args: {
-          agent: string
+          agent: string | null
           customer_name: string
           items: Json
           order_note: string

@@ -424,3 +424,43 @@
     padding-top: var(--space-1);
   }
 }
+
+/* ── One day ahead, inside a form ──────────────────────────── */
+/* The word fills the form's width like a Select, and the quick days stand in a row above one month: a drawer has no room for the side column. */
+.app-when.app-when-field {
+  width: 100%;
+  max-width: none;
+}
+
+/* The day reads from the start, as in a Select; the chevron keeps the far end. */
+.app-when-field .sa-select-trigger {
+  justify-content: flex-start;
+}
+
+.app-when-field .sa-select-chevron {
+  margin-inline-start: auto;
+}
+
+.app-when-field.is-error .sa-select-trigger {
+  border-color: var(--danger);
+}
+
+.app-when-ahead {
+  grid-template-columns: auto;
+  grid-template-areas:
+    "presets"
+    "months";
+}
+
+.app-when-ahead .app-when-presets {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+  border-inline-end: 0;
+  border-bottom: var(--hair) solid var(--border-subtle);
+}
+
+.app-when-ahead .app-when-preset {
+  min-height: 34px;
+}

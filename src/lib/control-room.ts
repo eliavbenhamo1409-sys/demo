@@ -108,10 +108,10 @@ export function customerShares(orders: Order[], { linesOf }: Linked, from: numbe
   return [...sums.values()].sort(byValue);
 }
 
-/** Agents the same way; the name comes from the caller, which holds the lookup. */
-export function agentShares(orders: Order[], { linesOf }: Linked, name: (id: string) => string, from: number, to: number): Share[] {
+/** Agents the same way; the name comes from the caller, which holds the lookup. A direct order has no agent and is one slice of its own. */
+export function agentShares(orders: Order[], { linesOf }: Linked, name: (id: string | null) => string, from: number, to: number): Share[] {
   const sums = new Map<string, Share>();
-  for (const o of orders) if (delivered(o, from, to)) tally(sums, o.agent_id, name(o.agent_id), orderTotal(linesOf(o.id)) ?? 0);
+  for (const o of orders) if (delivered(o, from, to)) tally(sums, o.agent_id ?? "", name(o.agent_id), orderTotal(linesOf(o.id)) ?? 0);
   return [...sums.values()].sort(byValue);
 }
 

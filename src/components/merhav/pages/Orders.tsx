@@ -12,7 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Count, cx, EmptyState, PageHead, Select, Showing, Tabs, Toolbar, type SelectOption } from "@/components/ui";
-import { byPromise, fmtAge, fmtDay, fmtName, fmtPlainDay, fmtPrice, fmtPromised, fmtQty, fmtWeekday, ORDER_STATUS_LABEL } from "@/lib/format";
+import { byPromise, DIRECT_ORDER, fmtAge, fmtDay, fmtName, fmtPlainDay, fmtPrice, fmtPromised, fmtQty, fmtWeekday, ORDER_STATUS_LABEL } from "@/lib/format";
 import { DISPATCH_ZONE } from "@/lib/map3d/layout";
 import { routeBetween } from "@/lib/map3d/route";
 import type { LabelAnchor, MapObject, MapPoint, MapRoute } from "@/lib/map3d/types";
@@ -501,7 +501,7 @@ function OrdersInner(): ReactElement {
         const lines = linesOf(order.id);
         const short = order.status === "open" ? lines.filter((l) => isShort(product(l.product_id))) : [];
         const racks = [...new Set(lines.flatMap((l) => itemsOf(l.product_id).map((item) => item.objectId)))];
-        return { order, lines, lead: product((short[0] ?? lines[0])?.product_id), total: orderTotal(lines), short, racks, agentName: agent(order.agent_id)?.name };
+        return { order, lines, lead: product((short[0] ?? lines[0])?.product_id), total: orderTotal(lines), short, racks, agentName: order.agent_id ? agent(order.agent_id)?.name : DIRECT_ORDER };
       }),
     [orders, linesOf, product, agent, itemsOf],
   );

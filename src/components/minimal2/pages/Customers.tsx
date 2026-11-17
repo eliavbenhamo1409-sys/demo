@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Button, EmptyState, Showing, Table, Tabs, Toolbar, type TableColumn } from "@/components/ui";
 import { fmtCompact, fmtDayWord, fmtPrice, fmtQty } from "@/lib/format";
 import { normalizeName, orderTotal, useData } from "@/lib/store";
-import { only } from "../cells";
+import { goColumn } from "../cells";
 import { Page, Word, type Metric } from "../parts";
 import { daysBack, isLate } from "../work";
 
@@ -76,7 +76,7 @@ export function Customers(): ReactElement {
       render: (c) => (
         <>
           <span className="mn2-cell-title"><bdi>{c.name}</bdi></span>
-          <span className="mn2-cell-sub">{c.orders === 1 ? "הזמנה אחת עד היום" : `${fmtQty(c.orders)} הזמנות עד היום`}</span>
+          <span className="mn2-cell-sub">{c.orders === 1 ? "הזמנה אחת" : `${fmtQty(c.orders)} הזמנות`}</span>
         </>
       ),
     },
@@ -108,16 +108,7 @@ export function Customers(): ReactElement {
         ),
     },
     { key: "last", title: "הזמנה אחרונה", render: (c) => <span className="mn2-cell-text">{fmtDayWord(c.last)}</span> },
-    {
-      key: "act",
-      title: "פעולה",
-      className: "mn2-cell-act",
-      render: (c) => (
-        <span className="mn2-acts">
-          <Button variant="secondary" size="sm" onClick={only(() => openOrders(c))}>הזמנות הלקוח</Button>
-        </span>
-      ),
-    },
+    goColumn(),
   ];
 
   const month = customers.filter((c) => c.delivered > 0);
@@ -125,29 +116,24 @@ export function Customers(): ReactElement {
   const sold = month.reduce((sum, c) => sum + (c.taken ?? 0), 0);
   const late = customers.filter((c) => c.late > 0).length;
 
-  const lead =
-    customers.length === 0 ? "עוד אין לקוחות. לקוח נוסף מעצמו כשסוכן פותח לו הזמנה."
-    : `${fmtQty(waiting.length)} לקוחות מחכים עכשיו להזמנה פתוחה${late > 0 ? `, ${late === 1 ? "ואחד מהם" : `ו-${fmtQty(late)} מהם`} כבר אחרי המועד שהובטח` : ""}. לחיצה על לקוח פותחת את ההזמנות שלו.`;
-
   const metrics: Metric[] = [
-    { key: "waiting", label: "מחכים להזמנה", icon: "users", value: waiting.length, note: late > 0 ? <span className="is-warn">{late === 1 ? "לקוח אחד באיחור" : `${fmtQty(late)} לקוחות באיחור`}</span> : "כל ההזמנות בזמן" },
-    { key: "month", label: "קנו ב-30 יום", icon: "truck", value: month.length, note: `${fmtCompact(sold)} נמסרו להם` },
-    { key: "biggest", label: "הלקוח הגדול של החודש", icon: "chart-pie", value: biggest ? <bdi className="mn2-metric-name">{biggest.name}</bdi> : "אין", note: biggest ? (biggest.taken === null ? "הסכום לא זמין" : `${fmtCompact(biggest.taken)}${sold > 0 ? ` · ${Math.round((biggest.taken / sold) * 100)}% מהמכירות` : ""}`) : "לא נמסרו הזמנות החודש" },
-    { key: "all", label: "סך הלקוחות", icon: "receipt-text", value: customers.length, note: "כל מי שהוזמן עבורו אי פעם" },
+    { key: "waiting", label: "מחכים להזמנה", icon: "users", value: waiting.length },
+    { key: "late", label: "באיחור", icon: "clock", value: late, tone: late > 0 ? "warn" : "ok" },
+    { key: "month", label: "נמסר ב-30 יום", icon: "arrow-up-from-line", value: <span className="ltr">{fmtCompact(sold)}</span> },
+    { key: "biggest", label: "הלקוח הגדול החודש", icon: "chart-pie", value: biggest ? <bdi className="mn2-metric-name">{biggest.name}</bdi> : "אין" },
   ];
 
+  // The count of those who wait stands in the figures; the tab only says which list this is.
   const tabs = [
-    { value: "waiting", label: "מחכים להזמנה", count: waiting.length },
+    { value: "waiting", label: "מחכים להזמנה" },
     { value: "all", label: "כל הלקוחות", count: customers.length },
   ];
 
   return (
     <Page
       title="לקוחות"
-      state={late > 0 ? { word: `${fmtQty(late)} באיחור`, tone: "warn" } : undefined}
-      lead={lead}
       metrics={metrics}
-      toolbar={<Toolbar tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "all" ? "all" : "waiting")} />} query={query} onQuery={setQuery} placeholder="חיפוש לפי לקוח או טלפון" />}
+      toolbar={<Toolbar tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "all" ? "all" : "waiting")} />} query={query} onQuery={setQuery} placeholder="חיפוש לקוח או טלפון" />}
     >
       <Table<Customer>
         caption="רשימת לקוחות"
@@ -160,11 +146,11 @@ export function Customers(): ReactElement {
               <Button variant="secondary" onClick={() => setQuery("")}>ניקוי החיפוש</Button>
             </EmptyState>
           ) : tab === "waiting" && customers.length > 0 ? (
-            <EmptyState title="אף לקוח לא מחכה להזמנה" hint="כל ההזמנות נמסרו או בוטלו">
+            <EmptyState title="אף לקוח לא מחכה להזמנה">
               <Button variant="secondary" onClick={() => setTab("all")}>כל הלקוחות</Button>
             </EmptyState>
           ) : (
-            <EmptyState title="אין לקוחות" hint="לקוח נוסף מעצמו כשסוכן פותח לו הזמנה" />
+            <EmptyState title="אין לקוחות" hint="לקוח נוסף כשנפתחת לו הזמנה" />
           )
         }
         onRowClick={openOrders}

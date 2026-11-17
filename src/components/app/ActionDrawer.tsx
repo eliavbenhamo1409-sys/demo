@@ -9,6 +9,7 @@ import { useUi, type ActionContext, type ActionKind } from "./ui-state";
 import { ReceiveForm } from "./forms/ReceiveForm";
 import { IssueForm } from "./forms/IssueForm";
 import { FaultForm } from "./forms/FaultForm";
+import { OrderForm } from "./forms/OrderForm";
 import { AdjustForm } from "./forms/AdjustForm";
 import { PlaceForm } from "./forms/PlaceForm";
 import { ProductForm } from "./forms/ProductForm";
@@ -29,6 +30,8 @@ function FormFor({ kind, ctx }: { kind: ActionKind; ctx: ActionContext }) {
       return <IssueForm ctx={ctx} />;
     case "fault":
       return <FaultForm ctx={ctx} />;
+    case "new-order":
+      return <OrderForm ctx={ctx} />;
     case "adjust":
       return <AdjustForm ctx={ctx} />;
     case "place":

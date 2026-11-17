@@ -1,10 +1,10 @@
-/* The home page, in the order the owner drew on 2026-11-17: four counts, three panels, then what to handle beside what goes out.
-   The order is theirs; the type, colour and sheets stay the aluminium's. */
+/* The home page, in the order the owner drew on 2026-11-17: four counts, three panels, then the tasks beside what goes out.
+   The order is theirs; the type and sheets stay the aluminium's. Colour is a state: a count is ink, amber where it waits,
+   red where something is missing or wrong, green at zero. Goods in are green and goods out are red, here as in every list. */
 
 html[data-minimal2] .mn2-shell {
-  .mn2-overview { --home-gap: var(--space-5); --mn2-out: #1baf7a; }
-  &:is([data-theme="minimal-dark"] *) .mn2-overview { --mn2-out: #199e70; }
-  .mn2-overview > .mn2-head + * { margin-block-start: var(--space-6); }
+  .mn2-overview { --home-gap: var(--space-5); }
+  .mn2-overview > .mn2-head + * { margin-block-start: var(--space-5); }
   .mn2-overview > * + * { margin-block-start: var(--home-gap); }
 
   /* ── Four counts ── */
@@ -15,7 +15,12 @@ html[data-minimal2] .mn2-shell {
   .mn2-kpi:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--focus); }
   .mn2-kpi-label { display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-secondary); }
   .mn2-kpi-n { font-size: 44px; line-height: 52px; font-weight: 600; letter-spacing: -0.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-  .mn2-kpi-note { font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-tertiary); }
+  .mn2-kpi-n.is-ok { color: var(--success-text); }
+  .mn2-kpi-n.is-warn { color: var(--warning-text); }
+  .mn2-kpi-n.is-bad { color: var(--danger-text); }
+  .mn2-kpi-n.is-short { color: var(--short); }
+  /* The line under the figure keeps its height when it has nothing to say, so four figures stand on one line. */
+  .mn2-kpi-note { min-height: var(--l-20); font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-tertiary); }
   .mn2-kpi-note .is-ok { color: var(--success-text); }
   .mn2-kpi-note .is-warn { color: var(--warning-text); }
   .mn2-kpi-note .is-short { color: var(--short); }
@@ -37,8 +42,8 @@ html[data-minimal2] .mn2-shell {
   .mn2-chart-key span { display: inline-flex; align-items: center; gap: 6px; }
   .mn2-chart-key b { font-weight: 600; color: var(--text-primary); }
   .mn2-chart-key i { width: 10px; height: 10px; border-radius: 3px; }
-  :is(.mn2-chart-key i, .mn2-bar).is-in { background: var(--accent); }
-  :is(.mn2-chart-key i, .mn2-bar).is-out { background: var(--mn2-out); }
+  :is(.mn2-chart-key i, .mn2-bar).is-in { background: var(--success); }
+  :is(.mn2-chart-key i, .mn2-bar).is-out { background: var(--danger); }
   .mn2-chart { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-2); min-height: 236px; padding: var(--space-4) var(--inset) var(--space-4); }
   .mn2-chart.is-loading { margin: var(--space-4) var(--inset); padding: 0; border-radius: var(--radius-md); background: var(--bg-muted); }
   .mn2-chart-day { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
@@ -48,18 +53,18 @@ html[data-minimal2] .mn2-shell {
   .mn2-chart-label { display: flex; flex-direction: column; align-items: center; font-size: var(--t-12); line-height: var(--l-16); color: var(--text-tertiary); }
   .mn2-chart-day.is-today .mn2-chart-label { color: var(--text-primary); font-weight: 600; }
 
-  /* ── A ring with its legend ── */
-  .mn2-ring { flex: 1; display: flex; flex-direction: column; padding: 0 var(--inset) var(--space-5); }
-  .mn2-ring-total { margin: 0 0 var(--space-3); font-size: 30px; line-height: 38px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); text-align: start; }
-  .mn2-ring-body { flex: 1; display: flex; flex-direction: column; align-items: stretch; gap: var(--space-4); }
-  .mn2-ring-body > .ov-ring { align-self: center; }
-  .mn2-ring-legend { min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-  .mn2-ring-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; align-items: start; gap: 4px 10px; cursor: default; transition: opacity var(--dur-1) linear; }
-  .mn2-ring-body:has(li.is-active) li:not(.is-active) { opacity: 0.5; }
-  .mn2-ring-legend i { width: 10px; height: 10px; margin-top: 5px; border-radius: 3px; }
-  .mn2-ring-name { min-width: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); }
-  .mn2-ring-worth { font-size: var(--t-13); line-height: var(--l-20); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-  .mn2-ring-pct { font-size: var(--t-14); line-height: var(--l-20); font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  /* ── A ring of shares with its legend. Named apart from the day's ring (`.mn2-ring` in reward.css): sharing the name squashed that one. ── */
+  .mn2-pie { flex: 1; display: flex; flex-direction: column; padding: 0 var(--inset) var(--space-5); }
+  .mn2-pie-total { margin: 0 0 var(--space-3); font-size: 30px; line-height: 38px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); text-align: start; }
+  .mn2-pie-body { flex: 1; display: flex; flex-direction: column; align-items: stretch; gap: var(--space-4); }
+  .mn2-pie-body > .ov-ring { align-self: center; }
+  .mn2-pie-legend { min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .mn2-pie-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; align-items: start; gap: 4px 10px; cursor: default; transition: opacity var(--dur-1) linear; }
+  .mn2-pie-body:has(li.is-active) li:not(.is-active) { opacity: 0.5; }
+  .mn2-pie-legend i { width: 10px; height: 10px; margin-top: 5px; border-radius: 3px; }
+  .mn2-pie-name { min-width: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); }
+  .mn2-pie-worth { font-size: var(--t-13); line-height: var(--l-20); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .mn2-pie-pct { font-size: var(--t-14); line-height: var(--l-20); font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
   /* ── The deliveries to come ── */
   .mn2-next { width: 100%; border-collapse: collapse; font-size: var(--t-14); line-height: var(--l-20); }

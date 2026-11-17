@@ -3,8 +3,17 @@
 /** What the tables of מינימל 2 share, so the same thing looks and reads the same in every list. */
 import type { MouseEvent, ReactElement, ReactNode } from "react";
 import { ProductThumb } from "@/components/app/Viz";
+import { Icon, type TableColumn } from "@/components/ui";
 import { fmtName, fmtQty, fmtUnit } from "@/lib/format";
 import type { Product, Supplier } from "@/lib/store";
+
+/**
+ * The end of a row whose press opens it: one quiet arrow, so the same word is not written down a whole column.
+ * A row keeps a button only where the button is the work itself (assign, approve, close).
+ */
+export function goColumn<T>(): TableColumn<T> {
+  return { key: "go", title: <span className="sr-only">פתיחה</span>, className: "mn2-cell-go", render: () => <Icon name="chevron-left" size={16} className="mn2-go" /> };
+}
 
 /** For a button inside a row: it does its own thing, and the row's own press stays for everywhere else. */
 export const only = (run: () => void) => (e: MouseEvent): void => {

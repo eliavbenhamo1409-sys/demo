@@ -20,13 +20,14 @@ html[data-minimal2] .mn2-shell {
   .mn2-row-n { font-size: var(--t-16); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .mn2-row-end .mn2-word { font-size: var(--t-13); line-height: var(--l-18); }
   .mn2-row-act { flex-shrink: 0; pointer-events: none; }
-  .mn2-late { color: var(--warning-text); font-weight: 500; }
-  .mn2-block-foot { margin: 0; padding: var(--space-3) var(--inset); border-top: var(--hair) solid var(--border-subtle); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+  /* The quiet arrow at the end of a row whose press opens it. */
+  .mn2-go { flex-shrink: 0; color: var(--text-quiet); transition: color var(--dur-1) linear, transform var(--dur-2) var(--ease); }
+  @media (hover: hover) { :is(.mn2-row, .sa-table tr.is-clickable):hover .mn2-go { color: var(--accent-text); transform: translateX(-2px); } }
 
   /* ── Nothing left: a check and a word ── */
   .mn2-clear { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-8) var(--inset); text-align: center; }
   .mn2-clear-title { margin: var(--space-2) 0 0; font-size: var(--t-16); line-height: var(--l-24); font-weight: 600; color: var(--success-text); }
-  .mn2-clear-hint { margin: 0; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); text-wrap: pretty; }
+  .mn2-block-empty { margin: 0; padding: var(--space-2) var(--inset) var(--space-5); font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
 
   @media (max-width: 600px) {
     .mn2-row { flex-wrap: wrap; }
@@ -39,6 +40,15 @@ html[data-minimal2] .mn2-shell {
   /* A sheet that holds a table and what stands over it. */
   .mn2-sheet { min-width: 0; overflow: clip; }
   .mn2-sheet > .sa-table-wrap { background: none; box-shadow: none; border-radius: 0; }
+  /* A name over a list that is not the page's main one, with the way back beside it. */
+  .mn2-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--inset); border-bottom: var(--hair) solid var(--border-subtle); }
+  .mn2-sheet-title { margin: 0; font-size: var(--t-16); line-height: var(--l-24); font-weight: 600; color: var(--text-primary); }
+  /* What is behind the list, in one quiet line at its foot: the archive is there, never in the way. */
+  .mn2-sheet-more { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 48px; padding: var(--space-2) var(--inset); border: 0; border-top: var(--hair) solid var(--border-subtle); background: none; font: inherit; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-secondary); text-align: start; cursor: pointer; transition: color var(--dur-1) linear, background-color var(--dur-1) linear; }
+  .mn2-sheet-more-n { margin-inline-end: auto; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .mn2-sheet-more > svg { color: var(--text-quiet); }
+  .mn2-sheet-more:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--focus); }
+  @media (hover: hover) { .mn2-sheet-more:hover { background: var(--bg-hover); color: var(--accent-text); } }
 
   /* Cells start at their top, so a second line never pushes a neighbour off the row's first line. */
   .mn2-table .sa-table td { height: auto; padding-block: 14px; vertical-align: top; font-size: var(--t-14); line-height: var(--l-20); white-space: normal; }
@@ -71,30 +81,27 @@ html[data-minimal2] .mn2-shell {
   .mn2-gap .mn2-qty-unit { color: inherit; opacity: 0.8; }
 
   /* The last column: what can be done about this row, always in the same place. */
-  .mn2-cell-act { width: 1%; white-space: nowrap; }
+  .mn2-cell-act { width: 1%; white-space: nowrap; text-align: end; }
   .mn2-table .sa-table td.mn2-cell-act { padding-block: 10px; }
+  .mn2-cell-go { width: 40px; }
+  .mn2-table .sa-table td.mn2-cell-go { vertical-align: middle; text-align: end; }
   .mn2-acts { display: inline-flex; align-items: center; gap: var(--space-1); }
   .mn2-tel { color: var(--accent-text); text-decoration: none; white-space: nowrap; }
   @media (hover: hover) { .mn2-tel:hover { text-decoration: underline; } }
   .mn2-sort { display: inline-flex; align-items: center; gap: var(--space-1); border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
-  .mn2-foot-note { margin: 0; font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); text-wrap: pretty; }
   .mn2-metric-name { display: block; max-width: 100%; font-size: 20px; line-height: 36px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* A narrower window gives up what the drawer also holds, the least needed first; the name and the action stay. */
-  @media (max-width: 1379px) { .mn2-stock-table :is(th, td):nth-child(7) { display: none; } }
-  @media (max-width: 1239px) { .mn2-stock-table :is(th, td):nth-child(6), .mn2-short-table :is(th, td):nth-child(3), .mn2-moves-table :is(th, td):nth-child(6) { display: none; } }
-  @media (max-width: 1099px) { .mn2-stock-table :is(th, td):nth-child(3), .mn2-short-table :is(th, td):nth-child(7), .mn2-low-table :is(th, td):nth-child(6), .mn2-suppliers-table :is(th, td):nth-child(2), .mn2-customers-table :is(th, td):nth-child(5) { display: none; } }
+  @media (max-width: 1239px) { .mn2-stock-table :is(th, td):nth-child(6), .mn2-moves-table :is(th, td):nth-child(6) { display: none; } }
+  @media (max-width: 1099px) { .mn2-stock-table :is(th, td):nth-child(3), .mn2-suppliers-table :is(th, td):nth-child(2), .mn2-customers-table :is(th, td):nth-child(5) { display: none; } }
   @media (max-width: 760px) {
-    .mn2-table .sa-table :is(th, td):not(:first-child, :nth-child(2), .mn2-cell-act, .sa-table-empty) { display: none; }
+    .mn2-table .sa-table :is(th, td):not(:first-child, :nth-child(2), .mn2-cell-act, .mn2-cell-go, .sa-table-empty) { display: none; }
     .mn2-cell-main { width: auto; min-width: 0; }
     .mn2-acts > .sa-btn-ghost { display: none; }
   }
 }
 
 html[data-minimal2] .mn2-shell {
-  /* A teaser of a longer text in a figure's note: one line, the whole of it stands in the list below. */
-  .mn2-clip { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mn2-metric-note:has(> .mn2-clip) { max-width: 100%; }
   /* Tables with many figures give the name less of the row, and a supplier's name room to stay on a line. */
   .mn2-short-table .mn2-cell-main, .mn2-low-table .mn2-cell-main { width: 26%; }
   .mn2-short-table .mn2-cell-main, .mn2-low-table .mn2-cell-main { min-width: 200px; }
@@ -102,10 +109,9 @@ html[data-minimal2] .mn2-shell {
 }
 
 html[data-minimal2] .mn2-shell {
-  /* מלאי: nine columns that keep their widths, so the name takes all that is left and every figure stands on its own edge. */
+  /* מלאי: columns that keep their widths, so the name takes all that is left and every figure stands on its own edge. */
   .mn2-stock-table .sa-table { table-layout: fixed; }
   .mn2-stock-table .mn2-cell-main { width: auto; }
-  .mn2-stock-table .sa-table th { white-space: normal; line-height: var(--l-16); padding-block: 6px; height: 44px; vertical-align: middle; }
   .mn2-stock-table td .ltr { white-space: nowrap; }
   .mn2-stock-table .sa-level { gap: var(--space-2); }
   .mn2-stock-table .sa-meter { width: 52px; }

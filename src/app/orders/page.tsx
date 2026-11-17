@@ -14,7 +14,7 @@ import { changeWords, keptChanges } from "@/lib/worker/order-check";
 import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, EmptyState, PageHead, Select, Showing, Table, Tabs, Toolbar, type SelectOption, type TableColumn } from "@/components/ui";
-import { byPromise, daysUntil, fmtCompact, fmtDay, fmtDayWord, fmtName, fmtPlainDay, fmtPrice, fmtPromised, fmtQty, fmtUnit, ORDER_STATUS_LABEL } from "@/lib/format";
+import { byPromise, daysUntil, DIRECT_ORDER, fmtCompact, fmtDay, fmtDayWord, fmtName, fmtPlainDay, fmtPrice, fmtPromised, fmtQty, fmtUnit, ORDER_STATUS_LABEL } from "@/lib/format";
 // The overview's figure and state word, so a row of orders reads the same on both pages.
 import "@/components/app/overview.css";
 
@@ -205,7 +205,7 @@ function OrdersInner() {
         key: "customer",
         title: "לקוח",
         render: (o) => {
-          const name = agent(o.agent_id)?.name;
+          const name = o.agent_id ? agent(o.agent_id)?.name : DIRECT_ORDER;
           return (
             <>
               <span className="sa-cell-primary sa-truncate block" title={o.customer}>{o.customer}</span>

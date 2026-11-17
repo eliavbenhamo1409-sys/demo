@@ -1,7 +1,8 @@
 /**
- * מינימל 2's way around: six areas a manager thinks in, each holding its pages. A page is an address the app already has;
- * three of them are a second view of an existing address (`?view=`), so no route was added and any other style opening
- * the same link still lands on the page that owns the thing.
+ * מינימל 2's way around: six areas a manager thinks in, a word each. The rail lists the areas and nothing under them;
+ * an area's pages stand in one rectangle at the head of the page, so nothing is named twice. A page is an address the
+ * app already has; three of them are a second view of an existing address (`?view=`), so no route was added and any
+ * other style opening the same link still lands on the page that owns the thing.
  */
 import type { LineName } from "./icons";
 
@@ -22,65 +23,65 @@ export type PageId =
 
 export interface PageDef {
   id: PageId;
+  /** The word on the page's place in its area's rectangle; for an area of one page, the page's own title. */
   label: string;
+  /** One drawing a thing: the same one wherever the thing is named, in the rectangle and on the overview. */
+  icon: LineName;
   href: string;
 }
 
 export interface AreaDef {
   id: string;
   label: string;
-  /** What is inside, in the words of its pages: read under the area's name while it is folded. */
-  about: string;
   icon: LineName;
   pages: PageDef[];
 }
 
 export const VIEW_PARAM = "view";
 
+/** The area whose pages are what waits on the manager; the one count in the rail is theirs. */
+export const TASKS = "tasks";
+
 export const AREAS: AreaDef[] = [
-  { id: "overview", label: "סקירת מנהל", about: "תמונת מצב ופעילות", icon: "layout-dashboard", pages: [{ id: "overview", label: "סקירת מנהל", href: "/" }] },
+  { id: "overview", label: "סקירה", icon: "layout-dashboard", pages: [{ id: "overview", label: "סקירת המפעל", icon: "layout-dashboard", href: "/" }] },
   {
-    id: "attention",
-    label: "דורש טיפול",
-    about: "תקלות, אישורים וחוסרים",
+    id: TASKS,
+    label: "משימות לביצוע",
     icon: "list-checks",
     pages: [
-      { id: "faults", label: "תקלות", href: "/faults" },
-      { id: "approvals", label: "אישורים", href: "/closing?view=approvals" },
-      { id: "shortages", label: "חוסרים", href: "/inventory?view=shortages" },
+      { id: "faults", label: "תקלות", icon: "wrench", href: "/faults" },
+      { id: "approvals", label: "אישורים", icon: "clipboard-check", href: "/closing?view=approvals" },
+      { id: "shortages", label: "חוסרים", icon: "package-x", href: "/inventory?view=shortages" },
     ],
   },
   {
     id: "sales",
-    label: "הזמנות ומכירות",
-    about: "הזמנות, מסירות ולקוחות",
+    label: "מכירות",
     icon: "receipt-text",
     pages: [
-      { id: "orders", label: "הזמנות", href: "/orders" },
-      { id: "customers", label: "לקוחות", href: "/orders?view=customers" },
+      { id: "orders", label: "הזמנות", icon: "receipt-text", href: "/orders" },
+      { id: "customers", label: "לקוחות", icon: "users", href: "/orders?view=customers" },
     ],
   },
   {
     id: "warehouse",
-    label: "מחסן ומלאי",
-    about: "מוצרים, תנועות ומיקום",
+    label: "מחסן",
     icon: "warehouse",
     pages: [
-      { id: "stock", label: "מלאי", href: "/inventory" },
-      { id: "movements", label: "תנועות", href: "/movements" },
-      { id: "map", label: "מפת מחסן 3D", href: "/3d" },
+      { id: "stock", label: "מלאי", icon: "package", href: "/inventory" },
+      { id: "movements", label: "תנועות", icon: "arrow-left-right", href: "/movements" },
+      { id: "map", label: "מפה", icon: "map-pin", href: "/3d" },
     ],
   },
-  { id: "buying", label: "רכש וספקים", about: "ספקים ושיוך מוצרים", icon: "truck", pages: [{ id: "suppliers", label: "רכש וספקים", href: "/suppliers" }] },
+  { id: "buying", label: "ספקים", icon: "truck", pages: [{ id: "suppliers", label: "ספקים", icon: "truck", href: "/suppliers" }] },
   {
     id: "control",
-    label: "בקרה ודוחות",
-    about: "סגירת יום, תיעוד וצוות",
+    label: "בקרה",
     icon: "calendar-check",
     pages: [
-      { id: "closing", label: "סגירת יום", href: "/closing" },
-      { id: "documentation", label: "תיעוד", href: "/documentation" },
-      { id: "team", label: "צוות", href: "/team" },
+      { id: "closing", label: "סגירת יום", icon: "calendar-check", href: "/closing" },
+      { id: "documentation", label: "תיעוד", icon: "file-text", href: "/documentation" },
+      { id: "team", label: "צוות", icon: "user-round-check", href: "/team" },
     ],
   },
 ];

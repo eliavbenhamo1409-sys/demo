@@ -11,7 +11,7 @@ import { useUi } from "./ui-state";
 import { StockMeter } from "./Viz";
 import { useFloorObjects } from "@/components/map3d/use-floor-objects";
 import { Badge, Button, cx, Fields, Notice, SidePanel, Spinner, Timeline, type TimelineItem } from "@/components/ui";
-import { fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
+import { DIRECT_ORDER, fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, orderRef } from "@/lib/format";
 import { faultPhotoUrl } from "@/lib/fault-photos";
 import { placeWords, resolvePlace } from "@/lib/map3d/place";
 import { useShelves } from "@/lib/map3d/shelves";
@@ -343,7 +343,7 @@ function ProductPanelInner({ id, initialTab }: { id: string; initialTab: PanelTa
                         <span className="text-ink-2">הזמנה <span className="sa-mono ltr">{order.number}</span> · </span>
                         <bdi>{order.customer}</bdi>
                       </span>
-                      <span className="sa-cell-sub">{agent(order.agent_id)?.name}</span>
+                      <span className="sa-cell-sub">{order.agent_id ? agent(order.agent_id)?.name : DIRECT_ORDER}</span>
                     </button>
                     <span className="shrink-0"><span className="sa-num">{fmtQty(qty)}</span> {fmtUnit(qty, p.unit)}</span>
                   </li>

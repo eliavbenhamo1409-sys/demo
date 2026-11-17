@@ -2,32 +2,35 @@
 
 /**
  * הזמנות as a list of promises, not a list of customers: when each has to leave, and whether the shelf lets it.
- * The nearest delivery leads. A row answers who, when and can it go out, in that order, and its button says what
- * opening it is for: פתיחה when the goods are there, טיפול בחוסר when something is missing.
+ * The nearest delivery leads. Four figures stand over the list and each is a press away from its orders: all the
+ * open ones, the late ones, the ones waiting for stock, and what the open ones are worth. A row answers who, when and
+ * can it go out, in that order; pressing it opens the order.
  */
 import { Suspense, useCallback, useMemo, useState, useTransition, type ReactElement } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUi } from "@/components/app/ui-state";
 import { Button, EmptyState, Select, Showing, Table, Tabs, Toolbar, type SelectOption, type TableColumn } from "@/components/ui";
-import { byPromise, fmtCompact, fmtDay, fmtPlainDay, fmtPrice, fmtPromised, fmtQty } from "@/lib/format";
+import { byPromise, DIRECT_ORDER, fmtCompact, fmtDay, fmtPlainDay, fmtPrice, fmtPromised, fmtQty } from "@/lib/format";
 import { normalizeName, orderTotal, useData, type Order } from "@/lib/store";
 import { changeWords, keptChanges } from "@/lib/worker/order-check";
-import { only } from "../cells";
+import { goColumn } from "../cells";
 import { JustHandled, Page, Word, type Metric } from "../parts";
 import { isLate, isUncovered, orderFacts } from "../work";
 
-type Tab = Order["status"] | "late";
+/** `?status=`: an order's own state, or one of two cuts of the open ones that a figure above the list shows. */
+type View = Order["status"] | "late" | "waiting";
 
-const TABS: { value: Tab; label: string; noun: string; hint: string }[] = [
-  { value: "open", label: "פתוחות", noun: "הזמנות פתוחות", hint: "הזמנה חדשה של סוכן תופיע כאן" },
-  { value: "late", label: "באיחור", noun: "הזמנות באיחור", hint: "כל ההזמנות הפתוחות בזמן" },
-  { value: "delivered", label: "נמסרו", noun: "הזמנות שנמסרו", hint: "הזמנה שסומנה כנמסרה תופיע כאן" },
-  { value: "cancelled", label: "בוטלו", noun: "הזמנות שבוטלו", hint: "הזמנה שבוטלה תופיע כאן" },
+const STATUS_TABS: { value: Order["status"]; label: string }[] = [
+  { value: "open", label: "פתוחות" },
+  { value: "delivered", label: "נמסרו" },
+  { value: "cancelled", label: "בוטלו" },
 ];
 
-const toTab = (v: string | null): Tab => (v === "late" || v === "delivered" || v === "cancelled" ? v : "open");
-const inTab = (o: Order, tab: Tab) => (tab === "late" ? isLate(o) : o.status === tab);
+const NOUN: Record<View, string> = { open: "הזמנות פתוחות", late: "הזמנות באיחור", waiting: "הזמנות שמחכות למלאי", delivered: "הזמנות שנמסרו", cancelled: "הזמנות שבוטלו" };
+
+const toView = (v: string | null): View => (v === "late" || v === "waiting" || v === "delivered" || v === "cancelled" ? v : "open");
+const isOpenView = (view: View) => view === "open" || view === "late" || view === "waiting";
 const digitsOf = (text: string) => text.replace(/\D/g, "");
 
 export function Orders(): ReactElement {
@@ -45,9 +48,9 @@ function OrdersInner(): ReactElement {
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const tab = toTab(params.get("status"));
-  const setTab = useCallback(
-    (next: Tab) => {
+  const view = toView(params.get("status"));
+  const setView = useCallback(
+    (next: View) => {
       const sp = new URLSearchParams(params.toString());
       sp.delete("status");
       if (next !== "open") sp.set("status", next);
@@ -78,15 +81,10 @@ function OrdersInner(): ReactElement {
   const agentOptions = useMemo<SelectOption[]>(() => state.agents.map((a) => ({ value: a.id, label: a.name })), [state.agents]);
 
   /* ───────── the rows ───────── */
+  const short = useCallback((o: Order) => isUncovered(o, linesOf, product), [linesOf, product]);
+  const inView = useCallback((o: Order, v: View) => (v === "late" ? isLate(o) : v === "waiting" ? o.status === "open" && short(o) : o.status === v), [short]);
+
   const base = useMemo(() => (agentId ? state.orders.filter((o) => o.agent_id === agentId) : state.orders), [state.orders, agentId]);
-  const counts = useMemo(() => {
-    const c: Record<Tab, number> = { open: 0, late: 0, delivered: 0, cancelled: 0 };
-    for (const o of base) {
-      c[o.status] += 1;
-      if (isLate(o)) c.late += 1;
-    }
-    return c;
-  }, [base]);
 
   const q = normalizeName(query);
   const hits = useMemo(() => {
@@ -95,55 +93,44 @@ function OrdersInner(): ReactElement {
     return base.filter((o) => normalizeName(o.customer).includes(q) || String(o.number).includes(q) || (digits !== "" && digitsOf(o.customer_phone ?? "").includes(digits)));
   }, [base, q]);
 
+  const total = useMemo(() => base.filter((o) => inView(o, view)).length, [base, view, inView]);
   const rows = useMemo(() => {
-    const found = hits.filter((o) => inTab(o, tab));
+    const found = hits.filter((o) => inView(o, view));
     // What still has to leave reads by the day promised, the nearest first; what closed reads back from the last to close.
-    return tab === "open" || tab === "late" ? found.reverse().sort(byPromise) : found.sort((a, b) => (b.closed_at ?? "").localeCompare(a.closed_at ?? ""));
-  }, [hits, tab]);
+    return isOpenView(view) ? found.reverse().sort(byPromise) : found.sort((a, b) => (b.closed_at ?? "").localeCompare(a.closed_at ?? ""));
+  }, [hits, view, inView]);
 
   const columns = useMemo<TableColumn<Order>[]>(() => {
-    const short = (o: Order) => isUncovered(o, linesOf, product);
     const closedOn = (o: Order) => <span className="mn2-cell-text">{fmtDay(o.closed_at ?? o.created_at)}</span>;
     const customer: TableColumn<Order> = {
       key: "customer",
-      title: "לקוח והזמנה",
+      title: "לקוח",
       className: "mn2-cell-main",
       // Who and which order; what is in it waits in the drawer, so nobody reads a product's description to see who is stuck.
       render: (o) => {
-        const lines = linesOf(o.id).length;
+        const seller = o.agent_id ? agent(o.agent_id)?.name : DIRECT_ORDER;
         return (
           <>
             <span className="mn2-cell-title"><bdi>{o.customer}</bdi></span>
             <span className="mn2-cell-sub">
               הזמנה <span className="ltr">{o.number}</span>
-              {agent(o.agent_id)?.name ? ` · ${agent(o.agent_id)?.name}` : null}
-              {lines > 0 ? ` · ${lines === 1 ? "שורה אחת" : `${fmtQty(lines)} שורות`}` : null}
+              {seller ? ` · ${seller}` : null}
             </span>
           </>
         );
       },
     };
-    const total: TableColumn<Order> = {
+    const sum: TableColumn<Order> = {
       key: "total",
       title: "סכום",
       render: (o) => {
-        const sum = orderTotal(linesOf(o.id));
-        return sum === null ? <span className="mn2-cell-unset">לא זמין</span> : <span className="mn2-qty"><span className="ltr">{fmtPrice(sum)}</span></span>;
+        const worth = orderTotal(linesOf(o.id));
+        return worth === null ? <span className="mn2-cell-unset">לא זמין</span> : <span className="mn2-qty"><span className="ltr">{fmtPrice(worth)}</span></span>;
       },
     };
-    const act = (label: (o: Order) => string): TableColumn<Order> => ({
-      key: "act",
-      title: "פעולה",
-      className: "mn2-cell-act",
-      render: (o) => (
-        <span className="mn2-acts">
-          <Button variant="secondary" size="sm" onClick={only(() => openOrder(o.id))}>{label(o)}</Button>
-        </span>
-      ),
-    });
 
-    if (tab === "cancelled") return [customer, { key: "closed", title: "בוטלה", render: closedOn }, total, act(() => "פתיחה")];
-    if (tab === "delivered") {
+    if (view === "cancelled") return [customer, { key: "closed", title: "בוטלה", render: closedOn }, sum, goColumn()];
+    if (view === "delivered") {
       return [
         customer,
         { key: "closed", title: "נמסרה", render: closedOn },
@@ -157,8 +144,8 @@ function OrdersInner(): ReactElement {
             return o.receipt_read ? <Word tone="ok">תואמת להזמנה</Word> : <Word>לא נקראה</Word>;
           },
         },
-        total,
-        act(() => "פתיחה"),
+        sum,
+        goColumn(),
       ];
     }
     return [
@@ -171,37 +158,29 @@ function OrdersInner(): ReactElement {
             <span className="mn2-cell-unset">לא נקבע</span>
           ) : isLate(o) ? (
             <>
-              <span className="mn2-cell-text ltr">{fmtPlainDay(o.promised_on)}</span>
-              <span className="mn2-cell-sub"><Word tone="warn">{fmtPromised(o.promised_on)}</Word></span>
+              <Word tone="warn">{fmtPromised(o.promised_on)}</Word>
+              <span className="mn2-cell-sub"><span className="ltr">{fmtPlainDay(o.promised_on)}</span></span>
             </>
           ) : (
             <span className="mn2-cell-text">{fmtPromised(o.promised_on)}</span>
           ),
       },
-      { key: "stock", title: "מצב המלאי", render: (o) => (short(o) ? <Word tone="short">חסר במלאי</Word> : <Word tone="ok">מוכן למסירה</Word>) },
-      total,
-      act((o) => (short(o) ? "טיפול בחוסר" : "פתיחה")),
+      { key: "stock", title: "מלאי", render: (o) => (short(o) ? <Word tone="short">חסר במלאי</Word> : <Word tone="ok">מוכן למסירה</Word>) },
+      sum,
+      goColumn(),
     ];
-  }, [tab, agent, product, linesOf, openOrder]);
+  }, [view, agent, linesOf, short]);
 
-  /* ───────── the head ───────── */
+  /* ───────── the figures: each is the list it counts, one press away ───────── */
   const facts = useMemo(() => orderFacts(state.orders, linesOf, product), [state.orders, linesOf, product]);
-  const lead =
-    state.orders.length === 0 ? "עוד אין הזמנות. הזמנה של סוכן מהקטלוג תופיע כאן."
-    : facts.open === 0 ? "אין הזמנות פתוחות. כל מה שהובטח ללקוחות נמסר או בוטל."
-    : `${facts.open === 1 ? "הזמנה אחת פתוחה" : `${fmtQty(facts.open)} הזמנות פתוחות`}: ${fmtQty(facts.ready)} מוכנות למסירה${facts.waiting > 0 ? ` ו-${fmtQty(facts.waiting)} מחכות למלאי` : ""}.${facts.late > 0 ? ` ${facts.late === 1 ? "אחת כבר באיחור" : `${fmtQty(facts.late)} כבר באיחור`}${facts.lateWaiting > 0 ? `, ${facts.lateWaiting === 1 ? "ואחת מהן תקועה" : `ו-${fmtQty(facts.lateWaiting)} מהן תקועות`} בגלל חוסר` : ", וכולן מוכנות לצאת"}.` : " אף אחת לא באיחור."}`;
-
   const metrics: Metric[] = [
-    { key: "open", label: "פתוחות", icon: "receipt-text", value: facts.open, note: facts.unpriced > 0 ? `${fmtCompact(facts.worth)} · ${fmtQty(facts.unpriced)} בלי מחיר` : `${fmtCompact(facts.worth)} במחירון`, onClick: () => setTab("open"), current: tab === "open" },
-    { key: "late", label: "באיחור", icon: "clock", value: facts.late, tone: facts.late > 0 ? "warn" : "ok", note: facts.late === 0 ? <span className="is-ok">הכל בזמן</span> : "עבר המועד שהובטח ללקוח", onClick: () => setTab("late"), current: tab === "late" },
-    { key: "ready", label: "מוכנות למסירה", icon: "package-check", value: facts.ready, tone: facts.ready > 0 ? "ok" : "none", note: "כל השורות על המדף" },
-    { key: "waiting", label: "מחכות למלאי", icon: "package-x", value: facts.waiting, tone: facts.waiting > 0 ? "short" : "ok", note: facts.waiting === 0 ? <span className="is-ok">המדף מכסה הכל</span> : "מוצר אחד לפחות חסר", href: facts.waiting > 0 ? "/inventory?view=shortages" : undefined },
+    { key: "open", label: "פתוחות", icon: "receipt-text", value: facts.open, onClick: () => setView("open"), current: view === "open" },
+    { key: "late", label: "באיחור", icon: "clock", value: facts.late, tone: facts.late > 0 ? "warn" : "ok", onClick: () => setView("late"), current: view === "late" },
+    { key: "waiting", label: "מחכות למלאי", icon: "package-x", value: facts.waiting, tone: facts.waiting > 0 ? "short" : "ok", onClick: () => setView("waiting"), current: view === "waiting" },
+    { key: "worth", label: "שווי הפתוחות", icon: "chart-pie", value: <span className="ltr">{fmtCompact(facts.worth)}</span>, note: facts.unpriced > 0 ? `${fmtQty(facts.unpriced)} בלי מחיר` : undefined },
   ];
 
-  const tabs = TABS.filter((t) => t.value !== "late" || counts.late > 0 || tab === "late").map((t) => ({ value: t.value, label: t.label, count: counts[t.value] }));
-  const here = TABS.find((t) => t.value === tab) ?? TABS[0];
-  const elsewhere = q ? TABS.find((t) => t.value !== "late" && t.value !== tab && hits.some((o) => inTab(o, t.value))) : undefined;
-  const tabTotal = counts[tab];
+  const elsewhere = q ? STATUS_TABS.find((t) => t.value !== view && hits.some((o) => o.status === t.value)) : undefined;
 
   const empty =
     state.orders.length === 0 ? (
@@ -209,38 +188,37 @@ function OrdersInner(): ReactElement {
         <Link href="/catalog" className="sa-btn sa-btn-secondary">פתיחת הקטלוג</Link>
       </EmptyState>
     ) : q ? (
-      <EmptyState title={`לא נמצאו ${here.noun}`} hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
-        {elsewhere ? <Button variant="secondary" onClick={() => setTab(elsewhere.value)}>הצגת {elsewhere.noun}</Button> : null}
+      <EmptyState title={`לא נמצאו ${NOUN[view]}`} hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
+        {elsewhere ? <Button variant="secondary" onClick={() => setView(elsewhere.value)}>הצגת {NOUN[elsewhere.value]}</Button> : null}
         <Button variant="secondary" onClick={() => setQuery("")}>ניקוי החיפוש</Button>
       </EmptyState>
     ) : agentId ? (
-      <EmptyState title={`אין ${here.noun}`} hint={`אצל ${agent(agentId)?.name ?? "הסוכן"}`}>
+      <EmptyState title={`אין ${NOUN[view]}`} hint={`אצל ${agent(agentId)?.name ?? "הסוכן"}`}>
         <Button variant="secondary" onClick={() => setAgentId("")}>הסרת הסינון</Button>
       </EmptyState>
     ) : (
-      <EmptyState title={`אין ${here.noun}`} hint={here.hint}>
-        {tab !== "open" && counts.open > 0 ? <Button variant="secondary" onClick={() => setTab("open")}>הזמנות פתוחות</Button> : undefined}
+      <EmptyState title={`אין ${NOUN[view]}`}>
+        {view !== "open" && facts.open > 0 ? <Button variant="secondary" onClick={() => setView("open")}>הזמנות פתוחות</Button> : undefined}
       </EmptyState>
     );
 
   return (
     <Page
       title="הזמנות"
-      state={facts.late > 0 ? { word: `${fmtQty(facts.late)} באיחור`, tone: "warn" } : facts.open > 0 ? { word: "הכל בזמן", tone: "ok" } : undefined}
-      lead={lead}
       metrics={metrics}
       toolbar={
         <Toolbar
-          tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(toTab(v))} />}
+          // Late and waiting are cuts of the open orders, so the open tab stays lit under them.
+          tabs={<Tabs tabs={STATUS_TABS} value={isOpenView(view) ? "open" : view} onChange={(v) => setView(toView(v))} />}
           filters={<Select options={agentOptions} value={agentId} onChange={setAgentId} allLabel="כל הסוכנים" placeholder="סוכן" />}
           query={query}
           onQuery={setQuery}
-          placeholder="חיפוש לפי לקוח, מספר הזמנה או טלפון"
+          placeholder="חיפוש לקוח, מספר הזמנה או טלפון"
         />
       }
     >
       <div className="sa-card mn2-sheet">
-        {tab === "open" || tab === "late" ? <JustHandled kind="order" /> : null}
+        {isOpenView(view) ? <JustHandled kind="order" /> : null}
         <Table<Order>
           caption="רשימת הזמנות"
           className="mn2-table mn2-orders-table"
@@ -249,7 +227,7 @@ function OrdersInner(): ReactElement {
           selectedId={panel?.type === "order" ? panel.id : undefined}
           empty={empty}
           onRowClick={(o) => openOrder(o.id)}
-          footer={rows.length > 0 && rows.length < tabTotal ? <Showing shown={rows.length} total={tabTotal} /> : undefined}
+          footer={rows.length > 0 && rows.length < total ? <Showing shown={rows.length} total={total} /> : undefined}
         />
       </div>
     </Page>

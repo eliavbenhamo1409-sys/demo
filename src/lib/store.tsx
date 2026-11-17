@@ -355,6 +355,26 @@ export type DocumentInput = {
   workerId?: string | null;
 };
 export type DocumentPatch = Pick<TablesUpdate<"documents">, "supplier_id" | "customer" | "reference">;
+/** An order placed from the admin. `request` is the form's own id: a resend after a lost answer returns the order that landed instead of placing it twice. */
+export type OrderInput = {
+  request: string;
+  /** Null for a direct order: the owner's own, belonging to no agent. */
+  agentId: string | null;
+  customer: string;
+  phone: string;
+  note: string;
+  /** YYYY-MM-DD, the day promised to the customer. */
+  promised: string;
+  lines: { productId: string; qty: number }[];
+};
+/** A line the database refused: what was asked and what could still be promised. */
+export type OrderShortage = { product_id: string | null; name: string | null; wanted: number; available: number };
+/** The database refused the order because a line asks for more than can be promised; nothing was held. */
+export class OrderShortageError extends Error {
+  constructor(public lines: OrderShortage[]) {
+    super("חסר במלאי");
+  }
+}
 export type FaultPatch = { description: string; product_id: string | null };
 export type FaultInput = {
   productId?: string | null;
@@ -402,6 +422,8 @@ type Api = {
   updateWorker: (id: string, patch: TablesUpdate<"workers">) => Promise<void>;
   createAgent: (input: TablesInsert<"agents">) => Promise<Agent>;
   updateAgent: (id: string, patch: TablesUpdate<"agents">) => Promise<void>;
+  /** Places an order and holds its stock in one step in the DB, as an agent's order from the catalogue does. Throws OrderShortageError when a line can't be promised. */
+  createOrder: (input: OrderInput) => Promise<Order>;
   /** Posts the order's out movements against its receipt, closes it and releases its hold, atomically in the DB. */
   deliverOrder: (id: string, receipt: string) => Promise<void>;
   /** Closes the order and releases its hold; the stock never moved. */
@@ -928,6 +950,34 @@ export function DataProvider({ scope = "full", children }: { scope?: DataScope; 
       const row = data?.[0];
       if (error || !row) throw new Error(error?.message ?? NOT_APPLIED);
       dispatch({ type: "upsert", table: "agents", row });
+    },
+    createOrder: async (input) => {
+      const { data, error } = await sb.rpc("create_order", {
+        request: input.request,
+        agent: input.agentId,
+        customer_name: input.customer,
+        phone: input.phone,
+        order_note: input.note,
+        items: input.lines.map((l) => ({ product_id: l.productId, qty: l.qty })),
+        promised: input.promised,
+      });
+      if (error) {
+        if (error.message === "חסר במלאי" && error.details) {
+          // Someone took the stock first: read the shelf again, so the form shows what can be promised now.
+          reload().catch(() => undefined);
+          throw new OrderShortageError(JSON.parse(error.details) as OrderShortage[]);
+        }
+        throw new Error(error.message);
+      }
+      // The order, its lines and the stock they hold are in the store before its drawer opens; realtime brings the same rows again.
+      const [lines, held] = await Promise.all([
+        sb.from("order_lines").select("*").eq("order_id", data.id),
+        sb.from("products").select("*").in("id", input.lines.map((l) => l.productId)),
+      ]);
+      dispatch({ type: "upsert", table: "orders", row: data });
+      for (const row of lines.data ?? []) dispatch({ type: "upsert", table: "order_lines", row });
+      for (const row of held.data ?? []) dispatch({ type: "upsert", table: "products", row });
+      return data;
     },
     deliverOrder: async (id, receipt) => {
       const { error } = await sb.rpc("deliver_order", { target_order: id, receipt });

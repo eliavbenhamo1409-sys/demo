@@ -13,10 +13,11 @@ export function useShortages(): Shortage[] {
 /** How much waits, by kind. One count for every screen that shows it. */
 export function useWaiting(): Waiting {
   const { state, product } = useData();
-  const shortages = useShortages().length;
+  const missing = useShortages();
   return useMemo(() => {
     const faults = openFaults(state.faults).length;
     const approvals = pendingRequests(state.itemRequests).length + pendingNames(state.supplierItems, product).length;
-    return { faults, approvals, shortages, total: faults + approvals + shortages };
-  }, [state.faults, state.itemRequests, state.supplierItems, product, shortages]);
+    const shortages = missing.length;
+    return { faults, approvals, shortages, hurting: missing.filter((s) => s.level === "short").length, total: faults + approvals + shortages };
+  }, [state.faults, state.itemRequests, state.supplierItems, product, missing]);
 }

@@ -13,7 +13,7 @@ import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { Button, cx, MovementQty, Notice } from "@/components/ui";
 import { fmtClosingDay, isDay, israelToday, shiftDay, useDaySummary, useFirstClosedDay, type DayAction, type DayStock, type DaySummary, type MovedLine } from "@/lib/day-closing";
-import { fmtName, fmtPrice, fmtQty, fmtTime } from "@/lib/format";
+import { DIRECT_ORDER, fmtName, fmtPrice, fmtQty, fmtTime } from "@/lib/format";
 import { useData } from "@/lib/store";
 import { supabase } from "@/lib/supabase/client";
 import { Figure } from "../Figure";
@@ -388,7 +388,7 @@ function OpenDocuments({ summary }: { summary: DaySummary }): ReactElement {
           <Line
             key={o.id}
             title={`הזמנה ${o.number} · ${o.customer}`}
-            meta={joined(count(o.lines, "שורה אחת", "שורות"), o.agent)}
+            meta={joined(count(o.lines, "שורה אחת", "שורות"), o.agent ?? DIRECT_ORDER)}
             word={late ? <span className="mh-tone-warn">באיחור</span> : "פתוחה"}
             onOpen={() => openOrder(o.id)}
           />

@@ -1,29 +1,27 @@
 "use client";
 
 /**
- * רכש וספקים in two clear states: דורש שיוך, the names from delivery notes that wait for a product, and כל הספקים,
- * the list to look someone up in. A supplier opens in the drawer with who to call, what they bring and what arrived.
- * The map of names, which the owner asked for in the aluminium style, stays as a third tab: a tool, not the page.
+ * ספקים: the list to look someone up in, and the map of what each supplier calls each product. A supplier opens in
+ * the drawer with who to call, what they bring and what arrived. A name that still waits for a product is a task, so
+ * it is decided under משימות לביצוע and not listed here a second time; the map shows it once it is decided, and
+ * still lets a name be approved or removed where it stands.
  */
 import { Suspense, useCallback, useMemo, useState, type ReactElement } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { NameMap } from "@/components/app/dictionary/map/NameMap";
-import { PendingInbox } from "@/components/app/dictionary/PendingInbox";
-import { productOptions } from "@/components/app/forms/options";
 import { useUi } from "@/components/app/ui-state";
 import { Button, EmptyState, Modal, Showing, Table, Tabs, Toolbar, type TableColumn } from "@/components/ui";
 import { fmtCompact, fmtDayWord, fmtQty } from "@/lib/format";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { PACE_DAYS } from "@/lib/snapshot";
 import { isTempId, normalizeName, useData, type Product, type Supplier, type SupplierItem } from "@/lib/store";
-import { only } from "../cells";
-import { Check, JustHandled, Page, type Metric } from "../parts";
+import { goColumn } from "../cells";
+import { Page, type Metric } from "../parts";
 import { SupplierPanel } from "../SupplierPanel";
-import { pendingNames } from "../work";
 
-type Tab = "pending" | "all" | "map";
+type Tab = "all" | "map";
 
-type Row = Supplier & { products: number; names: number; waiting: number; worth: number; lines: number; last: string | null };
+type Row = Supplier & { products: number; worth: number; lines: number; last: string | null };
 
 export function Suppliers(): ReactElement {
   return (
@@ -34,25 +32,20 @@ export function Suppliers(): ReactElement {
 }
 
 function SuppliersInner(): ReactElement {
-  const { state, product, supplier, mapSupplierItem, approveSupplierItem, deleteSupplierItem } = useData();
+  const { state, product, supplier, approveSupplierItem, deleteSupplierItem } = useData();
   const { openAction, openProduct, notify } = useUi();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const inbox = useMemo(
-    () => pendingNames(state.supplierItems, product).sort((a, b) => b.times_seen - a.times_seen || b.created_at.localeCompare(a.created_at)),
-    [state.supplierItems, product],
-  );
-
-  // With something to decide the page opens on it; with nothing, on the list.
-  const asked = params.get("tab");
-  const tab: Tab = asked === "all" || asked === "map" || asked === "pending" ? asked : inbox.length > 0 ? "pending" : "all";
+  const tab: Tab = params.get("tab") === "map" ? "map" : "all";
   const setTab = useCallback(
     (next: Tab) => {
       const sp = new URLSearchParams(params.toString());
-      sp.set("tab", next);
-      router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+      if (next === "all") sp.delete("tab");
+      else sp.set("tab", next);
+      const qs = sp.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
     [params, pathname, router],
   );
@@ -68,20 +61,13 @@ function SuppliersInner(): ReactElement {
   const { rows: month, isLoading: monthLoading } = useMovementsInRange(since, null);
 
   const supplierName = useCallback((id: string) => supplier(id)?.name ?? "ספק לא ידוע", [supplier]);
-  const prodOpts = useMemo(() => productOptions(state.products), [state.products]);
 
   /* ───────── every supplier, with what it brings ───────── */
   const rows = useMemo<Row[]>(() => {
-    const by = new Map<string, Row>(state.suppliers.map((s) => [s.id, { ...s, products: 0, names: 0, waiting: 0, worth: 0, lines: 0, last: null }]));
+    const by = new Map<string, Row>(state.suppliers.map((s) => [s.id, { ...s, products: 0, worth: 0, lines: 0, last: null }]));
     for (const p of state.products) {
       const row = by.get(p.primary_supplier_id ?? "");
       if (row) row.products += 1;
-    }
-    for (const i of state.supplierItems) {
-      const row = by.get(i.supplier_id);
-      if (!row) continue;
-      row.names += 1;
-      if (i.status === "pending" || !i.product_id || !product(i.product_id)) row.waiting += 1;
     }
     // Newest first, so the first delivery seen for a supplier is its last.
     for (const m of month) {
@@ -93,16 +79,12 @@ function SuppliersInner(): ReactElement {
       row.last ??= m.created_at;
     }
     return [...by.values()];
-  }, [state.suppliers, state.products, state.supplierItems, month, product]);
+  }, [state.suppliers, state.products, month, product]);
 
   const q = normalizeName(query);
   const shownSuppliers = useMemo(
-    () => rows.filter((s) => !q || normalizeName([s.name, s.contact, s.phone].filter(Boolean).join(" ")).includes(q)).sort((a, b) => b.waiting - a.waiting || b.worth - a.worth || a.name.localeCompare(b.name, "he")),
+    () => rows.filter((s) => !q || normalizeName([s.name, s.contact, s.phone].filter(Boolean).join(" ")).includes(q)).sort((a, b) => b.worth - a.worth || a.name.localeCompare(b.name, "he")),
     [rows, q],
-  );
-  const shownInbox = useMemo(
-    () => (q ? inbox.filter((i) => normalizeName([i.external_name, i.external_sku, supplierName(i.supplier_id)].filter(Boolean).join(" ")).includes(q)) : inbox),
-    [inbox, q, supplierName],
   );
 
   /* ───────── the map: our product, and what each supplier calls it ───────── */
@@ -132,20 +114,19 @@ function SuppliersInner(): ReactElement {
   );
 
   const approve = useCallback(
-    async (item: SupplierItem, productId?: string) => {
+    async (item: SupplierItem) => {
       if (saving(item)) return;
       setApprovingId(item.id);
       try {
-        if (productId) await mapSupplierItem(item.id, productId);
-        else await approveSupplierItem(item.id);
-        notify({ tone: "success", title: `"${item.external_name}" אושר כ-${product(productId ?? item.product_id)?.name ?? ""}`.trim() });
+        await approveSupplierItem(item.id);
+        notify({ tone: "success", title: `"${item.external_name}" אושר כ-${product(item.product_id)?.name ?? ""}`.trim() });
       } catch (e) {
         notify({ tone: "danger", title: "האישור נכשל", text: e instanceof Error ? e.message : undefined });
       } finally {
         setApprovingId(null);
       }
     },
-    [saving, mapSupplierItem, approveSupplierItem, product, notify],
+    [saving, approveSupplierItem, product, notify],
   );
 
   const askRemove = useCallback((item: SupplierItem) => { if (!saving(item)) setRemoving(item); }, [saving]);
@@ -168,12 +149,7 @@ function SuppliersInner(): ReactElement {
       key: "name",
       title: "ספק",
       className: "mn2-cell-main",
-      render: (s) => (
-        <>
-          <span className="mn2-cell-title"><bdi>{s.name}</bdi></span>
-          {s.waiting > 0 ? <span className="mn2-cell-sub mn2-late">{s.waiting === 1 ? "שם אחד דורש שיוך" : `${fmtQty(s.waiting)} שמות דורשים שיוך`}</span> : null}
-        </>
-      ),
+      render: (s) => <span className="mn2-cell-title"><bdi>{s.name}</bdi></span>,
     },
     { key: "contact", title: "איש קשר", render: (s) => (s.contact ? <span className="mn2-cell-text"><bdi>{s.contact}</bdi></span> : <span className="mn2-cell-unset">לא נרשם</span>) },
     {
@@ -193,38 +169,21 @@ function SuppliersInner(): ReactElement {
           </>
         ),
     },
-    {
-      key: "act",
-      title: "פעולה",
-      className: "mn2-cell-act",
-      render: (s) => (
-        <span className="mn2-acts">
-          <Button variant="secondary" size="sm" onClick={only(() => setOpenId(s.id))}>פרטי ספק</Button>
-        </span>
-      ),
-    },
+    goColumn(),
   ];
 
-  /* ───────── the head ───────── */
+  /* ───────── the figures ───────── */
   const bought = rows.reduce((sum, s) => sum + s.worth, 0);
   const biggest = [...rows].sort((a, b) => b.worth - a.worth)[0];
-  const unsourced = state.products.filter((p) => !p.primary_supplier_id || !supplier(p.primary_supplier_id)).length;
-
-  const lead =
-    state.suppliers.length === 0 ? "עוד אין ספקים. ספק ראשון נוסף כאן או בקליטת סחורה."
-    : inbox.length === 0 ? `${fmtQty(state.suppliers.length)} ספקים, וכל השמות מתעודות המשלוח שלהם משויכים למוצר במחסן.`
-    : `${inbox.length === 1 ? "שם אחד מתעודת משלוח מחכה" : `${fmtQty(inbox.length)} שמות מתעודות משלוח מחכים`} לשיוך למוצר במחסן. עד שישויכו, קליטה בשם הזה תעצור לשאול.`;
 
   const metrics: Metric[] = [
-    { key: "pending", label: "דורש שיוך", icon: "link-2", value: inbox.length, tone: inbox.length > 0 ? "warn" : "ok", note: inbox.length === 0 ? <span className="is-ok">כל השמות משויכים</span> : "שמות מתעודות משלוח", onClick: () => setTab("pending"), current: tab === "pending" },
-    { key: "all", label: "ספקים", icon: "truck", value: state.suppliers.length, note: unsourced > 0 ? `${fmtQty(unsourced)} מוצרים בלי ספק ראשי` : "לכל מוצר יש ספק ראשי", onClick: () => setTab("all"), current: tab === "all" },
-    { key: "in", label: "נקלט ב-30 יום", icon: "arrow-down-to-line", value: <span className="ltr">{monthLoading ? "…" : fmtCompact(bought)}</span>, tone: "ok", note: "מכל הספקים, במחירון" },
-    { key: "biggest", label: "הספק הגדול של החודש", icon: "chart-pie", value: biggest && biggest.worth > 0 ? <bdi className="mn2-metric-name">{biggest.name}</bdi> : "אין", note: biggest && biggest.worth > 0 && bought > 0 ? `${fmtCompact(biggest.worth)} · ${Math.round((biggest.worth / bought) * 100)}% מהקליטות` : "לא נקלטה סחורה החודש" },
+    { key: "all", label: "ספקים", icon: "truck", value: state.suppliers.length },
+    { key: "in", label: "נקלט ב-30 יום", icon: "arrow-down-to-line", iconTone: "ok", value: <span className="ltr">{monthLoading ? "…" : fmtCompact(bought)}</span> },
+    { key: "biggest", label: "הספק הגדול החודש", icon: "chart-pie", value: biggest && biggest.worth > 0 ? <bdi className="mn2-metric-name">{biggest.name}</bdi> : "אין" },
   ];
 
   const tabs = [
-    { value: "pending", label: "דורש שיוך", count: inbox.length },
-    { value: "all", label: "כל הספקים", count: state.suppliers.length },
+    { value: "all", label: "ספקים" },
     { value: "map", label: "מפת השמות" },
   ];
 
@@ -232,55 +191,20 @@ function SuppliersInner(): ReactElement {
 
   return (
     <Page
-      title="רכש וספקים"
-      state={inbox.length > 0 ? { word: `${fmtQty(inbox.length)} דורשים שיוך`, tone: "warn" } : { word: "הכל משויך", tone: "ok" }}
-      lead={lead}
-      action={
-        <>
-          <Button variant="secondary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם חדש</Button>
-          <Button variant="primary" icon="plus" onClick={() => openAction("new-supplier")}>ספק חדש</Button>
-        </>
-      }
+      title="ספקים"
+      // A new name is taught on the map, so its button stands only there.
+      action={tab === "map" ? <Button variant="secondary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם חדש</Button> : undefined}
       metrics={metrics}
       toolbar={
         <Toolbar
-          tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "all" || v === "map" ? v : "pending")} />}
+          tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "map" ? "map" : "all")} />}
           query={query}
           onQuery={setQuery}
-          placeholder={tab === "all" ? "חיפוש לפי ספק, איש קשר או טלפון" : "חיפוש לפי שם, מוצר או ספק"}
+          placeholder={tab === "all" ? "חיפוש ספק, איש קשר או טלפון" : "חיפוש שם, מוצר או ספק"}
         />
       }
     >
-      {tab === "pending" ? (
-        <>
-          <JustHandled kind="approval" sheet />
-          {inbox.length === 0 ? (
-            <div className="sa-card mn2-sheet">
-              <div className="mn2-clear">
-                <Check size={36} />
-                <p className="mn2-clear-title">אין שם שדורש שיוך</p>
-                <p className="mn2-clear-hint">שם חדש מתעודת משלוח יופיע כאן בפעם הראשונה שעובד קולט אותו.</p>
-              </div>
-            </div>
-          ) : shownInbox.length === 0 ? (
-            <div className="sa-card mn2-sheet">
-              <EmptyState title="לא נמצאו שמות" hint={<>עבור „<bdi>{query.trim()}</bdi>”</>}>
-                <Button variant="secondary" onClick={() => setQuery("")}>ניקוי החיפוש</Button>
-              </EmptyState>
-            </div>
-          ) : (
-            <PendingInbox
-              items={shownInbox}
-              productOptions={prodOpts}
-              supplierName={supplierName}
-              approvingId={approvingId}
-              onApprove={(item, productId) => void approve(item, productId)}
-              onNewProduct={(item) => openAction("new-product", { supplierItemId: item.id })}
-              onDelete={askRemove}
-            />
-          )}
-        </>
-      ) : tab === "all" ? (
+      {tab === "all" ? (
         <Table<Row>
           caption="רשימת ספקים"
           className="mn2-table mn2-suppliers-table"
@@ -289,7 +213,7 @@ function SuppliersInner(): ReactElement {
           selectedId={openId ?? undefined}
           empty={
             state.suppliers.length === 0 ? (
-              <EmptyState title="אין ספקים" hint="ספק ראשון נוסף כאן או בקליטת סחורה">
+              <EmptyState title="אין ספקים" hint="ספק ראשון נוסף בקליטת סחורה">
                 <Button variant="secondary" onClick={() => openAction("new-supplier")}>ספק חדש</Button>
               </EmptyState>
             ) : (
@@ -303,7 +227,7 @@ function SuppliersInner(): ReactElement {
         />
       ) : mapRows.length === 0 ? (
         <div className="sa-card mn2-sheet">
-          <EmptyState title="לא נמצאו מוצרים" hint={q ? <>עבור „<bdi>{query.trim()}</bdi>”</> : "המפה נבנית על המוצרים במלאי"}>
+          <EmptyState title="לא נמצאו מוצרים" hint={q ? <>עבור „<bdi>{query.trim()}</bdi>”</> : undefined}>
             {q ? <Button variant="secondary" onClick={() => setQuery("")}>ניקוי החיפוש</Button> : null}
           </EmptyState>
         </div>

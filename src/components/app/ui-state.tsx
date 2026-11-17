@@ -11,6 +11,7 @@ export type ActionKind =
   | "receive"        // קליטת סחורה
   | "issue"          // הוצאת סחורה
   | "fault"          // דיווח תקלה
+  | "new-order"      // הזמנה חדשה, כמו של סוכן
   | "adjust"         // תיקון ספירה
   | "place"          // שיבוץ או העברה בין מדפים
   | "new-product"

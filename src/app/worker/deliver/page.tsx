@@ -378,7 +378,7 @@ export default function DeliverPage() {
                 <Row
                   key={o.id}
                   title={o.customer}
-                  sub={`${o.promised_on ? `מסירה ${fmtPromised(o.promised_on)} · ` : ""}הזמנה ${o.number} · ${o.order_lines.length === 1 ? "שורה אחת" : `${o.order_lines.length} שורות`} · ${o.agents.name}`}
+                  sub={`${o.promised_on ? `מסירה ${fmtPromised(o.promised_on)} · ` : ""}הזמנה ${o.number} · ${o.order_lines.length === 1 ? "שורה אחת" : `${o.order_lines.length} שורות`}${o.agents ? ` · ${o.agents.name}` : ""}`}
                   selected={o.id === chosen?.id}
                   onClick={() => chooseOrder(o.id === chosen?.id ? null : o)}
                 />
@@ -577,7 +577,7 @@ export default function DeliverPage() {
         heading="פרטי ההוצאה"
         meta={[
           { k: "לקוח", v: name },
-          ...(chosen ? [{ k: "הזמנה", v: chosen.number }, { k: "סוכן", v: chosen.agents.name }] : []),
+          ...(chosen ? [{ k: "הזמנה", v: chosen.number }, ...(chosen.agents ? [{ k: "סוכן", v: chosen.agents.name }] : [])] : []),
           ...(photo ? [{ k: "קבלה", v: chosen ? verdict : "צולמה" }] : []),
           ...(services.length && !chosen ? [{ k: "עבודות", v: services.map((sv) => `${sv.externalName}${sv.qty !== 1 ? ` ×${sv.qty}` : ""}`).join(", ") }] : []),
         ]}

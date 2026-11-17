@@ -2,9 +2,10 @@
 
 /**
  * מלאי, the table the whole system leans on. Columns run in the order a manager reads a product: which one it is,
- * what is physically there, what orders already hold, what can still be sold, what is missing, and only then the
- * minimum, the place and the state in a word. Three numbers that used to be confused each have a column of their own:
- * מלאי פיזי, זמין להזמנה חדשה, and פער להזמנות, which is never shown as a bare negative.
+ * what is on the shelf, what orders already hold, what can still be sold, and then the minimum, the place and the
+ * state in a word. What can be sold is never shown as a bare negative: where orders hold more than the shelf has,
+ * the cell says how much is missing, in the one loud red. Three tabs, the way the question is asked: everything,
+ * what is missing, what is fine.
  */
 import { Suspense, useCallback, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -14,27 +15,21 @@ import { Button, EmptyState, Icon, Select, Showing, Table, Tabs, Toolbar, type S
 import { fmtCompact, fmtQty } from "@/lib/format";
 import { shelfWorth } from "@/lib/snapshot";
 import { available, useData, type Product } from "@/lib/store";
-import { only, ProductCell, Qty } from "../cells";
+import { goColumn, ProductCell, Qty } from "../cells";
 import { Page, Word, type Metric, type Tone } from "../parts";
 import { LEVEL_WORD, levelOf, type StockLevel } from "../work";
 
-type Tab = "all" | "attention" | "short" | "low" | "ok";
-type Hold = "" | "held" | "free";
+type Tab = "all" | "missing" | "ok";
 type SortKey = "need" | "name" | "qty";
 
-const TABS: Tab[] = ["all", "attention", "short", "low", "ok"];
-
-/** `?filter=` holds the tab. Older links land where they meant: an empty shelf is under any minimum, and שריון is a filter of its own. */
+/** `?filter=` holds the tab. Links that name one kind of missing (short, out, under the minimum) land on what is missing: the state column tells the kinds apart, the most pressing first. */
 function tabOf(filter: string | null): Tab {
-  if (filter === "attention" || filter === "missing" || filter === "restock") return "attention";
-  if (filter === "short") return "short";
-  if (filter === "low" || filter === "out") return "low";
   if (filter === "ok") return "ok";
+  if (filter === "missing" || filter === "attention" || filter === "restock" || filter === "short" || filter === "low" || filter === "out") return "missing";
   return "all";
 }
 
-const inTab = (level: StockLevel, tab: Tab) =>
-  tab === "all" || (tab === "attention" ? level !== "ok" : tab === "low" ? level === "low" || level === "out" : level === tab);
+const inTab = (level: StockLevel, tab: Tab) => tab === "all" || (tab === "ok") === (level === "ok");
 
 const NEED: Record<StockLevel, number> = { short: 0, out: 1, low: 2, ok: 3 };
 const LEVEL_TONE: Record<StockLevel, Tone> = { short: "short", out: "bad", low: "warn", ok: "ok" };
@@ -71,7 +66,6 @@ function StockInner(): ReactElement {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [supplierId, setSupplierId] = useState("");
-  const [hold, setHold] = useState<Hold>(params.get("filter") === "reserved" ? "held" : "");
   const [sortKey, setSortKey] = useState<SortKey>("need");
   const [asc, setAsc] = useState(true);
 
@@ -84,11 +78,9 @@ function StockInner(): ReactElement {
       state.products.filter((p) => {
         if (category && p.category !== category) return false;
         if (supplierId && p.primary_supplier_id !== supplierId) return false;
-        if (hold === "held" && p.reserved <= 0) return false;
-        if (hold === "free" && p.reserved > 0) return false;
         return true;
       }),
-    [state.products, category, supplierId, hold],
+    [state.products, category, supplierId],
   );
 
   const counts = useMemo(() => {
@@ -96,7 +88,6 @@ function StockInner(): ReactElement {
     for (const p of base) c[levelOf(p)] += 1;
     return c;
   }, [base]);
-  const attention = counts.short + counts.out + counts.low;
 
   const q = query.trim().toLowerCase();
   const rows = useMemo(() => {
@@ -130,16 +121,16 @@ function StockInner(): ReactElement {
     );
     return [
       { key: "product", title: sortable("מוצר", "name"), className: "mn2-cell-main", render: (p) => <ProductCell product={p} /> },
-      { key: "qty", title: sortable("מלאי פיזי", "qty"), width: "88px", render: (p) => <Qty n={p.qty} unit={p.unit} tone={p.qty <= 0 ? "bad" : undefined} /> },
-      { key: "reserved", title: "משוריין", width: "88px", render: (p) => (p.reserved > 0 ? <Qty n={p.reserved} unit={p.unit} /> : <span className="mn2-cell-unset">—</span>) },
-      { key: "free", title: <>זמין להזמנה<br />חדשה</>, width: "96px", render: (p) => <Qty n={Math.max(0, available(p))} unit={p.unit} tone={available(p) <= 0 ? "quiet" : undefined} /> },
+      { key: "qty", title: sortable("במלאי", "qty"), width: "96px", render: (p) => <Qty n={p.qty} unit={p.unit} tone={p.qty <= 0 ? "bad" : undefined} /> },
+      { key: "reserved", title: "משוריין", width: "96px", render: (p) => (p.reserved > 0 ? <Qty n={p.reserved} unit={p.unit} /> : <span className="mn2-cell-unset">—</span>) },
       {
-        key: "gap",
-        title: <>פער<br />להזמנות</>,
-        width: "96px",
+        key: "free",
+        title: "זמין",
+        width: "120px",
+        // What can still be promised. Past the shelf it is not a negative number: it is what is missing.
         render: (p) => {
           const free = available(p);
-          return free < 0 ? <span className="mn2-gap">חסר <Qty n={-free} unit={p.unit} tone="short" /></span> : <span className="mn2-cell-unset">—</span>;
+          return free < 0 ? <span className="mn2-gap">חסר <Qty n={-free} unit={p.unit} tone="short" /></span> : <Qty n={free} unit={p.unit} tone={free === 0 ? "quiet" : undefined} />;
         },
       },
       {
@@ -158,72 +149,35 @@ function StockInner(): ReactElement {
         },
       },
       { key: "location", title: "מיקום", width: "76px", render: (p) => (p.location ? <span className="mn2-cell-text ltr">{p.location}</span> : <span className="mn2-cell-unset">לא שובץ</span>) },
-      { key: "state", title: sortable("סטטוס", "need", "מצב המלאי"), width: "124px", render: (p) => <Word tone={LEVEL_TONE[levelOf(p)]}>{LEVEL_WORD[levelOf(p)]}</Word> },
-      {
-        key: "act",
-        title: "פעולה",
-        width: "112px",
-        className: "mn2-cell-act",
-        render: (p) => (
-          <span className="mn2-acts">
-            <Button variant="secondary" size="sm" onClick={only(() => openProduct(p.id))}>פרטי מוצר</Button>
-          </span>
-        ),
-      },
+      { key: "state", title: sortable("מצב", "need", "מצב המלאי"), width: "132px", render: (p) => <Word tone={LEVEL_TONE[levelOf(p)]}>{LEVEL_WORD[levelOf(p)]}</Word> },
+      { ...goColumn<Product>(), width: "40px" },
     ];
-  }, [sortBy, sortKey, asc, openProduct]);
+  }, [sortBy, sortKey, asc]);
 
-  /* ───────── the head ───────── */
+  /* ───────── the figures: what the shelf is worth, and how much of it is still free to sell ───────── */
   const worth = useMemo(() => shelfWorth(state.products), [state.products]);
-  const all = useMemo(() => {
-    const c = { attention: 0, short: 0, held: 0 };
-    for (const p of state.products) {
-      const level = levelOf(p);
-      if (level !== "ok") c.attention += 1;
-      if (level === "short") c.short += 1;
-      if (p.reserved > 0) c.held += 1;
-    }
-    return c;
-  }, [state.products]);
-
   const n = state.products.length;
-  const lead =
-    n === 0 ? "עוד אין מוצרים. מוצר ראשון נוסף כאן או בקליטת סחורה."
-    : all.attention === 0 ? `${fmtQty(n)} מוצרים במעקב, וכולם מעל המינימום.`
-    : `${fmtQty(n)} מוצרים במעקב. ${all.attention === 1 ? "מוצר אחד דורש" : `${fmtQty(all.attention)} מוצרים דורשים`} בדיקת מלאי${all.short > 0 ? `, ${all.short === 1 ? "ואחד מהם חסר" : `ו-${fmtQty(all.short)} מהם חסרים`} להזמנות קיימות` : ""}.`;
 
   const metrics: Metric[] = [
-    { key: "worth", label: "שווי המלאי", icon: "package", value: <span className="ltr">{fmtCompact(worth.total)}</span>, note: worth.unpriced > 0 ? `במחירון · ${fmtQty(worth.unpriced)} בלי מחיר` : "לפי מחירון, נכון לעכשיו" },
-    { key: "held", label: "משוריין להזמנות", icon: "package-check", value: <span className="ltr">{fmtCompact(worth.held)}</span>, note: all.held > 0 ? `${fmtQty(all.held)} מוצרים שהזמנות פתוחות מחזיקות` : "אין מלאי משוריין" },
-    { key: "free", label: "זמין למכירה", icon: "package-plus", value: <span className="ltr">{fmtCompact(worth.free)}</span>, tone: "ok", note: "מה שעוד לא הובטח לאף לקוח" },
-    {
-      key: "attention", label: "דורשים בדיקה", icon: "package-search", value: all.attention, tone: all.attention === 0 ? "ok" : all.short > 0 ? "short" : "warn", href: "/inventory?view=shortages",
-      note: all.attention === 0 ? <span className="is-ok">כל המוצרים תקינים</span> : all.short > 0 ? <span className="is-short">{fmtQty(all.short)} חסרים להזמנות</span> : "מתחת למינימום",
-    },
+    { key: "worth", label: "שווי המלאי", icon: "package", value: <span className="ltr">{fmtCompact(worth.total)}</span>, note: worth.unpriced > 0 ? `${fmtQty(worth.unpriced)} בלי מחיר` : undefined },
+    { key: "held", label: "משוריין להזמנות", icon: "package-check", value: <span className="ltr">{fmtCompact(worth.held)}</span> },
+    { key: "free", label: "זמין למכירה", icon: "package-plus", value: <span className="ltr">{fmtCompact(worth.free)}</span>, tone: "ok" },
   ];
 
+  const missing = counts.short + counts.out + counts.low;
   const tabs = [
-    { value: "all", label: "כל המוצרים", count: base.length },
-    { value: "attention", label: "דורש טיפול", count: attention },
-    { value: "short", label: <span className={counts.short > 0 ? "text-short" : undefined}>חסר להזמנות</span>, count: counts.short },
-    { value: "low", label: "מתחת למינימום", count: counts.low + counts.out },
+    { value: "all", label: "הכל", count: base.length },
+    { value: "missing", label: <span className={counts.short > 0 ? "text-short" : undefined}>מלאי חסר</span>, count: missing },
     { value: "ok", label: "מלאי תקין", count: counts.ok },
   ];
 
-  const hasFilters = Boolean(q || category || supplierId || hold);
+  const hasFilters = Boolean(q || category || supplierId);
   const clear = () => {
     setQuery("");
     setCategory("");
     setSupplierId("");
-    setHold("");
   };
-  const EMPTY: Record<Tab, { title: string; hint: string }> = {
-    all: { title: "אין מוצרים", hint: "אפשר להוסיף מוצר או לקלוט סחורה" },
-    attention: { title: "אין מוצר שדורש טיפול", hint: "כל המוצרים מעל המינימום" },
-    short: { title: "אין מוצר שחסר להזמנות", hint: "המדף מכסה את כל ההזמנות" },
-    low: { title: "אין מוצר מתחת למינימום", hint: "כל המוצרים מעל הרף שנקבע להם" },
-    ok: { title: "אין מוצרים במלאי תקין", hint: "כל המוצרים חסרים או מתחת למינימום" },
-  };
+  const EMPTY: Record<Tab, string> = { all: "אין מוצרים", missing: "שום מוצר לא חסר", ok: "אין מוצרים במלאי תקין" };
   const empty =
     n === 0 ? (
       <EmptyState title="אין מוצרים" hint="אפשר להוסיף מוצר או לקלוט סחורה">
@@ -235,7 +189,7 @@ function StockInner(): ReactElement {
         <Button variant="secondary" onClick={clear}>ניקוי סינון</Button>
       </EmptyState>
     ) : (
-      <EmptyState title={EMPTY[tab].title} hint={EMPTY[tab].hint}>
+      <EmptyState title={EMPTY[tab]}>
         <Button variant="secondary" onClick={() => setTab("all")}>כל המוצרים</Button>
       </EmptyState>
     );
@@ -243,30 +197,19 @@ function StockInner(): ReactElement {
   return (
     <Page
       title="מלאי"
-      state={all.attention === 0 ? { word: "הכל תקין", tone: "ok" } : { word: `${fmtQty(all.attention)} דורשים בדיקה`, tone: all.short > 0 ? "short" : "warn" }}
-      lead={lead}
-      action={<Button variant="primary" icon="plus" onClick={() => openAction("new-product")}>מוצר חדש</Button>}
       metrics={metrics}
       toolbar={
         <Toolbar
-          tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab((TABS as string[]).includes(v) ? (v as Tab) : "all")} />}
+          tabs={<Tabs tabs={tabs} value={tab} onChange={(v) => setTab(v === "missing" || v === "ok" ? v : "all")} />}
           filters={
             <>
               <Select options={categories} value={category} onChange={setCategory} allLabel="כל הקטגוריות" placeholder="קטגוריה" />
               <Select options={supplierOptions} value={supplierId} onChange={setSupplierId} allLabel="כל הספקים" placeholder="ספק" />
-              <Select
-                options={[{ value: "held", label: "רק משוריין להזמנות" }, { value: "free", label: "רק לא משוריין" }]}
-                value={hold}
-                onChange={(v) => setHold(v === "held" || v === "free" ? v : "")}
-                allLabel="משוריין ולא משוריין"
-                placeholder="שריון"
-                searchable={false}
-              />
             </>
           }
           query={query}
           onQuery={setQuery}
-          placeholder='חיפוש לפי שם או מק"ט'
+          placeholder='חיפוש שם או מק"ט'
         />
       }
     >

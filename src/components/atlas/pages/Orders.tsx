@@ -15,7 +15,7 @@ import { useUi } from "@/components/app/ui-state";
 import { ProductThumb } from "@/components/app/Viz";
 import { useTwin } from "@/components/merhav/twin/Twin";
 import { Button, cx, EmptyState, SearchBar, Select, Tabs, type SelectOption } from "@/components/ui";
-import { byPromise, daysUntil, fmtCompact, fmtDayWord, fmtName, fmtPlainDay, fmtPrice, fmtQty, fmtTime, fmtUnit } from "@/lib/format";
+import { byPromise, daysUntil, DIRECT_ORDER, fmtCompact, fmtDayWord, fmtName, fmtPlainDay, fmtPrice, fmtQty, fmtTime, fmtUnit } from "@/lib/format";
 import { available, normalizeName, orderTotal, useData, type Order, type OrderLine, type Product } from "@/lib/store";
 import { changeWords, keptChanges } from "@/lib/worker/order-check";
 import { Head, Summary, type SumItem } from "../parts";
@@ -327,7 +327,7 @@ function OrdersInner(): ReactElement {
 
   const rowOf = (row: Row) => {
     const o = row.order;
-    const agentName = agent(o.agent_id)?.name;
+    const agentName = o.agent_id ? agent(o.agent_id)?.name : DIRECT_ORDER;
     return (
       <tr
         key={o.id}

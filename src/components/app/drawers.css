@@ -382,3 +382,8 @@ a.sa-product-photo > img { display: block; width: 100%; height: 100%; object-fit
 @media (prefers-reduced-motion: reduce) {
   [data-theme^="minimal"] .sa-product-level .sa-meter > i { animation: none; }
 }
+
+/* ── הזמנה חדשה: the lines being ordered ─────────────────────── */
+/* An order's drawer carries its total in the head; the form has no head figure, so the total stays at the foot of its lines. */
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) .app-panelHost .sa-draft .sa-rows > .sa-order-total { display: flex; }
+:root:is([data-theme="minimal"], [data-theme="minimal-dark"]) .app-panelHost .sa-draft .sa-rows > li:has(+ .sa-order-total)::after { display: block; }

@@ -1,8 +1,8 @@
-/* The shell: six areas in the rail, the day's progress in the top bar. */
+/* The shell: six areas in the rail, a word each; an area's pages in one rectangle at the head of the page. */
 
-/* The shared shell sets these on .sa-shell from order.css at (0,3,0); the extra class here outranks it. */
-html[data-minimal2] .sa-shell.mn2-shell { --sidebar: 244px; }
-@media (min-width: 900px) and (max-width: 1339px) { html[data-minimal2] .sa-shell.mn2-shell { --sidebar: 228px; } }
+/* The shared shell sets these on .sa-shell from order.css at (0,3,0); the extra class here outranks it.
+   One width on every desktop: the rail's longest name and its count stand whole on a narrow window too. */
+html[data-minimal2] .sa-shell.mn2-shell { --sidebar: 228px; }
 
 html[data-minimal2] .mn2-shell {
   /* ── Line icons: one thin weight, grey unless they carry the stock's own colour ── */
@@ -13,63 +13,87 @@ html[data-minimal2] .mn2-shell {
   .mn2-line.is-short { color: var(--short); }
   .mn2-line.is-accent { color: var(--accent-text); }
 
-  /* ── The rail ── */
-  .mn2-nav { display: flex; flex-direction: column; gap: 2px; padding: var(--space-1) var(--space-3) var(--space-3); overflow-y: auto; scrollbar-width: none; }
-  .mn2-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .mn2-group + .mn2-group { margin-block-start: 2px; }
-
-  /* An area: its icon, its name, and under the name where it stands now. Two lines, so the row is taller than a page's.
-     The line under the name runs the row's whole width, under the count too, so it is never cut for it. */
-  .mn2-nav .mn2-area { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: "icon name count" "icon about about"; column-gap: 12px; row-gap: 0; align-items: center; align-content: center; height: auto; min-height: 56px; padding-block: 8px; color: var(--text-primary); }
-  .mn2-area-icon { grid-area: icon; width: 20px; height: 20px; transition: color var(--dur-1) linear; }
-  .mn2-area-name { grid-area: name; min-width: 0; font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mn2-area-about { grid-area: about; min-width: 0; font-size: var(--t-12); line-height: var(--l-18); font-weight: 400; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mn2-area-about .is-ok { color: var(--success-text); font-weight: 500; }
-  .mn2-area-about .is-warn { color: var(--warning-text); font-weight: 500; }
-  /* The area you are in says what it holds with its pages, so the line gives way to them. */
-  .mn2-group.is-open .mn2-area:not(.is-active) { min-height: 44px; }
-  .mn2-group.is-open .mn2-area:not(.is-active) .mn2-area-about { display: none; }
-  .mn2-group.is-open .mn2-area:not(.is-active) .mn2-area-icon { color: var(--accent-text); }
-  .mn2-nav .mn2-area.is-active .mn2-area-about, .mn2-nav .mn2-area.is-active .mn2-area-about :is(.is-ok, .is-warn) { color: inherit; opacity: 0.9; }
+  /* ── The rail: one line an area, nothing under it ── */
+  .mn2-nav { display: flex; flex-direction: column; gap: 4px; padding: var(--space-1) var(--space-3) var(--space-3); overflow-y: auto; scrollbar-width: none; }
+  .mn2-nav .mn2-area { height: 44px; gap: 12px; font-size: var(--t-15); color: var(--text-primary); }
+  .mn2-area-icon { width: 20px; height: 20px; transition: color var(--dur-1) linear; }
+  .mn2-area-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mn2-nav .mn2-area.is-active .mn2-area-icon { color: inherit; }
 
-  /* The one number in the rail that leads: how much waits. Cleared, a check stands in its place. */
-  .mn2-area-count { grid-area: count; min-width: 22px; text-align: end; font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-  .mn2-area-clear { grid-area: count; display: inline-flex; }
-  .mn2-nav .mn2-area.is-active .mn2-area-count { color: inherit; }
+  /* The one number in the rail: how much waits, in the colour of waiting. Cleared, a check stands in its place. */
+  .mn2-area-count { flex-shrink: 0; min-width: 22px; text-align: end; font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--warning-text); font-variant-numeric: tabular-nums; }
+  .mn2-area-clear { flex-shrink: 0; display: inline-flex; }
+  .mn2-nav .mn2-area.is-active :is(.mn2-area-count, .mn2-check) { color: inherit; }
 
-  /* An area's pages glide open under it. Closed, they are out of reach. */
-  .mn2-fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-2) var(--ease); }
-  .mn2-fold > .mn2-fold-body { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: hidden; visibility: hidden; transition: visibility var(--dur-2); }
-  .mn2-group.is-open > .mn2-fold { grid-template-rows: 1fr; }
-  .mn2-group.is-open > .mn2-fold > .mn2-fold-body { visibility: visible; }
-  .mn2-nav .mn2-sub { height: 36px; padding-inline-start: calc(var(--space-3) + 32px); justify-content: space-between; gap: var(--space-2); font-size: var(--t-14); }
-  .mn2-sub-count { flex-shrink: 0; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
-  .mn2-nav .mn2-sub.is-active .mn2-sub-count { color: inherit; }
+  /* ── An area's head: its name, and the rectangle that moves between its pages ── */
+  .mn2-areahead { display: flex; flex-direction: column; gap: var(--space-3); margin-block-end: var(--space-5); min-width: 0; }
+  .mn2-areahead-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: 36px; }
+  .mn2-areahead .sa-page-title { line-height: 36px; }
 
-  /* ── The top bar: the day's progress beside the live note ── */
-  .mn2-pulse { display: inline-flex; align-items: center; gap: var(--space-2); padding: 4px var(--space-2); margin-inline: calc(-1 * var(--space-2)); border-radius: var(--radius-md); font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-secondary); text-decoration: none; white-space: nowrap; transition: color var(--dur-1) linear; }
-  .mn2-pulse.is-full { color: var(--success-text); }
-  .mn2-pulse:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
-  @media (hover: hover) { .mn2-pulse:hover { color: var(--text-primary); } }
-  @media (max-width: 1099px) { .mn2-pulse > span { display: none; } }
+  /* The rectangle at the row's start; a page with no tabs of its own stands its search at the row's far end. */
+  .mn2-areahead-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3) var(--space-4); min-width: 0; }
+  .mn2-areahead-tools { flex: 0 1 320px; min-width: 0; }
+  .mn2-areahead-tools:empty { display: none; }
+  .mn2-areahead-tools .sa-search { width: 100%; max-width: none; }
+  .mn2-tools { display: flex; justify-content: flex-end; }
+  .mn2-tools .sa-search { flex: 0 1 320px; }
 
-  /* The pages of the area, over the page: a phone's rail has room for the six areas only. */
-  .mn2-areabar { display: none; }
+  .mn2-switch { position: relative; display: inline-flex; gap: 2px; max-width: 100%; padding: 3px; background: var(--bg-fill); border-radius: var(--radius-lg); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; anchor-scope: --mn2-seg; }
+  .mn2-seg { position: relative; z-index: 1; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-width: 104px; height: 38px; padding-inline: var(--space-5); border-radius: calc(var(--radius-lg) - 3px); font-size: var(--t-15); line-height: var(--l-22); font-weight: 500; color: var(--text-secondary); text-decoration: none; white-space: nowrap; transition: color var(--dur-1) linear; }
+  .mn2-seg.is-active { background: var(--bg-thumb); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+  .mn2-seg:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
+  .mn2-seg:active { opacity: 0.6; }
+  @media (hover: hover) { .mn2-seg:not(.is-active):hover { color: var(--text-primary); } }
+  /* A page's drawing is grey and turns blue where you are; its count carries the colour of what it counts. */
+  .mn2-seg-icon { margin-inline-end: -2px; transition: color var(--dur-1) linear; }
+  .mn2-seg.is-active .mn2-seg-icon { color: var(--accent-text); }
+  .mn2-seg-n { font-size: var(--t-15); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .mn2-seg-n.is-warn { color: var(--warning-text); }
+  .mn2-seg-n.is-bad { color: var(--danger-text); }
+  .mn2-seg-n.is-short { color: var(--short); }
+  /* The thumb is one sheet that slides to the page chosen. Without anchors the chosen page simply carries it. */
+  @supports (anchor-name: --a) {
+    .mn2-seg.is-active { background: none; box-shadow: none; anchor-name: --mn2-seg; }
+    .mn2-switch::before { content: ""; position: absolute; position-anchor: --mn2-seg; inset: anchor(top) anchor(right) anchor(bottom) anchor(left); border-radius: calc(var(--radius-lg) - 3px); background: var(--bg-thumb); box-shadow: var(--shadow-sm); transition: inset var(--dur-3) var(--ease); }
+    .mn2-switch:not(:has(.mn2-seg.is-active))::before { display: none; }
+  }
+  @supports (corner-shape: squircle) { .mn2-switch, .mn2-seg, .mn2-switch::before { corner-shape: squircle; } }
+
+  /* ── What was decided today: the ring and one figure, at a head's far end ── */
+  .mn2-done { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
+  .mn2-done-n { font-size: var(--t-16); line-height: var(--l-22); font-weight: 600; color: var(--success-text); font-variant-numeric: tabular-nums; }
+
+  /* ── A shared page under an area's head: the head above names it, so its own title steps aside ── */
+  .app-content > .mn2-areahead ~ .sa-page .sa-pagehead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: var(--control-md); }
+  .app-content > .mn2-areahead ~ .sa-page .sa-pagehead > .sa-page-title { display: none; }
+  .app-content > .mn2-areahead ~ .sa-page > .sa-pagehead:not(:has(.sa-pagehead-actions)) { display: none; }
+  .app-content > .mn2-areahead ~ .sa-page > .sa-pagehead:not(:has(.sa-pagehead-actions)) + * { margin-block-start: 0; }
+
+  @media (min-width: 900px) {
+    /* The map runs edge to edge: the head brings its own margin there, and the map takes the height that is left. */
+    .app-content:has(> .m3d-page) { display: flex; flex-direction: column; height: calc(100dvh - var(--topbar)); min-height: 680px; }
+    .app-content:has(> .m3d-page) > .mn2-areahead { margin: 0; padding: var(--space-6) var(--space-10) var(--space-2); }
+    .app-content > .sa-page.m3d-page { flex: 1 1 0; height: auto; min-height: 0; }
+    .app-content > .m3d-page > .m3d-side { padding-block-start: var(--space-3); }
+  }
 
   @media (max-width: 899px) {
     .mn2-nav { flex-direction: row; gap: var(--space-5); padding: 0 var(--space-4); overflow-x: auto; }
-    .mn2-group { flex-direction: row; flex-shrink: 0; }
-    .mn2-group + .mn2-group { margin-block-start: 0; }
-    .mn2-nav .mn2-area, .mn2-group.is-open .mn2-area:not(.is-active) { display: inline-flex; min-height: 44px; height: 44px; padding: 0; gap: 6px; border-radius: 0; border-bottom: 1.5px solid transparent; background: none; white-space: nowrap; }
-    .mn2-nav .mn2-area.is-here { color: var(--accent-text); border-bottom-color: var(--accent); }
-    .mn2-nav .mn2-area.is-here .mn2-area-icon { color: inherit; }
-    .mn2-area-about, .mn2-fold { display: none; }
-    .mn2-areabar { display: flex; gap: var(--space-2); margin-block-end: var(--space-4); overflow-x: auto; scrollbar-width: none; }
-    .mn2-areabar-item { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: var(--control-md); padding-inline: var(--space-3); border-radius: var(--radius-md); background: var(--bg-fill); font-size: var(--t-14); font-weight: 500; color: var(--text-secondary); text-decoration: none; }
-    .mn2-areabar-item.is-active { background: var(--accent); color: var(--on-accent); }
-    .mn2-areabar-item.is-active .mn2-sub-count { color: inherit; }
+    .mn2-nav .mn2-area, .mn2-nav .mn2-area.is-active { flex-shrink: 0; display: inline-flex; height: 44px; padding: 0; gap: 6px; border-radius: 0; border-bottom: 1.5px solid transparent; background: none; white-space: nowrap; }
+    .mn2-nav .mn2-area.is-active { color: var(--accent-text); border-bottom-color: var(--accent); }
+    .mn2-area-name { flex: none; overflow: visible; }
+    .mn2-areahead { margin-block-end: var(--space-4); }
+    .mn2-seg { min-width: 0; padding-inline: var(--space-4); }
+  }
+  /* A phone keeps the words and the counts and lets the drawings go, so three pages fit the row without sliding. */
+  @media (max-width: 560px) {
+    .mn2-switch { width: 100%; }
+    .mn2-seg { flex: 1 1 auto; padding-inline: var(--space-2); }
+    .mn2-seg-icon { display: none; }
+  }
+  @media (max-width: 899px) {
+    .app-content:has(> .m3d-page) > .mn2-areahead { padding: var(--space-5) var(--space-4) 0; }
   }
 
-  @media (prefers-reduced-motion: reduce) { .mn2-fold, .mn2-fold > .mn2-fold-body { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .mn2-switch::before { transition: none; } }
 }

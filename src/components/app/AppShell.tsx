@@ -31,8 +31,11 @@ import { ProductPanel } from "./ProductPanel";
 import "./app-shell.css";
 import "@/design/order.css";
 
+/** הזמנה חדשה stands with the two that move stock, before the fault; every style's פעולות reads this list. */
 const SHELL_ACTIONS: ActionItem[] = [
-  ...DEFAULT_ACTIONS,
+  ...DEFAULT_ACTIONS.filter((a) => a.key !== "fault"),
+  { key: "new-order", label: "הזמנה חדשה", icon: "inbox" },
+  ...DEFAULT_ACTIONS.filter((a) => a.key === "fault"),
   { key: "new-product", label: "מוצר חדש", icon: "package" },
   { key: "new-supplier", label: "ספק חדש", icon: "truck" },
   { key: "new-worker", label: "עובד חדש", icon: "user-plus" },
@@ -43,6 +46,7 @@ const ACTION_KIND: Record<string, ActionKind> = {
   receive: "receive",
   issue: "issue",
   fault: "fault",
+  "new-order": "new-order",
   "new-product": "new-product",
   "new-supplier": "new-supplier",
   "new-worker": "new-worker",

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useFloorObjects } from "@/components/map3d/use-floor-objects";
 import { Button, Fields, MovementQty, Notice, SidePanel, Timeline, type FieldItem, type TimelineItem } from "@/components/ui";
 import { useDocumentUrls } from "@/lib/documents";
-import { fmtDateTime, fmtFull, fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, ORDER_STATUS_LABEL, orderRef } from "@/lib/format";
+import { DIRECT_ORDER, fmtDateTime, fmtFull, fmtName, fmtPrice, fmtQty, fmtRelative, fmtUnit, MOVEMENT_LABEL, ORDER_STATUS_LABEL, orderRef } from "@/lib/format";
 import { placeWords } from "@/lib/map3d/place";
 import { useData, type Movement } from "@/lib/store";
 import { supabase } from "@/lib/supabase/client";
@@ -64,7 +64,7 @@ export function useMovementsById(ids: string[]): Movement[] {
 type NoteParts = { customer?: string; agent?: string; reason?: string; rest: string };
 
 /** What the database folds into a movement's note: "ללקוח: … · סוכן: … · בלי קבלה: …", and whatever a person added. */
-function readNote(note: string | null): NoteParts {
+export function readNote(note: string | null): NoteParts {
   const parts = (note ?? "").split(" · ");
   const read: NoteParts = { rest: "" };
   const rest: string[] = [];
@@ -132,7 +132,9 @@ function MovementPanelInner({ movement: m }: { movement: Movement }) {
   const who = worker(m.worker_id)?.name;
   const vendor = supplier(m.supplier_id ?? doc?.supplier_id)?.name;
   const customer = linked?.customer ?? note.customer ?? doc?.customer;
-  const seller = agent(linked?.agent_id)?.name ?? note.agent;
+  // Goods that left under a direct order name no agent; the note still speaks for an order the store doesn't hold.
+  const direct = !!linked && !linked.agent_id;
+  const seller = direct ? undefined : agent(linked?.agent_id)?.name ?? note.agent;
 
   const status = m.exit_pass
     ? { word: "בלי קבלה", tone: "warn" }
@@ -153,7 +155,7 @@ function MovementPanelInner({ movement: m }: { movement: Movement }) {
   const steps: TimelineItem[] = [
     { id: "by", title: who ? `${MOVEMENT_LABEL[m.type]} ע"י ${who}` : MOVEMENT_LABEL[m.type], when: fmtFull(m.created_at) },
     ...(vendor ? [{ id: "supplier", title: `מהספק ${vendor}` }] : []),
-    ...(customer ? [{ id: "customer", title: `ללקוח ${customer}`, by: seller ? `סוכן ${seller}` : undefined }] : []),
+    ...(customer ? [{ id: "customer", title: `ללקוח ${customer}`, by: seller ? `סוכן ${seller}` : direct ? DIRECT_ORDER : undefined }] : []),
     ...(m.place
       ? [{
           id: "place",

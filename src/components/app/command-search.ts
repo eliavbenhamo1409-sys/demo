@@ -35,6 +35,7 @@ function commands(f: CommandFacts): Command[] {
     { kind: "go", id: "closing", title: "סגירת יום", sub: "מה נכנס, מה יצא, מה פתוח", icon: "calendar", href: "/closing", words: ["סגירה", "סיכום", "יום"] },
     { kind: "do", id: "receive", title: "קליטת סחורה", sub: "פעולה", icon: "arrow-down-left", words: ["קליטה", "קבלה", "נכנס", "ספק"] },
     { kind: "do", id: "issue", title: "הוצאת סחורה", sub: "פעולה", icon: "arrow-up-right", words: ["הוצאה", "מסירה", "יצא", "לקוח"] },
+    { kind: "do", id: "new-order", title: "הזמנה חדשה", sub: "פעולה", icon: "inbox", words: ["הזמנה", "להזמין", "חדשה"] },
     { kind: "do", id: "fault", title: "דיווח תקלה", sub: "פעולה", icon: "tool", words: ["דיווח", "תקלה"] },
     { kind: "do", id: "new-product", title: "מוצר חדש", sub: "פעולה", icon: "package", words: ["מוצר", "הוספה"] },
   ];

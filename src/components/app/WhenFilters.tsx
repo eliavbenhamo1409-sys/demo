@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactElement, type ReactNode, type RefObject } from "react";
 import { Button, cx, Icon, type IconName } from "@/components/ui";
+import { fmtWeekday } from "@/lib/format";
 import "./when-filters.css";
 
 const MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
@@ -285,6 +286,7 @@ function Calendar({ from, to, onCancel, onApply }: {
             low={low}
             high={high}
             focused={months.includes(monthOf(focused)) ? focused : firstOf(months[0])}
+            allowed={(day) => day <= today}
             onPick={pick}
             onHover={end ? undefined : setHover}
             onKey={onDayKey}
@@ -313,12 +315,14 @@ function Calendar({ from, to, onCancel, onApply }: {
   );
 }
 
-function Month({ month, today, low, high, focused, onPick, onHover, onKey }: {
+function Month({ month, today, low, high, focused, allowed, onPick, onHover, onKey }: {
   month: number;
   today: string;
   low: string;
   high: string;
   focused: string;
+  /** Which days can be picked: a filter looks back, a promise looks ahead. */
+  allowed: (day: string) => boolean;
   onPick: (day: string) => void;
   onHover?: (day: string) => void;
   onKey: (e: KeyboardEvent<HTMLButtonElement>, day: string) => void;
@@ -354,7 +358,7 @@ function Month({ month, today, low, high, focused, onPick, onHover, onKey }: {
               <button
                 type="button"
                 data-day={day}
-                disabled={day > today}
+                disabled={!allowed(day)}
                 tabIndex={day === focused ? 0 : -1}
                 aria-pressed={isEnd}
                 aria-label={dayWords(day, true)}
@@ -368,6 +372,126 @@ function Month({ month, today, low, high, focused, onPick, onHover, onKey }: {
             </span>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ───────── one day ahead, in a form ───────── */
+
+/** The days a promise is usually made for. */
+function aheadPresets(today: string) {
+  return [
+    { label: "היום", day: today },
+    { label: "מחר", day: shiftDay(today, 1) },
+    { label: "מחרתיים", day: shiftDay(today, 2) },
+    { label: "בעוד שבוע", day: shiftDay(today, 7) },
+  ];
+}
+
+/**
+ * A form's day from today on, such as the day promised to a customer: the word opens one month on a sheet,
+ * and a press picks and closes. Nothing waits for החל, which belongs to filters.
+ */
+export function DayField({ label, value, onChange, error }: {
+  label: string;
+  value: string;
+  onChange: (day: string) => void;
+  error?: string;
+}): ReactElement {
+  const [open, setOpen] = useState(false);
+  const { triggerRef, close } = useCloseSheet(setOpen);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const pick = (day: string) => {
+    close();
+    // A press fires no input event, so a real change announces itself to the drawer's guard.
+    if (day !== value) rootRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+    onChange(day);
+  };
+
+  return (
+    <div ref={rootRef} className="sa-field">
+      <span className="sa-label"><span>{label}</span></span>
+      <WhenFilter
+        icon="calendar"
+        title={label}
+        value={value ? fmtWeekday(value) : null}
+        placeholder="בחירת יום"
+        className={cx("app-when-field", error && "is-error")}
+        open={open}
+        onOpenChange={setOpen}
+        triggerRef={triggerRef}
+        close={close}
+      >
+        <DayCalendar value={value} onPick={pick} />
+      </WhenFilter>
+      {error ? <span className="sa-error" role="alert">{error}</span> : null}
+    </div>
+  );
+}
+
+function DayCalendar({ value, onPick }: { value: string; onPick: (day: string) => void }) {
+  const [today] = useState(() => dayValue(Date.now()));
+  const [shown, setShown] = useState(() => monthOf(value && value >= today ? value : today));
+  const [focused, setFocused] = useState(() => (value && value >= today ? value : today));
+  const daysRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    daysRef.current?.querySelector<HTMLElement>(`[data-day="${focused}"]`)?.focus();
+  }, [focused]);
+
+  const onDayKey = (e: KeyboardEvent<HTMLButtonElement>, day: string) => {
+    const step = DAY_KEYS[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const next = shiftDay(day, step);
+    if (next < today) return;
+    setShown(monthOf(next));
+    setFocused(next);
+  };
+
+  return (
+    <div className="app-when-calendar app-when-ahead">
+      <div className="app-when-presets">
+        {aheadPresets(today).map((p) => (
+          <button key={p.label} type="button" className={cx("app-when-preset", p.day === value && "is-on")} onClick={() => onPick(p.day)}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="app-when-months" ref={daysRef}>
+        {shown > monthOf(today) ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            iconOnly
+            icon="chevron-right"
+            title="החודש הקודם"
+            className="app-when-prev"
+            onClick={() => setShown((m) => m - 1)}
+          />
+        ) : null}
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
+          icon="chevron-left"
+          title="החודש הבא"
+          className="app-when-next"
+          onClick={() => setShown((m) => m + 1)}
+        />
+        <Month
+          month={shown}
+          today={today}
+          low={value}
+          high={value}
+          focused={monthOf(focused) === shown ? focused : shown === monthOf(today) ? today : firstOf(shown)}
+          allowed={(day) => day >= today}
+          onPick={onPick}
+          onKey={onDayKey}
+        />
       </div>
     </div>
   );
