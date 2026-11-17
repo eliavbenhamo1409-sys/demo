@@ -73,7 +73,7 @@ export function Shortages(): ReactElement {
         s.nearest === null ? <span className="mn2-cell-unset">לא נקבע</span> : daysUntil(s.nearest) < 0 ? <Word tone="warn">{fmtPromised(s.nearest)}</Word> : <span className="mn2-cell-text">{fmtPromised(s.nearest)}</span>,
     },
     source,
-    goColumn(),
+    goColumn("פרטי מוצר", (s) => openProduct(s.product.id)),
   ];
 
   const lowColumns: TableColumn<Shortage>[] = [
@@ -92,7 +92,7 @@ export function Shortages(): ReactElement {
       },
     },
     source,
-    goColumn(),
+    goColumn("פרטי מוצר", (s) => openProduct(s.product.id)),
   ];
 
   const noMatch = (

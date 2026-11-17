@@ -150,9 +150,9 @@ function StockInner(): ReactElement {
       },
       { key: "location", title: "מיקום", width: "76px", render: (p) => (p.location ? <span className="mn2-cell-text ltr">{p.location}</span> : <span className="mn2-cell-unset">לא שובץ</span>) },
       { key: "state", title: sortable("מצב", "need", "מצב המלאי"), width: "132px", render: (p) => <Word tone={LEVEL_TONE[levelOf(p)]}>{LEVEL_WORD[levelOf(p)]}</Word> },
-      { ...goColumn<Product>(), width: "40px" },
+      { ...goColumn<Product>("פרטי מוצר", (p) => openProduct(p.id)), width: "44px" },
     ];
-  }, [sortBy, sortKey, asc]);
+  }, [sortBy, sortKey, asc, openProduct]);
 
   /* ───────── the figures: what the shelf is worth, and how much of it is still free to sell ───────── */
   const worth = useMemo(() => shelfWorth(state.products), [state.products]);

@@ -20,8 +20,10 @@ html[data-minimal2] .mn2-shell {
   .mn2-row-n { font-size: var(--t-16); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .mn2-row-end .mn2-word { font-size: var(--t-13); line-height: var(--l-18); }
   .mn2-row-act { flex-shrink: 0; pointer-events: none; }
-  /* The quiet arrow at the end of a row whose press opens it. */
+  /* The quiet arrow at the end of a row whose press opens it. In a table it is a button with a name, so the row can be opened by someone who cannot see it. */
   .mn2-go { flex-shrink: 0; color: var(--text-quiet); transition: color var(--dur-1) linear, transform var(--dur-2) var(--ease); }
+  button.mn2-go { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-sm); background: none; cursor: pointer; }
+  button.mn2-go:focus-visible { outline: 0; box-shadow: var(--focus-ring); color: var(--accent-text); }
   @media (hover: hover) { :is(.mn2-row, .sa-table tr.is-clickable):hover .mn2-go { color: var(--accent-text); transform: translateX(-2px); } }
 
   /* ── Nothing left: a check and a word ── */

@@ -54,6 +54,8 @@ html[data-minimal2] .mn2-shell {
   /* The thumb is one sheet that slides to the page chosen. Without anchors the chosen page simply carries it. */
   @supports (anchor-name: --a) {
     .mn2-seg.is-active { background: none; box-shadow: none; anchor-name: --mn2-seg; }
+    /* The page you are on keeps its focus ring: the rule above would otherwise take it off. */
+    .mn2-seg.is-active:focus-visible { box-shadow: var(--focus-ring); }
     .mn2-switch::before { content: ""; position: absolute; position-anchor: --mn2-seg; inset: anchor(top) anchor(right) anchor(bottom) anchor(left); border-radius: calc(var(--radius-lg) - 3px); background: var(--bg-thumb); box-shadow: var(--shadow-sm); transition: inset var(--dur-3) var(--ease); }
     .mn2-switch:not(:has(.mn2-seg.is-active))::before { display: none; }
   }

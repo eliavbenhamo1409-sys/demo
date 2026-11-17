@@ -13,6 +13,12 @@ html[data-minimal2] .mn2-shell {
   .mn2-head-action { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-md); }
   /* With nothing to say at the head's far end it takes no room, so a narrow screen spends no row on it. */
   .mn2-head-action:empty { display: none; }
+  /* A thing that is listed on another page: one quiet line that leads there, its count in the colour of waiting. */
+  .mn2-head-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px var(--space-2); border-radius: var(--radius-md); font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-secondary); text-decoration: none; white-space: nowrap; transition: color var(--dur-1) linear; }
+  .mn2-head-link-n { font-weight: 600; color: var(--warning-text); font-variant-numeric: tabular-nums; }
+  .mn2-head-link > svg { color: var(--text-quiet); transition: color var(--dur-1) linear; }
+  .mn2-head-link:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
+  @media (hover: hover) { .mn2-head-link:hover, .mn2-head-link:hover > svg { color: var(--accent-text); } }
   .mn2-page > .mn2-head + * { margin-block-start: var(--space-5); }
 
   /* ── A state in a word ── */

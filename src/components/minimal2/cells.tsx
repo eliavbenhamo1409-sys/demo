@@ -9,10 +9,20 @@ import type { Product, Supplier } from "@/lib/store";
 
 /**
  * The end of a row whose press opens it: one quiet arrow, so the same word is not written down a whole column.
- * A row keeps a button only where the button is the work itself (assign, approve, close).
+ * The arrow is a button with a name of its own, so the row is opened by name from a screen reader too.
+ * A row keeps a worded button only where the button is the work itself (assign, approve, close).
  */
-export function goColumn<T>(): TableColumn<T> {
-  return { key: "go", title: <span className="sr-only">פתיחה</span>, className: "mn2-cell-go", render: () => <Icon name="chevron-left" size={16} className="mn2-go" /> };
+export function goColumn<T>(label: string, open: (row: T) => void): TableColumn<T> {
+  return {
+    key: "go",
+    title: <span className="sr-only">{label}</span>,
+    className: "mn2-cell-go",
+    render: (row) => (
+      <button type="button" className="mn2-go" aria-label={label} onClick={only(() => open(row))}>
+        <Icon name="chevron-left" size={16} />
+      </button>
+    ),
+  };
 }
 
 /** For a button inside a row: it does its own thing, and the row's own press stays for everywhere else. */

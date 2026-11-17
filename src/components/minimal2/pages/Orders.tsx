@@ -120,6 +120,7 @@ function OrdersInner(): ReactElement {
         );
       },
     };
+    const open = goColumn<Order>("פתיחת ההזמנה", (o) => openOrder(o.id));
     const sum: TableColumn<Order> = {
       key: "total",
       title: "סכום",
@@ -129,7 +130,7 @@ function OrdersInner(): ReactElement {
       },
     };
 
-    if (view === "cancelled") return [customer, { key: "closed", title: "בוטלה", render: closedOn }, sum, goColumn()];
+    if (view === "cancelled") return [customer, { key: "closed", title: "בוטלה", render: closedOn }, sum, open];
     if (view === "delivered") {
       return [
         customer,
@@ -145,7 +146,7 @@ function OrdersInner(): ReactElement {
           },
         },
         sum,
-        goColumn(),
+        open,
       ];
     }
     return [
@@ -167,12 +168,13 @@ function OrdersInner(): ReactElement {
       },
       { key: "stock", title: "מלאי", render: (o) => (short(o) ? <Word tone="short">חסר במלאי</Word> : <Word tone="ok">מוכן למסירה</Word>) },
       sum,
-      goColumn(),
+      open,
     ];
-  }, [view, agent, linesOf, short]);
+  }, [view, agent, linesOf, short, openOrder]);
 
   /* ───────── the figures: each is the list it counts, one press away ───────── */
-  const facts = useMemo(() => orderFacts(state.orders, linesOf, product), [state.orders, linesOf, product]);
+  // Counted from the same orders the list is cut from, so with an agent chosen a figure still equals its list.
+  const facts = useMemo(() => orderFacts(base, linesOf, product), [base, linesOf, product]);
   const metrics: Metric[] = [
     { key: "open", label: "פתוחות", icon: "receipt-text", value: facts.open, onClick: () => setView("open"), current: view === "open" },
     { key: "late", label: "באיחור", icon: "clock", value: facts.late, tone: facts.late > 0 ? "warn" : "ok", onClick: () => setView("late"), current: view === "late" },

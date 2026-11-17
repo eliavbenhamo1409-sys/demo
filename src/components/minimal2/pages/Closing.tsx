@@ -205,19 +205,83 @@ function DayStep({ day, first, go }: { day: string; first: string | null; go: (d
   );
 }
 
-function Report({ day, summary, signoff, sign, step }: { day: string; summary: DaySummary; signoff: DaySignoff | null; sign: (why?: string) => Promise<void>; step: ReactNode }): ReactElement {
+/**
+ * Where the day stands, in one coloured word, and the press that closes it. It stands in the day's head beside the
+ * stepper: closed is green, ready is green, open things wait in amber.
+ */
+function DayDecision({ day, summary, signoff, sign }: { day: string; summary: DaySummary; signoff: DaySignoff | null; sign: (why?: string) => Promise<void> }): ReactElement {
+  const { notify } = useUi();
+  const isToday = day === israelToday();
+  const open: DayOpenItems = { faults: summary.faults.length, requests: summary.requests.length, names: summary.names.length };
+  const blocks = openCount(open);
+  const signable = !signoff && canSign(day);
+
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [refused, setRefused] = useState<string | null>(null);
+
+  const close = async (why?: string) => {
+    await sign(why);
+    setAsking(false);
+    notify({ tone: "success", title: "היום נסגר ואושר" });
+  };
+  const closeClean = async () => {
+    setBusy(true);
+    setRefused(null);
+    try {
+      await close();
+    } catch (e) {
+      setRefused(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const standing: { icon: ReactNode; word: string; tone?: "ok" | "warn"; lines: string[] } = signoff
+    ? {
+        icon: <Check size={28} />,
+        word: "נסגר ואושר",
+        tone: "ok",
+        lines: [
+          `${[signoff.signed_by, fmtDay(signoff.signed_at)].filter(Boolean).join(" · ")}${openCount(signoff.open_items) > 0 ? ` · נשארו פתוחים ${openWords(signoff.open_items)}` : ""}`,
+          ...(signoff.note ? [`הסיבה: ${signoff.note}`] : []),
+        ],
+      }
+    : blocks > 0
+      ? { icon: <Line name="list-checks" size={28} tone="warn" />, word: blocks === 1 ? "דבר אחד נשאר פתוח" : `${fmtQty(blocks)} נשארו פתוחים`, tone: "warn", lines: isToday ? [] : ["היום נסגר מעצמו בחצות"] }
+      : isToday
+        ? { icon: <Line name="circle-check" size={28} tone="ok" />, word: "מוכן לסגירה", tone: "ok", lines: [] }
+        : { icon: <Line name="clock" size={28} />, word: "נסגר מעצמו בחצות", lines: [] };
+
+  return (
+    <>
+      <div className="mn2-daystate">
+        {standing.icon}
+        <div className="mn2-daystate-text">
+          <p className={`mn2-daystate-word${standing.tone ? ` is-${standing.tone}` : ""}`}>{standing.word}</p>
+          {standing.lines.map((line) => <p key={line} className="mn2-daystate-line">{line}</p>)}
+          {refused ? <p className="mn2-daystate-line is-bad" role="alert">הסגירה לא נשמרה: {refused}</p> : null}
+        </div>
+      </div>
+      {signable ? (
+        <Button variant="primary" size="lg" icon="check" isLoading={busy} onClick={() => (blocks === 0 ? void closeClean() : setAsking(true))}>
+          {isToday ? "סגירת היום" : "אישור היום"}
+        </Button>
+      ) : null}
+      {asking ? <ReasonDialog open={open} sign={close} onClose={() => setAsking(false)} /> : null}
+    </>
+  );
+}
+
+/** Under the head: what still stands open, a folded line a kind; then what came in beside what went out; then the rest of the day's record. */
+function DayBody({ day, summary, signoff }: { day: string; summary: DaySummary; signoff: DaySignoff | null }): ReactElement {
   const { state } = useData();
-  const { openAction, openFault, notify } = useUi();
+  const { openAction, openFault } = useUi();
   const isToday = day === israelToday();
   const asOf = isToday ? undefined : dayEnd(day);
   // Only a day still open can be dealt with; an ended day is a record.
   const live = isToday && !signoff;
 
-  const open: DayOpenItems = { faults: summary.faults.length, requests: summary.requests.length, names: summary.names.length };
-  const blocks = openCount(open);
-  const signable = !signoff && canSign(day);
-
-  /* ───────── what still stands open ───────── */
   const everyKind: { key: string; icon: LineName; tone: Tone; label: string; rows: OpenRow[] }[] = [
     {
       key: "faults", icon: "wrench", tone: "bad", label: "תקלות",
@@ -249,81 +313,14 @@ function Report({ day, summary, signoff, sign, step }: { day: string; summary: D
   // Every kind starts folded, so the block stays a few lines long until a hand opens one.
   const [opened, setOpened] = useState<string | null>(null);
 
-  /* ───────── what the day came to ───────── */
   const received = summary.moved.filter((l) => l.type === "in");
   const delivered = summary.moved.filter((l) => l.type === "out");
   const late = summary.orders.filter((o) => !!o.promised_on && o.promised_on < summary.day).length;
   const nextOrder = [...summary.orders].sort(byPromise)[0];
   const stock = summary.stock;
 
-  /* ───────── the decision ───────── */
-  const [asking, setAsking] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [refused, setRefused] = useState<string | null>(null);
-
-  const close = async (why?: string) => {
-    await sign(why);
-    setAsking(false);
-    notify({ tone: "success", title: "היום נסגר ואושר" });
-  };
-  const closeClean = async () => {
-    setBusy(true);
-    setRefused(null);
-    try {
-      await close();
-    } catch (e) {
-      setRefused(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Where the day stands, in one coloured word: closed is green, ready is green, open things wait in amber.
-  const standing = signoff ? (
-    <>
-      <Check size={28} />
-      <div className="mn2-daystate-text">
-        <p className="mn2-daystate-word is-ok">נסגר ואושר</p>
-        <p className="mn2-daystate-line">
-          {[signoff.signed_by, fmtDay(signoff.signed_at)].filter(Boolean).join(" · ")}
-          {openCount(signoff.open_items) > 0 ? ` · נשארו פתוחים ${openWords(signoff.open_items)}` : null}
-        </p>
-        {signoff.note ? <p className="mn2-daystate-line">הסיבה: {signoff.note}</p> : null}
-      </div>
-    </>
-  ) : blocks > 0 ? (
-    <>
-      <Line name="list-checks" size={28} tone="warn" />
-      <div className="mn2-daystate-text">
-        <p className="mn2-daystate-word is-warn">{blocks === 1 ? "דבר אחד נשאר פתוח" : `${fmtQty(blocks)} נשארו פתוחים`}</p>
-        {isToday ? null : <p className="mn2-daystate-line">היום נסגר מעצמו בחצות</p>}
-      </div>
-    </>
-  ) : isToday ? (
-    <>
-      <Line name="circle-check" size={28} tone="ok" />
-      <div className="mn2-daystate-text"><p className="mn2-daystate-word is-ok">מוכן לסגירה</p></div>
-    </>
-  ) : (
-    <>
-      <Line name="clock" size={28} />
-      <div className="mn2-daystate-text"><p className="mn2-daystate-word">נסגר מעצמו בחצות</p></div>
-    </>
-  );
-
   return (
     <>
-      <section className="sa-card mn2-dayhead">
-        {step}
-        <div className="mn2-daystate">{standing}</div>
-        {signable ? (
-          <Button variant="primary" size="lg" icon="check" isLoading={busy} onClick={() => (blocks === 0 ? void closeClean() : setAsking(true))}>
-            {isToday ? "סגירת היום" : "אישור היום"}
-          </Button>
-        ) : null}
-      </section>
-      {refused ? <Notice tone="danger" title="הסגירה לא נשמרה" onDismiss={() => setRefused(null)}>{refused}</Notice> : null}
-
       {kinds.length > 0 ? (
         <Block icon="list-checks" tone="warn" title={live ? "נשאר פתוח" : "נשאר פתוח בסוף היום"}>
           <ul className="mn2-kinds">
@@ -364,8 +361,6 @@ function Report({ day, summary, signoff, sign, step }: { day: string; summary: D
           </span>
         </li>
       </ul>
-
-      {asking ? <ReasonDialog open={open} sign={close} onClose={() => setAsking(false)} /> : null}
     </>
   );
 }
@@ -384,22 +379,22 @@ function ClosingInner(): ReactElement {
 
   const go = useCallback((next: string) => router.replace(next === israelToday() ? pathname : `${pathname}?day=${next}`, { scroll: false }), [pathname, router]);
 
-  const step = <DayStep day={day} first={first} go={go} />;
+  const broken = failed || signoffFailed;
+  const loaded = !broken && summary && signoff !== undefined ? { summary, signoff } : null;
 
   return (
     <Page className="mn2-closing" title="סגירת יום">
-      {failed || signoffFailed ? (
-        <>
-          <section className="sa-card mn2-dayhead">{step}</section>
-          <Notice tone="danger" title="הסיכום לא נטען" action="ניסיון נוסף" onAction={() => { retry(); retrySignoff(); }} />
-        </>
-      ) : !summary || signoff === undefined ? (
-        <>
-          <section className="sa-card mn2-dayhead">{step}</section>
-          <div className="sa-card mn2-sheet" aria-hidden="true"><span className="sa-skeleton app-skeletonTable" /></div>
-        </>
+      {/* The head stays in place from day to day, so the stepper keeps its focus and the sheet its height while the next day is read. */}
+      <section className="sa-card mn2-dayhead">
+        <DayStep day={day} first={first} go={go} />
+        {loaded ? <DayDecision key={day} day={day} summary={loaded.summary} signoff={loaded.signoff} sign={sign} /> : null}
+      </section>
+      {broken ? (
+        <Notice tone="danger" title="הסיכום לא נטען" action="ניסיון נוסף" onAction={() => { retry(); retrySignoff(); }} />
+      ) : loaded ? (
+        <DayBody key={day} day={day} summary={loaded.summary} signoff={loaded.signoff} />
       ) : (
-        <Report key={day} day={day} summary={summary} signoff={signoff} sign={sign} step={step} />
+        <div className="sa-card mn2-sheet" aria-hidden="true"><span className="sa-skeleton app-skeletonTable" /></div>
       )}
     </Page>
   );

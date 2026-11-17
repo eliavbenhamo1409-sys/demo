@@ -6,11 +6,12 @@
  * it is decided under משימות לביצוע and not listed here a second time; the map shows it once it is decided, and
  * still lets a name be approved or removed where it stands.
  */
-import { Suspense, useCallback, useMemo, useState, type ReactElement } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { NameMap } from "@/components/app/dictionary/map/NameMap";
 import { useUi } from "@/components/app/ui-state";
-import { Button, EmptyState, Modal, Showing, Table, Tabs, Toolbar, type TableColumn } from "@/components/ui";
+import { Button, EmptyState, Icon, Modal, Showing, Table, Tabs, Toolbar, type TableColumn } from "@/components/ui";
 import { fmtCompact, fmtDayWord, fmtQty } from "@/lib/format";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
 import { PACE_DAYS } from "@/lib/snapshot";
@@ -18,6 +19,10 @@ import { isTempId, normalizeName, useData, type Product, type Supplier, type Sup
 import { goColumn } from "../cells";
 import { Page, type Metric } from "../parts";
 import { SupplierPanel } from "../SupplierPanel";
+import { pendingNames } from "../work";
+
+/** Where a supplier's name that waits for a product is decided. */
+const APPROVALS = "/closing?view=approvals";
 
 type Tab = "all" | "map";
 
@@ -39,6 +44,13 @@ function SuppliersInner(): ReactElement {
   const params = useSearchParams();
 
   const tab: Tab = params.get("tab") === "map" ? "map" : "all";
+  // An address kept from when the waiting names were a tab of this page: they are decided under the tasks now.
+  const moved = params.get("tab") === "pending";
+  useEffect(() => {
+    if (moved) router.replace(APPROVALS);
+  }, [moved, router]);
+  // The names are not listed here a second time; while some wait, one line at the head leads to them.
+  const waiting = useMemo(() => pendingNames(state.supplierItems, product).length, [state.supplierItems, product]);
   const setTab = useCallback(
     (next: Tab) => {
       const sp = new URLSearchParams(params.toString());
@@ -169,7 +181,7 @@ function SuppliersInner(): ReactElement {
           </>
         ),
     },
-    goColumn(),
+    goColumn("פרטי ספק", (s) => setOpenId(s.id)),
   ];
 
   /* ───────── the figures ───────── */
@@ -192,8 +204,19 @@ function SuppliersInner(): ReactElement {
   return (
     <Page
       title="ספקים"
-      // A new name is taught on the map, so its button stands only there.
-      action={tab === "map" ? <Button variant="secondary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם חדש</Button> : undefined}
+      action={
+        <>
+          {waiting > 0 ? (
+            <Link href={APPROVALS} className="mn2-head-link">
+              <span className="mn2-head-link-n">{fmtQty(waiting)}</span>
+              {waiting === 1 ? "שם מחכה לשיוך" : "שמות מחכים לשיוך"}
+              <Icon name="chevron-left" size={14} />
+            </Link>
+          ) : null}
+          {/* A new name is taught on the map, so its button stands only there. */}
+          {tab === "map" ? <Button variant="secondary" icon="plus" onClick={() => openAction("new-supplier-item")}>שם חדש</Button> : null}
+        </>
+      }
       metrics={metrics}
       toolbar={
         <Toolbar

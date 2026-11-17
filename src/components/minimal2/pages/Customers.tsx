@@ -108,7 +108,7 @@ export function Customers(): ReactElement {
         ),
     },
     { key: "last", title: "הזמנה אחרונה", render: (c) => <span className="mn2-cell-text">{fmtDayWord(c.last)}</span> },
-    goColumn(),
+    goColumn("הזמנות הלקוח", openOrders),
   ];
 
   const month = customers.filter((c) => c.delivered > 0);

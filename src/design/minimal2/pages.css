@@ -3,7 +3,8 @@
 /* ── סגירת יום: the day and its one press, then what is open, then what came in beside what went out ── */
 html[data-minimal2] .mn2-shell {
   /* The head of the day: which day, where it stands, and the button that closes it. The word is the largest thing on the page. */
-  .mn2-dayhead { flex-direction: row; align-items: center; flex-wrap: wrap; gap: var(--space-4) var(--space-8); padding: var(--space-5) var(--inset); }
+  /* Its height is the height with the button in it, so the sheet does not regrow each time another day is read. */
+  .mn2-dayhead { flex-direction: row; align-items: center; flex-wrap: wrap; gap: var(--space-4) var(--space-8); min-height: 86px; padding: var(--space-5) var(--inset); }
   .mn2-daystep { display: flex; align-items: center; gap: var(--space-2); }
   .mn2-daystep-day { min-width: 176px; text-align: center; font-size: var(--t-16); line-height: var(--l-24); font-weight: 600; color: var(--text-primary); white-space: nowrap; }
   .mn2-daystep-go { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: var(--control-md); height: var(--control-md); padding: 0; border: 0; border-radius: var(--radius-md); background: var(--bg-fill); color: var(--text-secondary); cursor: pointer; transition: background-color var(--dur-1) linear, color var(--dur-1) linear; }
@@ -16,6 +17,7 @@ html[data-minimal2] .mn2-shell {
   .mn2-daystate-word.is-ok { color: var(--success-text); }
   .mn2-daystate-word.is-warn { color: var(--warning-text); }
   .mn2-daystate-line { margin: 2px 0 0; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); text-wrap: pretty; }
+  .mn2-daystate-line.is-bad { color: var(--danger-text); font-weight: 500; }
   @supports (corner-shape: squircle) { .mn2-daystep-go { corner-shape: squircle; } }
 
   /* What stands open, a line a kind. Folded, the block is three lines long. */
