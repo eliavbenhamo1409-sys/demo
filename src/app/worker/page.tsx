@@ -101,8 +101,8 @@ export default function WorkerHome() {
         </section>
       ) : null}
       <nav className="wk-actions" aria-label="פעולות">
-        <BigAction title="קיבלתי סחורה" sub="סחורה הגיעה מספק" icon="arrow-down" tone="in" href="/worker/receive" />
-        <BigAction title="מסרתי סחורה ללקוח" sub="סחורה יצאה ללקוח" icon="arrow-up" tone="out" href="/worker/deliver" />
+        <BigAction title="קיבלתי סחורה" sub="סחורה הגיעה מספק" icon="arrow-down-left" tone="in" href="/worker/receive" />
+        <BigAction title="מסרתי סחורה ללקוח" sub="סחורה יצאה ללקוח" icon="arrow-up-right" tone="out" href="/worker/deliver" />
         <BigAction title="דיווח תקלה" sub="משהו נשבר, חסר או פגום" icon="alert-triangle" tone="fault" href="/worker/fault" />
       </nav>
       {state.products.length === 0 ? <Hint title="אין מוצרים במלאי" /> : null}
