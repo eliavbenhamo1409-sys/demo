@@ -8,6 +8,7 @@ import type { LineName } from "./icons";
 
 export type PageId =
   | "overview"
+  | "assistant"
   | "faults"
   | "approvals"
   | "shortages"
@@ -44,6 +45,7 @@ export const TASKS = "tasks";
 
 export const AREAS: AreaDef[] = [
   { id: "overview", label: "סקירה", icon: "layout-dashboard", pages: [{ id: "overview", label: "סקירת המפעל", icon: "layout-dashboard", href: "/" }] },
+  { id: "assistant", label: "עוזר AI", icon: "message-square", pages: [{ id: "assistant", label: "עוזר AI", icon: "message-square", href: "/assistant" }] },
   {
     id: TASKS,
     label: "משימות לביצוע",
@@ -96,6 +98,7 @@ export const areaOf = (id: PageId): AreaDef => AREAS.find((a) => a.pages.some((p
 export function pageAt(pathname: string, view: string | null): PageId | null {
   const under = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
   if (pathname === "/") return "overview";
+  if (under("/assistant")) return "assistant";
   if (under("/faults")) return "faults";
   if (under("/closing")) return view === "approvals" ? "approvals" : "closing";
   if (under("/inventory")) return view === "shortages" ? "shortages" : "stock";

@@ -4,6 +4,7 @@ import { createElement, useCallback, useEffect, useMemo, useState, type Keyboard
 import { usePathname, useRouter } from "next/navigation";
 import { logOut, loginErrorMessage } from "@/lib/login/auth";
 import { daysUntil, ORDER_STATUS_LABEL } from "@/lib/format";
+import { AssistantProvider, useAssistant } from "@/lib/assistant/store";
 import { useData } from "@/lib/store";
 import { splitTheme, useTheme } from "@/lib/theme";
 import { NavItem } from "@/components/ui/NavItem";
@@ -61,7 +62,7 @@ type SearchHit =
 
 /** The rail in the aluminium style, in the owner's three chapters: what waits for them, the warehouse itself, the people around it. */
 const NAV_GROUPS: SidebarGroup[] = [
-  { label: "מחכה לך", keys: ["overview", "faults", "closing"] },
+  { label: "מחכה לך", keys: ["overview", "assistant", "faults", "closing"] },
   { label: "המחסן", keys: ["inventory", "map", "movements"] },
   { label: "לקוחות וספקים", keys: ["orders", "suppliers"] },
 ];
@@ -88,6 +89,7 @@ const hitIcon = (h: ShellHit): IconName => ("icon" in h ? h.icon : h.kind === "c
 const MAX_HITS = 8;
 
 function activeKey(pathname: string): string {
+  if (pathname.startsWith("/assistant")) return "assistant";
   if (pathname.startsWith("/closing")) return "closing";
   if (pathname.startsWith("/inventory")) return "inventory";
   if (pathname.startsWith("/3d")) return "map";
@@ -103,7 +105,9 @@ function activeKey(pathname: string): string {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <UiProvider>
-      <ShellInner>{children}</ShellInner>
+      <AssistantProvider>
+        <ShellInner>{children}</ShellInner>
+      </AssistantProvider>
     </UiProvider>
   );
 }
@@ -124,9 +128,11 @@ function ShellInner({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
 
   /* ───────── sidebar ───────── */
+  const newAlerts = useAssistant().data?.alerts.filter((a) => a.status === "new").length ?? 0;
   const items = useMemo(
     () => [
       { key: "overview", label: "סקירה", href: "/", icon: "grid" as const },
+      { key: "assistant", label: "עוזר AI", href: "/assistant", icon: "message-square" as const, count: newAlerts > 0 ? newAlerts : undefined },
       { key: "closing", label: "סגירת יום", href: "/closing", icon: "calendar" as const },
       { key: "inventory", label: "מלאי", href: "/inventory", icon: "package" as const },
       { key: "map", label: "3D", href: "/3d", icon: "layers" as const },
@@ -135,8 +141,10 @@ function ShellInner({ children }: { children: ReactNode }) {
       { key: "faults", label: "תקלות", href: "/faults", icon: "tool" as const, count: stats.openFaults > 0 ? stats.openFaults : undefined },
       { key: "suppliers", label: "ספקים", href: "/suppliers", icon: "book-open" as const, count: stats.pendingMappings > 0 ? stats.pendingMappings : undefined },
     ],
-    [stats.pendingMappings, stats.openFaults, stats.openOrders],
+    [stats.pendingMappings, stats.openFaults, stats.openOrders, newAlerts],
   );
+  // The styles with a rail of their own keep it as it was; the assistant's page still opens under its address.
+  const railItems = useMemo(() => items.filter((i) => i.key !== "assistant"), [items]);
 
   /* ───────── actions ───────── */
   const onAction = useCallback(
@@ -383,7 +391,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   if (merhavShell) {
     return createElement(merhavShell, {
-      items,
+      items: railItems,
       active,
       foot,
       morePages: SETTINGS_PAGES,
@@ -399,7 +407,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   if (atlasShell) {
     return createElement(atlasShell, {
-      items,
+      items: railItems,
       active,
       foot,
       morePages: SETTINGS_PAGES,
@@ -427,7 +435,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   if (mill) {
     return (
       <MillShell
-        items={items}
+        items={railItems}
         active={active}
         foot={foot}
         morePages={SETTINGS_PAGES}

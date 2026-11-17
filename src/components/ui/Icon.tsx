@@ -6,7 +6,7 @@ export type IconName =
   | "arrow-down-left" | "arrow-up-right" | "alert-triangle" | "alert-circle" | "info" | "package" | "grid" | "book-open"
   | "more-horizontal" | "filter" | "clock" | "calendar" | "external-link" | "download" | "upload" | "file-text" | "inbox"
   | "truck" | "tag" | "link" | "refresh" | "camera" | "menu" | "layers" | "activity" | "hash" | "eye" | "copy" | "printer"
-  | "settings" | "sun" | "moon" | "tool" | "users" | "user-plus" | "clipboard-check";
+  | "settings" | "sun" | "moon" | "tool" | "users" | "user-plus" | "clipboard-check" | "message-square";
 
 export type Tone = "neutral" | "success" | "warning" | "danger" | "accent";
 export type MovementType = "in" | "out" | "fault" | "adjust";
@@ -80,6 +80,7 @@ const ICONS: Record<IconName, Shape[]> = {
   "menu": [l(3, 12, 21, 12), l(3, 6, 21, 6), l(3, 18, 21, 18)],
   "layers": [pg("12 2 2 7 12 12 22 7 12 2"), pl("2 17 12 22 22 17"), pl("2 12 12 17 22 12")],
   "activity": [pl("22 12 18 12 15 21 9 3 6 12 2 12")],
+  "message-square": [p("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z")],
   "hash": [l(4, 9, 20, 9), l(4, 15, 20, 15), l(10, 3, 8, 21), l(16, 3, 14, 21)],
   "eye": [p("M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"), c(12, 12, 3)],
   "copy": [r(9, 9, 13, 13, 2, 2), p("M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1")],
