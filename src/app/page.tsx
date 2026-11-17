@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, type ReactNode } from "react";
-import { available, useData, type AttentionEntry } from "@/lib/store";
+import { Suspense, useCallback, useMemo, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { available, useData } from "@/lib/store";
 import { useUi } from "@/components/app/ui-state";
+import { FaultWalk, walkOrder } from "@/components/app/FaultWalk";
 import { Activity, AttentionBoard, FigureLine, OpenOrders, PieSheet, RunningOut, runwayFigure, runwayMeta, Section, type CheckTone, type Figure, type Lane, type LaneRow, type Pie } from "@/components/app/Snapshot";
 import { Notice, PageHead } from "@/components/ui";
 import { daysUntil, fmtAge, fmtCompact, fmtName, fmtQty, fmtToday } from "@/lib/format";
@@ -36,10 +38,18 @@ function weekNote(now: number, before: number): ReactNode {
 }
 
 function OwnerOverview() {
-  const { state, stats, attention, product, supplier, linesOf } = useData();
-  const { openAction, openFault, openProduct } = useUi();
+  const { state, stats, product, supplier, worker, linesOf } = useData();
+  const { openProduct } = useUi();
   const { dismissed, dismiss } = useDismissedAlerts();
   const isLoading = state.status === "loading";
+
+  // The walk through the faults lives in the address, so סגירת יום can send the manager straight into it.
+  const router = useRouter();
+  const params = useSearchParams();
+  const walking = params.get("faults") === "walk";
+  const walkFrom = params.get("from");
+  const openWalk = useCallback((from?: string) => router.replace(from ? `/?faults=walk&from=${encodeURIComponent(from)}` : "/?faults=walk", { scroll: false }), [router]);
+  const endWalk = useCallback(() => router.replace("/", { scroll: false }), [router]);
 
   // The week's worth and the pace of goods out both need days the store may no longer hold.
   const since = useMemo(() => midnight(1 - PACE_DAYS), []);
@@ -69,13 +79,11 @@ function OwnerOverview() {
   const onRemoveAlert = useCallback((r: Runway) => dismiss(`${r.state}:${r.product.id}`, r.free), [dismiss]);
 
   /* ───────── what waits on a person ───────── */
+  // Faults and shortages only, as the owner asked: approvals are decided on סגירת יום and ספקים, not here.
   const lanes = useMemo<Lane[]>(() => {
-    // The fault that has waited longest leads (state.faults is newest first).
-    const faults = state.faults.filter((f) => f.status === "open").reverse();
-    const pending = attention.filter((a) => a.kind === "request" || a.kind === "mapping");
+    // What still needs a decision leads, the longest waiting first; what already waits on a worker follows, in the walk's order.
+    const faults = walkOrder(state.faults);
     const stock = soon.filter((r) => r.state !== "ok");
-
-    const openPending = (a: AttentionEntry) => (a.kind === "request" ? openAction("review-item-request", { requestId: a.requestId }) : openAction("map-supplier-item", { supplierItemId: a.supplierItemId }));
 
     const stockRow = (r: Runway): LaneRow => {
       const { figure, tone } = runwayFigure(r);
@@ -99,28 +107,22 @@ function OwnerOverview() {
         count: faults.length,
         tone: "bad",
         calm: "אין תקלות פתוחות",
-        ask: "לטפל, ולסגור עם תיעוד",
+        ask: "לשייך לעובד או לסגור עם תיעוד",
         more: `עוד ${fmtQty(faults.length - 3)}`,
+        action: { label: "מעבר על התקלות", onClick: () => openWalk() },
         rows: faults.map((f) => {
           const p = product(f.product_id);
           const what = p ? fmtName(p.name) : DEFAULT_OBJECTS.find((o) => o.id === f.asset)?.name ?? f.asset;
+          const holder = worker(f.assigned_to)?.name;
           return {
             key: f.id,
             title: f.description,
             meta: [fmtAge(f.created_at), what].filter(Boolean).join(" · "),
-            onOpen: () => openFault(f.id),
+            word: holder ? `אצל ${holder}` : undefined,
+            // A row opens the walk at itself, so the decision is made where the owner stands.
+            onOpen: () => openWalk(f.id),
           };
         }),
-      },
-      {
-        key: "approvals",
-        label: pending.length === 1 ? "אישור" : "אישורים",
-        count: pending.length,
-        tone: "warn",
-        calm: "אין מה לאשר",
-        ask: "לאשר או לדחות",
-        more: `עוד ${fmtQty(pending.length - 3)}`,
-        rows: pending.map((a) => ({ key: a.id, title: a.title, meta: a.meta.join(" · "), word: a.kind === "mapping" ? "שם ספק" : a.label, onOpen: () => openPending(a) })),
       },
       {
         key: "stock",
@@ -134,7 +136,7 @@ function OwnerOverview() {
         rows: stock.map(stockRow),
       },
     ];
-  }, [state.faults, attention, soon, stats.low, product, openAction, openFault, openProduct, onRemoveAlert]);
+  }, [state.faults, soon, stats.low, product, worker, openWalk, openProduct, onRemoveAlert]);
 
   /* ───────── the figures ───────── */
   const promises = useMemo(() => {
@@ -211,7 +213,7 @@ function OwnerOverview() {
       <PageHead title="סקירה" sub={fmtToday()} />
 
       <Section label={quiet ? "הכל תקין" : "מחכה לך"} ask={quiet ? "אין מה לטפל עכשיו" : "כל שורה נפתחת בלחיצה, ומה שטופל יורד מכאן"}>
-        <AttentionBoard lanes={lanes} />
+        <AttentionBoard lanes={lanes} walk={walking ? <FaultWalk from={walkFrom} onEnd={endWalk} /> : undefined} />
       </Section>
 
       <Section label="המספרים" ask="רק לדעת · כל מספר פותח את הפירוט שלו">
@@ -235,8 +237,14 @@ function OwnerOverview() {
   );
 }
 
-/** The same page in every style; the bokeh style answers with the control room. */
+/** The same page in every style; the bokeh style answers with the control room. The overview reads its address, so it waits inside Suspense. */
 export default function OverviewPage() {
   const { theme } = useTheme();
-  return splitTheme(theme).style === "bokeh" ? <ControlRoom /> : <OwnerOverview />;
+  return splitTheme(theme).style === "bokeh" ? (
+    <ControlRoom />
+  ) : (
+    <Suspense fallback={null}>
+      <OwnerOverview />
+    </Suspense>
+  );
 }

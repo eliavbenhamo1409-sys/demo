@@ -1,0 +1,8 @@
+/* מינימל 2 — the aluminium style, ordered by what a manager decides. Loaded only with its shell (see use-minimal2.ts);
+   everything stands under html[data-minimal2], so nothing here can reach another style, the worker's phone or the catalogue.
+   Colour, type and the sheets are the aluminium's own tokens: this folder adds order, never a new palette. */
+@import "./shell.css";
+@import "./frame.css";
+@import "./lists.css";
+@import "./reward.css";
+@import "./pages.css";

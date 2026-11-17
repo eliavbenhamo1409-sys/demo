@@ -345,13 +345,14 @@ function CloseOpenDialog({ title, open, sign, onClose }: { title: string; open: 
   );
 }
 
-/** The next thing in the way, in the order the list shows it, and the button that goes to it. */
+/** The next thing in the way, in the order the list shows it, and the button that goes to it. Faults are decided on the overview's walk, which starts at this one. */
 function useNextStep(summary: DaySummary): { label: string; what: string; open: () => void } | null {
-  const { openAction, openFault } = useUi();
+  const router = useRouter();
+  const { openAction } = useUi();
   const [fault] = summary.faults;
   const [request] = summary.requests;
   const [name] = summary.names;
-  if (fault) return { label: "בדיקת התקלה", what: fault.description, open: () => openFault(fault.id) };
+  if (fault) return { label: "מעבר על התקלות", what: fault.description, open: () => router.push(`/?faults=walk&from=${encodeURIComponent(fault.id)}`) };
   if (request) return { label: "בדיקת השורה", what: fmtName(request.name), open: () => openAction("review-item-request", { requestId: request.id }) };
   if (name) return { label: "התאמת שם הספק", what: name.name, open: () => openAction("map-supplier-item", { supplierItemId: name.id }) };
   return null;

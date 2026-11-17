@@ -13,7 +13,8 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactEleme
 import { createPortal } from "react-dom";
 import { loadAtlas } from "@/components/atlas/use-atlas";
 import { loadMerhav } from "@/components/merhav/use-merhav";
-import { joinTheme, splitTheme, THEME_MODES, THEME_STYLES, useTheme, type ThemeStyle } from "@/lib/theme";
+import { loadMinimal2 } from "@/components/minimal2/use-minimal2";
+import { isAdminOnly, joinTheme, splitTheme, THEME_MODES, THEME_STYLES, useTheme, type ThemeStyle } from "@/lib/theme";
 import { Button } from "./Button";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
@@ -70,6 +71,7 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
   const chooseStyle = (next: ThemeStyle) => {
     if (next === "merhav" || next === "merhav2" || next === "merhav3" || next === "merhav5" || next === "merhav6") void loadMerhav().then(() => setTheme(joinTheme(next, mode)), () => undefined);
     else if (next === "atlas") void loadAtlas().then(() => setTheme(joinTheme(next, mode)), () => undefined);
+    else if (next === "minimal2") void loadMinimal2().then(() => setTheme(joinTheme(next, mode)), () => undefined);
     else setTheme(joinTheme(next, mode));
   };
 
@@ -129,7 +131,7 @@ function SettingsDialog({ pages, onClose }: { pages?: SettingsPage[]; onClose: (
         <div className="sa-modal-body">
           <div className="sa-settings-group">
             {/* Merhav and its variants are the admin's alone, and only the admin passes pages. Anyone else sees them as the default style, so that is what is marked. */}
-            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => !s.id.startsWith("merhav") && s.id !== "atlas")} value={pages || (!style.startsWith("merhav") && style !== "atlas") ? style : "minimal"} onChange={chooseStyle} />
+            <Choice label="סגנון" options={pages ? THEME_STYLES : THEME_STYLES.filter((s) => !isAdminOnly(s.id))} value={pages || !isAdminOnly(style) ? style : "minimal"} onChange={chooseStyle} />
             <Choice label="מראה" options={THEME_MODES} value={mode} onChange={(m) => setTheme(joinTheme(style, m))} />
           </div>
           {pages?.length ? (

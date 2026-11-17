@@ -27,7 +27,7 @@ function commands(f: CommandFacts): Command[] {
   return [
     { kind: "go", id: "late", title: "הזמנות באיחור", sub: many(f.late, "הזמנה אחת", "הזמנות", "אין"), icon: "inbox", href: "/orders?status=late", words: ["איחור", "מאחר", "מאוחר", "לא נמסר"], waiting: f.late },
     { kind: "go", id: "faults", title: "תקלות פתוחות", sub: many(f.faults, "תקלה אחת", "תקלות", "אין"), icon: "tool", href: "/faults", words: ["תקלה", "תקלות", "בעיה", "נזק"], waiting: f.faults },
-    { kind: "go", id: "pending", title: "ממתינים לאישור", sub: many(f.pending, "אחד", "ממתינים", "אין"), icon: "clipboard-check", href: "/#ov-work", words: ["אישור", "אישורים", "ממתין", "לאשר"], waiting: f.pending },
+    { kind: "go", id: "pending", title: "ממתינים לאישור", sub: many(f.pending, "אחד", "ממתינים", "אין"), icon: "clipboard-check", href: "/closing", words: ["אישור", "אישורים", "ממתין", "לאשר"], waiting: f.pending },
     { kind: "go", id: "low", title: "מלאי נמוך", sub: many(f.low, "מוצר אחד", "מוצרים", "אין"), icon: "package", href: "/inventory?filter=low", words: ["נמוך", "מינימום", "חוסר", "חוסרים", "להשלים"], waiting: f.low },
     { kind: "go", id: "out", title: "אזל מהמלאי", sub: many(f.out, "מוצר אחד", "מוצרים", "אין"), icon: "package", href: "/inventory?filter=out", words: ["אזל", "נגמר", "אין במלאי"], waiting: f.out },
     { kind: "go", id: "orders", title: "הזמנות פתוחות", sub: many(f.open, "הזמנה אחת", "הזמנות", "אין"), icon: "inbox", href: "/orders", words: ["הזמנה", "הזמנות", "פתוחות"] },

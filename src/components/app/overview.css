@@ -13,7 +13,7 @@
 .ov-section-ask { font-size: var(--t-14); line-height: var(--l-20); font-weight: 400; color: var(--text-secondary); text-wrap: pretty; }
 
 /* ── The one sheet of what waits: three lanes, each a count, a verb and the first things in it ── */
-.ov-board > .sa-card-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; }
+.ov-board > .sa-card-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; }
 .ov-lane { min-width: 0; display: flex; flex-direction: column; padding: var(--space-4) var(--ov-inset) var(--space-3); }
 .ov-lane + .ov-lane { border-inline-start: var(--hair) solid var(--border-subtle); }
 .ov-lane-head { display: flex; align-items: baseline; gap: 10px; }
@@ -23,6 +23,8 @@
 .ov-lane-n.is-short { color: var(--short); }
 .ov-lane-n.is-ok { color: var(--success-text); }
 .ov-lane-label { font-size: var(--t-16); line-height: var(--l-22); font-weight: 500; color: var(--text-secondary); }
+/* A lane's own process stands at the far end of its count, on the count's middle. */
+.ov-lane-action { margin-inline-start: auto; align-self: center; }
 .ov-lane-calm { margin: var(--space-2) 0 0; font-size: var(--t-14); line-height: var(--l-21); font-weight: 500; color: var(--success-text); }
 .ov-lane-ask { margin: 0; font-size: var(--t-13); line-height: var(--l-18); font-weight: 500; color: var(--text-secondary); }
 .ov-lane-rows { margin: var(--space-2) 0 0; padding: 0; list-style: none; }

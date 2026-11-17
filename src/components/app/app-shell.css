@@ -1125,6 +1125,12 @@ a.sa-fault-thumb:focus-visible {
   font-weight: 500;
 }
 
+/* Who an open fault was handed to reads darker, ahead of the quiet facts. */
+.sa-fault-holder {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 .sa-fault-actions {
   flex-shrink: 0;
   display: flex;

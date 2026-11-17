@@ -4,6 +4,7 @@
  * Appearance. Three styles, each in light or dark:
  *   classic — graphite ink on warm paper, the original language;
  *   minimal — neutral white or near-black, hairlines, one green, numbers in a monospace;
+ *   minimal2 — מינימל 2: the same aluminium, the admin laid out by the decisions a manager makes: six areas, one frame for every page (admin only);
  *   bokeh — the control room: violet on lavender, cards standing off out-of-focus light, charts of the past year;
  *   merhav — the warehouse is the interface: one live model under the whole admin, plates sliding over it (admin only);
  *   merhav2 — מרחב 2: the same world and door, cut down to five areas (admin only);
@@ -13,6 +14,7 @@
  *   merhav6 — מרחב 6: the same as a scoreboard, regular white, black ink, bright red and green (admin only).
  * מרחב 2, 3, 5 and 6 are painted as מרחב: the document carries מרחב's id and a mark (data-merhav2 / data-merhav3 / data-merhav5 / data-merhav6), so every
  * rule of מרחב applies and each adds its own under its mark. Their stored ids are their own, so a saved choice is its own.
+ * מינימל 2 is painted as מינימל the same way, under the mark data-minimal2: colour, type and shapes are the aluminium's, the order is its own.
  * The choice is one id ("light", "dark", "minimal", "minimal-dark", "minimal-bokeh", "minimal-bokeh-dark")
  * in localStorage ("sa-theme"), mirrored to <html data-theme="…">; a tiny inline script in the root
  * layout applies it before first paint so there is no flash.
@@ -24,13 +26,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-export type ThemeId = "light" | "dark" | "minimal" | "minimal-dark" | "minimal-bokeh" | "minimal-bokeh-dark" | "merhav" | "merhav-dark" | "merhav2" | "merhav2-dark" | "merhav3" | "merhav3-dark" | "atlas" | "atlas-dark" | "merhav5" | "merhav5-dark" | "merhav6" | "merhav6-dark";
-export type ThemeStyle = "classic" | "minimal" | "bokeh" | "merhav" | "merhav2" | "merhav3" | "atlas" | "merhav5" | "merhav6";
+export type ThemeId = "light" | "dark" | "minimal" | "minimal-dark" | "minimal2" | "minimal2-dark" | "minimal-bokeh" | "minimal-bokeh-dark" | "merhav" | "merhav-dark" | "merhav2" | "merhav2-dark" | "merhav3" | "merhav3-dark" | "atlas" | "atlas-dark" | "merhav5" | "merhav5-dark" | "merhav6" | "merhav6-dark";
+export type ThemeStyle = "classic" | "minimal" | "minimal2" | "bokeh" | "merhav" | "merhav2" | "merhav3" | "atlas" | "merhav5" | "merhav6";
 export type ThemeMode = "light" | "dark";
 
 export const THEME_STYLES: readonly { id: ThemeStyle; label: string }[] = [
   { id: "classic", label: "קלאסי" },
   { id: "minimal", label: "מינימל" },
+  { id: "minimal2", label: "מינימל 2" },
   { id: "bokeh", label: "בוקה" },
   { id: "merhav", label: "מרחב" },
   { id: "merhav2", label: "מרחב 2" },
@@ -53,6 +56,13 @@ export const MERHAV2_ATTR = "data-merhav2";
 export const MERHAV3_ATTR = "data-merhav3";
 export const MERHAV5_ATTR = "data-merhav5";
 export const MERHAV6_ATTR = "data-merhav6";
+/** The mark that tells מינימל 2 from מינימל on the document. */
+export const MINIMAL2_ATTR = "data-minimal2";
+
+/** Styles that exist on the admin alone: the worker and the catalogue are painted as the default style while one is chosen. */
+export function isAdminOnly(style: ThemeStyle): boolean {
+  return style.startsWith("merhav") || style === "atlas" || style === "minimal2";
+}
 
 /** The id is style and mode in one word; these take it apart and put it back together. */
 export function splitTheme(id: ThemeId): { style: ThemeStyle; mode: ThemeMode } {
@@ -65,9 +75,10 @@ export function splitTheme(id: ThemeId): { style: ThemeStyle; mode: ThemeMode } 
       : id === "merhav6" || id === "merhav6-dark" ? "merhav6"
       : id === "atlas" || id === "atlas-dark" ? "atlas"
       : id === "minimal-bokeh" || id === "minimal-bokeh-dark" ? "bokeh"
+      : id === "minimal2" || id === "minimal2-dark" ? "minimal2"
       : id === "minimal" || id === "minimal-dark" ? "minimal"
       : "classic",
-    mode: id === "dark" || id === "minimal-dark" || id === "minimal-bokeh-dark" || id === "merhav-dark" || id === "merhav2-dark" || id === "merhav3-dark" || id === "merhav5-dark" || id === "merhav6-dark" || id === "atlas-dark" ? "dark" : "light",
+    mode: id === "dark" || id === "minimal-dark" || id === "minimal2-dark" || id === "minimal-bokeh-dark" || id === "merhav-dark" || id === "merhav2-dark" || id === "merhav3-dark" || id === "merhav5-dark" || id === "merhav6-dark" || id === "atlas-dark" ? "dark" : "light",
   };
 }
 
@@ -79,6 +90,7 @@ export function joinTheme(style: ThemeStyle, mode: ThemeMode): ThemeId {
   if (style === "merhav6") return mode === "dark" ? "merhav6-dark" : "merhav6";
   if (style === "atlas") return mode === "dark" ? "atlas-dark" : "atlas";
   if (style === "bokeh") return mode === "dark" ? "minimal-bokeh-dark" : "minimal-bokeh";
+  if (style === "minimal2") return mode === "dark" ? "minimal2-dark" : "minimal2";
   if (style === "minimal") return mode === "dark" ? "minimal-dark" : "minimal";
   return mode;
 }
@@ -86,15 +98,16 @@ export function joinTheme(style: ThemeStyle, mode: ThemeMode): ThemeId {
 function resolve(v: string | null): ThemeId {
   if (v === "dark" || v === "modern-dark") return "dark";
   if (v === "light" || v === "classic" || v === "modern") return "light";
-  if (v === "minimal-dark" || v === "minimal-bokeh" || v === "minimal-bokeh-dark" || v === "merhav" || v === "merhav-dark" || v === "merhav2" || v === "merhav2-dark" || v === "merhav3" || v === "merhav3-dark" || v === "merhav5" || v === "merhav5-dark" || v === "merhav6" || v === "merhav6-dark" || v === "atlas" || v === "atlas-dark") return v;
+  if (v === "minimal-dark" || v === "minimal2" || v === "minimal2-dark" || v === "minimal-bokeh" || v === "minimal-bokeh-dark" || v === "merhav" || v === "merhav-dark" || v === "merhav2" || v === "merhav2-dark" || v === "merhav3" || v === "merhav3-dark" || v === "merhav5" || v === "merhav5-dark" || v === "merhav6" || v === "merhav6-dark" || v === "atlas" || v === "atlas-dark") return v;
   return DEFAULT_THEME;
 }
 
 const OTHER_SYSTEM = /^\/(worker|catalog)(\/|$)/;
 
-/** Merhav and its variants are the admin's alone: the worker and the catalogue keep the default style, in the same light or dark. On the admin a variant wears מרחב's id. */
+/** Merhav and its variants are the admin's alone: the worker and the catalogue keep the default style, in the same light or dark. On the admin a variant wears מרחב's id, and מינימל 2 wears מינימל's. */
 function painted(id: ThemeId, pathname: string): ThemeId {
   const { style, mode } = splitTheme(id);
+  if (style === "minimal2") return joinTheme("minimal", mode);
   if (OTHER_SYSTEM.test(pathname)) return style === "merhav" || style === "merhav2" || style === "merhav3" || style === "merhav5" || style === "merhav6" || style === "atlas" ? joinTheme("minimal", mode) : id;
   return style === "merhav2" || style === "merhav3" || style === "merhav5" || style === "merhav6" ? joinTheme("merhav", mode) : id;
 }
@@ -103,7 +116,7 @@ function painted(id: ThemeId, pathname: string): ThemeId {
 function markOf(id: ThemeId, pathname: string): string | null {
   if (OTHER_SYSTEM.test(pathname)) return null;
   const { style } = splitTheme(id);
-  return style === "merhav2" ? MERHAV2_ATTR : style === "merhav3" ? MERHAV3_ATTR : style === "merhav5" ? MERHAV5_ATTR : style === "merhav6" ? MERHAV6_ATTR : null;
+  return style === "merhav2" ? MERHAV2_ATTR : style === "merhav3" ? MERHAV3_ATTR : style === "merhav5" ? MERHAV5_ATTR : style === "merhav6" ? MERHAV6_ATTR : style === "minimal2" ? MINIMAL2_ATTR : null;
 }
 
 function mark(root: HTMLElement, id: ThemeId, pathname: string): void {
@@ -112,10 +125,11 @@ function mark(root: HTMLElement, id: ThemeId, pathname: string): void {
   root.toggleAttribute(MERHAV3_ATTR, attr === MERHAV3_ATTR);
   root.toggleAttribute(MERHAV5_ATTR, attr === MERHAV5_ATTR);
   root.toggleAttribute(MERHAV6_ATTR, attr === MERHAV6_ATTR);
+  root.toggleAttribute(MINIMAL2_ATTR, attr === MINIMAL2_ATTR);
 }
 
 /** Runs before hydration; keep it tiny and self-contained (no imports). Mirrors resolve(). */
-export const THEME_BOOT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var v=t==="dark"||t==="modern-dark"?"dark":t==="light"||t==="classic"||t==="modern"?"light":t==="minimal-dark"||t==="minimal-bokeh"||t==="minimal-bokeh-dark"||t==="merhav"||t==="merhav-dark"||t==="merhav2"||t==="merhav2-dark"||t==="merhav3"||t==="merhav3-dark"||t==="merhav5"||t==="merhav5-dark"||t==="merhav6"||t==="merhav6-dark"||t==="atlas"||t==="atlas-dark"?t:${JSON.stringify(DEFAULT_THEME)};var w=/^\\/(worker|catalog)(\\/|$)/.test(location.pathname);var m=/^merhav(2|3|5|6)?(-dark)?$/.exec(v);var d=v.slice(-5)==="-dark";if(w&&(m||v==="atlas"||v==="atlas-dark"))v=d?"minimal-dark":"minimal";else if(m&&m[1])v=d?"merhav-dark":"merhav";var r=document.documentElement;r.setAttribute("data-theme",v);if(!w&&m&&m[1]==="2")r.setAttribute(${JSON.stringify(MERHAV2_ATTR)},"");if(!w&&m&&m[1]==="3")r.setAttribute(${JSON.stringify(MERHAV3_ATTR)},"");if(!w&&m&&m[1]==="5")r.setAttribute(${JSON.stringify(MERHAV5_ATTR)},"");if(!w&&m&&m[1]==="6")r.setAttribute(${JSON.stringify(MERHAV6_ATTR)},"");}catch(e){}})();`;
+export const THEME_BOOT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var v=t==="dark"||t==="modern-dark"?"dark":t==="light"||t==="classic"||t==="modern"?"light":t==="minimal-dark"||t==="minimal2"||t==="minimal2-dark"||t==="minimal-bokeh"||t==="minimal-bokeh-dark"||t==="merhav"||t==="merhav-dark"||t==="merhav2"||t==="merhav2-dark"||t==="merhav3"||t==="merhav3-dark"||t==="merhav5"||t==="merhav5-dark"||t==="merhav6"||t==="merhav6-dark"||t==="atlas"||t==="atlas-dark"?t:${JSON.stringify(DEFAULT_THEME)};var w=/^\\/(worker|catalog)(\\/|$)/.test(location.pathname);var m=/^merhav(2|3|5|6)?(-dark)?$/.exec(v);var d=v.slice(-5)==="-dark";var n=v==="minimal2"||v==="minimal2-dark";if(n||(w&&(m||v==="atlas"||v==="atlas-dark")))v=d?"minimal-dark":"minimal";else if(m&&m[1])v=d?"merhav-dark":"merhav";var r=document.documentElement;r.setAttribute("data-theme",v);if(!w&&n)r.setAttribute(${JSON.stringify(MINIMAL2_ATTR)},"");if(!w&&m&&m[1]==="2")r.setAttribute(${JSON.stringify(MERHAV2_ATTR)},"");if(!w&&m&&m[1]==="3")r.setAttribute(${JSON.stringify(MERHAV3_ATTR)},"");if(!w&&m&&m[1]==="5")r.setAttribute(${JSON.stringify(MERHAV5_ATTR)},"");if(!w&&m&&m[1]==="6")r.setAttribute(${JSON.stringify(MERHAV6_ATTR)},"");}catch(e){}})();`;
 
 /* ── A tiny external store over localStorage ─────────────────────────────── */
 const listeners = new Set<() => void>();

@@ -1,0 +1,73 @@
+/* What only one page needs. */
+
+html[data-minimal2] .mn2-shell {
+  /* ── סקירה: the day's progress at the head's far end ── */
+  .mn2-day { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3); background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .mn2-day-text { display: flex; flex-direction: column; }
+  .mn2-day-n { font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .mn2-day-n > span { font-size: var(--t-14); font-weight: 500; color: var(--text-tertiary); letter-spacing: 0; }
+  .mn2-day.is-full .mn2-day-n { color: var(--success-text); }
+  .mn2-day-label { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); white-space: nowrap; }
+  @supports (corner-shape: squircle) { .mn2-day { corner-shape: squircle; } }
+}
+
+/* ── סגירת יום: three steps, top to bottom ── */
+html[data-minimal2] .mn2-shell {
+  .mn2-lead-day { color: var(--text-primary); font-weight: 500; }
+
+  .mn2-kinds { margin: 0; padding: 0; list-style: none; }
+  .mn2-kind { border-top: var(--hair) solid var(--border-subtle); }
+  .mn2-kind-head { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 56px; padding: var(--space-2) var(--inset); border: 0; background: none; font: inherit; color: inherit; text-align: start; }
+  button.mn2-kind-head { cursor: pointer; transition: background-color var(--dur-1) linear; }
+  button.mn2-kind-head:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px var(--focus); }
+  @media (hover: hover) { button.mn2-kind-head:hover { background: var(--bg-hover); } }
+  .mn2-kind-label { flex: 1; min-width: 0; font-size: var(--t-15); line-height: var(--l-22); font-weight: 500; color: var(--text-primary); }
+  .mn2-kind.is-clear .mn2-kind-label { color: var(--text-secondary); font-weight: 400; }
+  .mn2-kind-n { font-size: 20px; line-height: 26px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .mn2-kind-n.is-bad { color: var(--danger-text); }
+  .mn2-kind-n.is-warn { color: var(--warning-text); }
+  .mn2-kind-chev { flex-shrink: 0; color: var(--text-tertiary); transition: transform var(--dur-2) var(--ease); }
+  .mn2-kind:not(.is-open) .mn2-kind-chev { transform: rotate(90deg); }
+  /* A kind's rows stand in from its icon, so they read as its own. */
+  .mn2-kind > .mn2-rows .mn2-row { padding-inline-start: calc(var(--inset) + 22px + var(--space-3)); }
+  .mn2-row.is-static { cursor: default; }
+  .mn2-row.is-static:hover { background: none; }
+  .mn2-row.is-static:hover .mn2-row-title { color: var(--text-primary); }
+  .mn2-more { padding: var(--space-2) var(--inset); }
+  .mn2-kind > .mn2-rows > .mn2-more { padding-inline-start: calc(var(--inset) + 22px + var(--space-3)); }
+
+  .mn2-moved-pair { display: grid; grid-template-columns: minmax(0, 1fr); border-top: var(--hair) solid var(--border-subtle); }
+  @media (min-width: 1100px) {
+    .mn2-moved-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mn2-moved + .mn2-moved { border-inline-start: var(--hair) solid var(--border-subtle); }
+  }
+  @media (max-width: 1099px) { .mn2-moved + .mn2-moved { border-top: var(--hair) solid var(--border-subtle); } }
+  .mn2-moved { min-width: 0; display: flex; flex-direction: column; }
+  .mn2-moved-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--inset) 0; }
+  .mn2-moved-title { flex: 1; font-size: var(--t-15); line-height: var(--l-22); font-weight: 600; color: var(--text-primary); }
+  .mn2-moved-sum { font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .mn2-moved-sub { margin: 0; padding: 2px var(--inset) var(--space-3); padding-inline-start: calc(var(--inset) + 22px + var(--space-3)); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+
+  .mn2-facts { margin: 0; padding: 0; list-style: none; border-top: var(--hair) solid var(--border-subtle); }
+  .mn2-facts > li { display: flex; align-items: baseline; gap: var(--space-4); min-height: 48px; padding: var(--space-3) var(--inset); }
+  .mn2-facts > li + li { border-top: var(--hair) solid var(--border-subtle); }
+  .mn2-facts-label { flex: 0 0 148px; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); }
+  .mn2-facts-value { flex: 1; min-width: 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-primary); text-wrap: pretty; }
+  .mn2-facts-more { font-weight: 400; color: var(--text-tertiary); }
+
+  .mn2-decide { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-4); padding: var(--space-1) var(--inset) var(--space-5); }
+  .mn2-decide-note { font-size: var(--t-14); line-height: var(--l-20); color: var(--text-tertiary); text-wrap: pretty; }
+  .mn2-block > .sa-notice { margin: 0 var(--inset) var(--space-4); }
+
+  .mn2-seal { display: flex; align-items: flex-start; gap: var(--space-4); padding: var(--space-1) var(--inset) var(--space-5); }
+  .mn2-seal-text { min-width: 0; }
+  .mn2-seal-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--success-text); }
+  .mn2-seal-line { margin: 2px 0 0; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-secondary); }
+  .mn2-seal-note { margin: var(--space-2) 0 0; font-size: var(--t-14); line-height: var(--l-20); color: var(--text-primary); text-wrap: pretty; }
+}
+
+html[data-minimal2] .mn2-shell {
+  /* סקירה: what happened while the manager was away, as one quiet sentence under the lead. The figures in it are the good news. */
+  .mn2-away { display: block; margin-block-start: var(--space-1); font-size: var(--t-14); line-height: var(--l-22); color: var(--text-tertiary); }
+  .mn2-away b { font-weight: 600; color: var(--success-text); }
+}

@@ -19,6 +19,7 @@ import { MillShell } from "@/components/mill/MillShell";
 import { useMill } from "@/components/mill/use-mill";
 import { useMerhav, useMerhavShell, useMerhavVariant } from "@/components/merhav/use-merhav";
 import { useAtlas, useAtlasShell } from "@/components/atlas/use-atlas";
+import { useMinimal2, useMinimal2Shell } from "@/components/minimal2/use-minimal2";
 import { UiProvider, useUi, type ActionKind } from "./ui-state";
 import { ActionDrawer } from "./ActionDrawer";
 import { findCommands, type CommandHit } from "./command-search";
@@ -67,6 +68,9 @@ const SETTINGS_PAGES = [
   { key: "team", label: "צוות", href: "/team" },
 ];
 
+/** מינימל 2 gives תיעוד and צוות rows in its rail, so its settings dialog links to neither. Still a list: only the admin passes one, and that is how the dialog knows to offer the admin's own styles. */
+const NO_PAGES: typeof SETTINGS_PAGES = [];
+
 /** A customer has no page of their own: the orders page opens on their name. */
 type CustomerHit = { kind: "customer"; id: string; title: string; sub: string };
 
@@ -109,6 +113,8 @@ function ShellInner({ children }: { children: ReactNode }) {
   const merhavShell = useMerhavShell(useMerhav());
   const atlas = useAtlas();
   const atlasShell = useAtlasShell(atlas);
+  const minimal2 = useMinimal2();
+  const minimal2Shell = useMinimal2Shell(minimal2);
   // מרחב 2 gives תיעוד and צוות rows of their own, so the settings row is no longer their mark.
   const fiveAreas = useMerhavVariant() !== "merhav";
   const { theme } = useTheme();
@@ -337,7 +343,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 
   const foot = (
     <>
-      <ThemeSettingsButton variant="nav" pages={SETTINGS_PAGES} active={!fiveAreas && !atlas && SETTINGS_PAGES.some((p) => p.key === active)} />
+      <ThemeSettingsButton variant="nav" pages={minimal2 ? NO_PAGES : SETTINGS_PAGES} active={!fiveAreas && !atlas && !minimal2 && SETTINGS_PAGES.some((p) => p.key === active)} />
       <NavItem icon="log-out" onClick={onLogOut}>יציאה</NavItem>
     </>
   );
@@ -369,7 +375,7 @@ function ShellInner({ children }: { children: ReactNode }) {
   );
 
   // Only for the moment before its code lands. What stands behind it is first-paint.css.
-  if (merhavShell === undefined || atlasShell === undefined) return null;
+  if (merhavShell === undefined || atlasShell === undefined || minimal2Shell === undefined) return null;
 
   if (merhavShell) {
     return createElement(merhavShell, {
@@ -400,6 +406,17 @@ function ShellInner({ children }: { children: ReactNode }) {
       page,
       overlays,
       panelOpen: panel !== null,
+    });
+  }
+
+  if (minimal2Shell) {
+    return createElement(minimal2Shell, {
+      foot,
+      actions: SHELL_ACTIONS,
+      onAction,
+      search: { value: query, onChange: onSearchChange, onSubmit: () => pick(results[hit]), onFocus: () => setSearchOpen(true), onKeyDown: onSearchKeyDown, slot: searchSlot },
+      page,
+      overlays,
     });
   }
 

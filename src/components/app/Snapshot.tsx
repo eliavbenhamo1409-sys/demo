@@ -43,6 +43,8 @@ export interface Lane {
   /** The page that holds them all. A lane without one opens in place, so the owner stays on the overview. */
   href?: string;
   more?: string;
+  /** The lane's own process, beside its count: the faults lane starts its walk here. */
+  action?: { label: string; onClick: () => void };
 }
 
 /** The rows a lane shows before it asks to be opened, so all three stay on the first screen. */
@@ -57,6 +59,9 @@ function LaneColumn({ lane }: { lane: Lane }): ReactElement {
       <div className="ov-lane-head">
         <span className={`ov-lane-n is-${lane.count > 0 ? lane.tone : "ok"}`}>{fmtQty(lane.count)}</span>
         <span className="ov-lane-label">{lane.label}</span>
+        {lane.action && lane.count > 0 ? (
+          <Button variant="secondary" size="sm" className="ov-lane-action" onClick={lane.action.onClick}>{lane.action.label}</Button>
+        ) : null}
       </div>
       {lane.count === 0 ? (
         <p className="ov-lane-calm">{lane.calm}</p>
@@ -107,12 +112,15 @@ export function Section({ label, ask, children }: { label: string; ask: string; 
   );
 }
 
-/** The one sheet of what waits: how many of each thing wait on a person, and the first few of them, each a click from being dealt with. Its word stands on the desk above it. */
-export function AttentionBoard({ lanes }: { lanes: Lane[] }): ReactElement {
+/**
+ * The one sheet of what waits: how many of each thing wait on a person, and the first few of them, each a click from being dealt with. Its word stands on the desk above it.
+ * While the faults are walked through one by one, the walk takes the whole sheet and the lanes wait for it to end.
+ */
+export function AttentionBoard({ lanes, walk }: { lanes: Lane[]; walk?: ReactNode }): ReactElement {
   return (
     <div id="ov-work" className="min-w-0">
-      <Card className="ov-board">
-        {lanes.map((lane) => <LaneColumn key={lane.key} lane={lane} />)}
+      <Card className={walk ? "ov-board is-walking" : "ov-board"}>
+        {walk ?? lanes.map((lane) => <LaneColumn key={lane.key} lane={lane} />)}
       </Card>
     </div>
   );

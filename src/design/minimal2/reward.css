@@ -1,0 +1,32 @@
+/* The small things that say a thing is done. One curve, once, and never a loop: a check that draws, a ring that closes,
+   a row that says טופלה before it leaves. No glow, no sparkle, nothing that flashes. */
+
+html[data-minimal2] {
+  /* ── A check that draws itself ── */
+  .mn2-check { flex-shrink: 0; display: block; color: var(--success-text); }
+  .mn2-check-ring, .mn2-check-mark { stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; }
+  .mn2-check-ring { animation: mn2-draw 420ms var(--ease) backwards; }
+  .mn2-check-mark { animation: mn2-draw 260ms var(--ease) 260ms backwards; }
+
+  /* ── The day as a ring that closes ── */
+  .mn2-ring { flex-shrink: 0; display: block; }
+  .mn2-ring-track { stroke: var(--chart-track, var(--bg-muted)); stroke-width: 2.5; }
+  .mn2-ring-fill { stroke: var(--success); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dasharray 520ms var(--ease); }
+  .mn2-ring.is-full .mn2-ring-fill { stroke: var(--success-text); }
+  .mn2-ring-mark { stroke: var(--success-text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: mn2-draw 280ms var(--ease) 200ms backwards; }
+
+  /* ── What just left a list: said once, then gone ── */
+  .mn2-wins { margin: 0; padding: 0; list-style: none; }
+  .mn2-win { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: var(--space-2) var(--inset); background: color-mix(in srgb, var(--success) 9%, var(--bg-surface)); border-bottom: var(--hair) solid var(--border-subtle); font-size: var(--t-14); line-height: var(--l-20); animation: mn2-win 3600ms linear both; }
+  .mn2-win-word { flex-shrink: 0; font-weight: 600; color: var(--success-text); }
+  .mn2-win-title { min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mn2-check-ring, .mn2-check-mark, .mn2-ring-mark, .mn2-win { animation: none; }
+    .mn2-ring-fill { transition: none; }
+  }
+}
+
+/* Keyframes can't stand inside a rule, so they stand here; their names carry the style's prefix. */
+@keyframes mn2-draw { from { stroke-dashoffset: 1; } }
+@keyframes mn2-win { 0% { opacity: 0; } 5% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }

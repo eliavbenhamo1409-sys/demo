@@ -1,0 +1,66 @@
+/* מעבר על התקלות: the overview's sheet of what waits, given to one fault at a time. The lanes' type and rules, nothing louder. */
+
+.ov-board.is-walking > .sa-card-body { display: block; }
+/* The lanes come back the way the walk came in. */
+.ov-board > .sa-card-body > .ov-lane { animation: fw-in var(--dur-2) linear backwards; }
+
+.fw { display: flex; flex-direction: column; min-width: 0; animation: fw-in var(--dur-2) linear; }
+
+/* ── The head: the walk's name and where it stands; back, on and out at the far end ── */
+.fw-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 52px; padding-block-start: var(--space-3); padding-inline: var(--ov-inset) calc(var(--ov-inset) - var(--space-2)); }
+.fw-head-text { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); min-width: 0; }
+.fw-label { margin: 0; font-size: var(--t-16); line-height: var(--l-24); font-weight: 600; color: var(--text-primary); }
+.fw-count { font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fw-head-nav { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+/* One short line per fault, filled up to the one in hand, as on the worker's steps; a long walk is one line that fills. */
+.fw-steps { display: flex; gap: 4px; margin: var(--space-2) var(--ov-inset) 0; }
+.fw-steps > i { flex: 1; height: 3px; border-radius: 2px; background: var(--border-base); transition: background-color var(--dur-2) linear; }
+.fw-steps > i.is-on { background: var(--bg-inverse); }
+.fw-steps.is-bar { height: 3px; border-radius: 2px; background: var(--border-base); overflow: hidden; }
+.fw-steps.is-bar > i { flex: none; height: 100%; border-radius: 0; background: var(--bg-inverse); transition: inline-size var(--dur-2) var(--ease); }
+
+/* ── The fault: what happened at the size of a chapter's word, where and who under it, whose hands it is in ── */
+.fw-body { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4) var(--ov-inset) var(--space-5); animation: fw-next var(--dur-2) var(--ease) backwards; }
+.fw-body[data-dir="back"] { animation-name: fw-back; }
+.fw-fault { display: flex; align-items: flex-start; gap: var(--space-3); min-width: 0; }
+.fw-fault-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fw-fault-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); text-wrap: pretty; overflow-wrap: anywhere; }
+.fw-fault-title:focus { outline: none; }
+.fw-fault-meta { margin: 2px 0 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-3); font-size: var(--t-13); line-height: var(--l-18); color: var(--text-tertiary); }
+.fw-map { font-weight: 500; color: var(--accent-text); text-decoration: none; border-radius: var(--radius-sm); }
+.fw-map:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
+@media (hover: hover) { .fw-map:hover { text-decoration: underline; } }
+.fw-fault-state { margin: var(--space-1) 0 0; font-size: var(--t-14); line-height: var(--l-20); font-weight: 500; color: var(--text-secondary); overflow-wrap: anywhere; }
+.fw-fault-state .is-ok { color: var(--success-text); }
+.fw-photo { flex-shrink: 0; display: block; width: 56px; height: 56px; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-muted); }
+.fw-photo > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.fw-photo:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
+
+/* ── The decision: two ways on one segmented control, then the fields and their button on one line while the sheet is wide ── */
+.fw-decide { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-4); border-top: var(--hair) solid var(--border-subtle); }
+.fw-form { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) auto; align-items: start; gap: var(--space-3); }
+.fw-form.is-close { grid-template-columns: minmax(0, 1fr) auto; }
+/* The button stands on the fields' line: a label's height (13/18) and the 6px under it. */
+.fw-go { margin-top: calc(var(--l-18) + 6px); }
+
+.fw-empty { align-items: flex-start; }
+.fw-empty-title { margin: 0; font-size: var(--t-14); line-height: var(--l-21); font-weight: 500; color: var(--success-text); }
+
+@media (max-width: 899px) {
+  .fw-form, .fw-form.is-close { grid-template-columns: minmax(0, 1fr); }
+  .fw-go { margin-top: 0; width: 100%; }
+}
+/* A phone keeps the arrows of back and on, and their words for the reader. */
+@media (max-width: 600px) {
+  .fw-nav-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+@keyframes fw-in { from { opacity: 0; } }
+/* On is leftwards in a right-to-left page: the next fault comes in from the left, the one before from the right. */
+@keyframes fw-next { from { opacity: 0; transform: translateX(-12px); } }
+@keyframes fw-back { from { opacity: 0; transform: translateX(12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .fw, .fw-body, .ov-board > .sa-card-body > .ov-lane { animation: none; }
+  .fw-steps > i { transition: none; }
+}
