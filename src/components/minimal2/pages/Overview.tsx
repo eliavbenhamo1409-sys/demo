@@ -1,52 +1,40 @@
 "use client";
 
 /**
- * סקירת מנהל, in the order a manager thinks at the start of a day: what needs me, where the factory stands, what is
- * going out and what just happened, and only then money and shares. Nothing here has to be worked out by the reader:
+ * סקירת המפעל, in the order the owner drew on 2026-11-17: four counts, then three panels (what moved, what the stock
+ * is worth, who it went to), then what to handle now beside the deliveries to come. Nothing here has to be worked out by the reader:
  * the first tasks are already ranked, and each says why it is there and what its button does.
  */
 import Link from "next/link";
-import { useMemo, type ReactElement, type ReactNode } from "react";
-import { PieSheet, type Pie } from "@/components/app/Snapshot";
+import { useMemo, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { useUi } from "@/components/app/ui-state";
-import { ProductThumb } from "@/components/app/Viz";
-import { Button, EmptyState, MovementQty, Notice } from "@/components/ui";
-import { byPromise, daysUntil, fmtAge, fmtCompact, fmtName, fmtPrice, fmtPromised, fmtQty, fmtRelative, fmtToday, fmtUnit, MOVEMENT_LABEL } from "@/lib/format";
+import { CountUp, percents, Ring } from "@/components/app/Viz";
+import "@/components/app/overview.css";
+import { EmptyState, Notice } from "@/components/ui";
+import { byPromise, daysUntil, fmtAge, fmtCompact, fmtName, fmtPromised, fmtQty, fmtToday, fmtUnit } from "@/lib/format";
 import { DEFAULT_OBJECTS } from "@/lib/map3d/layout";
 import { midnight, useMovementsInRange } from "@/lib/movements-range";
-import { inBySupplier, movedWorth, PACE_DAYS, pctChange, salesByCustomer, shelfWorth, sumShares, topShares, worthByCategory } from "@/lib/snapshot";
-import { orderTotal, useData } from "@/lib/store";
+import { movedWorth, PACE_DAYS, REST, salesByCustomer, shelfWorth, sumShares, topShares, worthByCategory, type Share } from "@/lib/snapshot";
+import { useData } from "@/lib/store";
 import type { LineName } from "../icons";
 import { Line } from "../icons";
 import { useLastVisit } from "../last-visit";
-import { Block, Chapter, Check, DayRing, JustHandled, lineTone, Metrics, Page, useDayProgress, Word, type Metric, type Tone } from "../parts";
+import { Check, DayRing, JustHandled, lineTone, Page, useDayProgress, Word, type Tone } from "../parts";
 import { useShortages, useWaiting } from "../use-work";
 import { ageDays, isLate, isUncovered, listWords, many, orderFacts, pendingNames, pendingRequests } from "../work";
 
 /** The tasks the overview names; the pages under דורש טיפול hold the rest. */
 const FIRST_TASKS = 5;
 const ORDER_ROWS = 6;
-const MOVE_ROWS = 6;
+const CHART_DAYS = 7;
 
 type Task = { key: string; icon: LineName; tone: Tone; title: string; why: string; action: string; rank: number; run: () => void };
 
 const count = (n: number, one: string, more: string) => `${fmtQty(n)} ${n === 1 ? one : more}`;
 
-/** A week's sum against the week before, as a signed percent in its colour. */
-function weekNote(now: number, before: number): ReactNode {
-  const change = pctChange(now, before);
-  if (change === null) return <>שבוע קודם <span className="ltr">{fmtCompact(before)}</span></>;
-  const sign = change > 0 ? "+" : change < 0 ? "−" : "";
-  return (
-    <>
-      <span className={`ltr ${change > 0 ? "is-up" : change < 0 ? "is-down" : ""}`}>{`${sign}${fmtQty(Math.abs(change))}%`}</span> משבוע קודם
-    </>
-  );
-}
-
 export function Overview(): ReactElement {
   const { state, product, supplier, worker, linesOf } = useData();
-  const { openAction, openFault, openMovement, openOrder, openProduct } = useUi();
+  const { openAction, openFault, openOrder, openProduct } = useUi();
   const waiting = useWaiting();
   const shortages = useShortages();
   const progress = useDayProgress();
@@ -148,76 +136,61 @@ export function Overview(): ReactElement {
     return { when: fmtAge(new Date(lastVisit).toISOString()), capped: lastVisit < since, parts };
   }, [lastVisit, since, state.orders, state.faults, month, product]);
 
-  /* ───────── what needs handling ───────── */
-  const unheld = state.faults.filter((f) => f.status === "open" && !f.assigned_to).length;
-  const needs: Metric[] = [
-    {
-      key: "faults", label: "תקלות פתוחות", icon: "wrench", value: waiting.faults, tone: waiting.faults > 0 ? "bad" : "ok", href: "/faults",
-      note: waiting.faults === 0 ? <span className="is-ok">אין תקלות פתוחות</span> : unheld > 0 ? `${unheld === 1 ? "אחת מחכה" : `${fmtQty(unheld)} מחכות`} לשיוך אחראי` : "כולן אצל עובד",
-    },
-    {
-      key: "approvals", label: "ממתינים לאישור", icon: "stamp", value: waiting.approvals, tone: waiting.approvals > 0 ? "warn" : "ok", href: "/closing?view=approvals",
-      note: waiting.approvals === 0 ? <span className="is-ok">אין מה לאשר</span> : "החלטת מנהל",
-    },
-    {
-      key: "shortages", label: "חוסרים במלאי", icon: "package-x", value: waiting.shortages, tone: waiting.shortages === 0 ? "ok" : hurting > 0 ? "short" : "warn", href: "/inventory?view=shortages",
-      note: waiting.shortages === 0 ? <span className="is-ok">המלאי מעל המינימום</span> : hurting > 0 ? <span className="is-short">{hurting === 1 ? "אחד פוגע" : `${fmtQty(hurting)} פוגעים`} בהזמנות</span> : "מתחת למינימום, לא חוסם הזמנה",
-    },
-  ];
-
-  /* ───────── where the factory stands ───────── */
+  /* ───────── the four counts ───────── */
   const orders = useMemo(() => orderFacts(state.orders, linesOf, product), [state.orders, linesOf, product]);
-  const worth = useMemo(() => shelfWorth(state.products), [state.products]);
-  const standing: Metric[] = [
-    { key: "open", label: "הזמנות פתוחות", value: orders.open, href: "/orders", note: orders.open === 0 ? "אין הזמנות פתוחות" : <span className="is-ok">{count(orders.ready, "מוכנה למסירה", "מוכנות למסירה")}</span> },
+  const unheld = state.faults.filter((f) => f.status === "open" && !f.assigned_to).length;
+  const kpis: Kpi[] = [
     {
-      key: "late", label: "הזמנות באיחור", value: orders.late, tone: orders.late > 0 ? "warn" : "ok", href: "/orders?status=late",
-      note: orders.late === 0 ? <span className="is-ok">הכל בזמן</span> : orders.lateWaiting > 0 ? <span className="is-short">{orders.lateWaiting === 1 ? "אחת מחכה" : `${fmtQty(orders.lateWaiting)} מחכות`} למלאי</span> : "כולן מוכנות למסירה",
+      key: "orders", label: "הזמנות פתוחות", icon: "receipt-text", value: orders.open, href: "/orders",
+      note: orders.late > 0 ? <span className="is-warn">{fmtQty(orders.late)} באיחור</span> : orders.open === 0 ? "אין הזמנות פתוחות" : <span className="is-ok">הכל בזמן</span>,
     },
-    { key: "products", label: "מוצרים במלאי", value: state.products.length, href: "/inventory", note: waiting.shortages > 0 ? `${count(waiting.shortages, "דורש", "דורשים")} בדיקה` : <span className="is-ok">כולם תקינים</span> },
-    { key: "worth", label: "שווי מלאי", value: <span className="ltr">{fmtCompact(worth.total)}</span>, href: "/inventory", note: worth.unpriced > 0 ? `במחירון · ${count(worth.unpriced, "מוצר ללא מחיר", "מוצרים ללא מחיר")}` : "לפי מחירון, נכון לעכשיו" },
+    {
+      key: "approvals", label: "ממתינים לאישור", icon: "clipboard-check", value: waiting.approvals, href: "/closing?view=approvals",
+      note: waiting.approvals === 0 ? <span className="is-ok">אין מה לאשר</span> : "להחלטת מנהל",
+    },
+    {
+      key: "shortages", label: "חוסרים במלאי", icon: hurting > 0 ? "package-x" : "package-minus", tone: hurting > 0 ? "short" : undefined, value: waiting.shortages, href: "/inventory?view=shortages",
+      note: waiting.shortages === 0 ? <span className="is-ok">המלאי מעל המינימום</span> : hurting > 0 ? <span className="is-short">{hurting === 1 ? "אחד משפיע" : `${fmtQty(hurting)} משפיעים`} על הזמנות</span> : "מתחת למינימום",
+    },
+    {
+      key: "faults", label: "תקלות פתוחות", icon: "wrench", value: waiting.faults, href: "/faults",
+      note: waiting.faults === 0 ? <span className="is-ok">אין תקלות פתוחות</span> : unheld > 0 ? `${unheld === 1 ? "אחת" : fmtQty(unheld)} ללא אחראי` : "כולן אצל עובד",
+    },
   ];
 
-  /* ───────── orders and deliveries ───────── */
-  const nextOrders = useMemo(() => state.orders.filter((o) => o.status === "open").reverse().sort(byPromise), [state.orders]);
-
-  /* ───────── figures and shares ───────── */
-  const flow = useMemo(() => {
-    const week = midnight(-6), weekBefore = midnight(-13);
-    const moved = (type: "in" | "out", from: number, to = Number.POSITIVE_INFINITY) => movedWorth(month, type, from, to, product);
-    return { outWeek: moved("out", week), outBefore: moved("out", weekBefore, week), inWeek: moved("in", week), inBefore: moved("in", weekBefore, week) };
+  /* ───────── stock movement, the last seven days, today at the right ───────── */
+  const days = useMemo(() => {
+    const list = [];
+    for (let i = 0; i < CHART_DAYS; i++) {
+      const from = midnight(-i), to = midnight(1 - i);
+      const d = new Date(from);
+      list.push({
+        key: from,
+        day: d.toLocaleDateString("he-IL", { weekday: "narrow" }),
+        date: `${d.getDate()}.${d.getMonth() + 1}`,
+        in: movedWorth(month, "in", from, to, product),
+        out: movedWorth(month, "out", from, to, product),
+      });
+    }
+    return list;
   }, [month, product]);
+  const peak = Math.max(1, ...days.flatMap((d) => [d.in, d.out]));
+  const weekIn = days.reduce((sum, d) => sum + d.in, 0);
+  const weekOut = days.reduce((sum, d) => sum + d.out, 0);
 
-  const delivered = useMemo(() => {
-    const rows = state.orders.filter((o) => o.status === "delivered" && o.closed_at && Date.parse(o.closed_at) >= since);
-    return { count: rows.length, worth: rows.reduce((sum, o) => sum + (orderTotal(linesOf(o.id)) ?? 0), 0) };
-  }, [state.orders, linesOf, since]);
+  /* ───────── the two rings ───────── */
+  const worth = useMemo(() => shelfWorth(state.products), [state.products]);
+  const stockShares = useMemo(() => topShares(worthByCategory(state.products), 4), [state.products]);
+  const salesShares = useMemo(() => topShares(salesByCustomer(state.orders, linesOf, since), 4), [state.orders, linesOf, since]);
+  const delivered = useMemo(() => state.orders.filter((o) => o.status === "delivered" && o.closed_at && Date.parse(o.closed_at) >= since).length, [state.orders, since]);
 
-  const trends: Metric[] = [
-    { key: "out", label: "יצא השבוע", icon: "arrow-up-from-line", value: <span className="ltr">{fmtCompact(flow.outWeek)}</span>, note: weekNote(flow.outWeek, flow.outBefore), href: "/movements?period=week" },
-    { key: "in", label: "נכנס השבוע", icon: "arrow-down-to-line", value: <span className="ltr">{fmtCompact(flow.inWeek)}</span>, tone: "ok", note: weekNote(flow.inWeek, flow.inBefore), href: "/movements?period=week" },
-    { key: "sold", label: "נמסר ללקוחות ב-30 יום", icon: "truck", value: <span className="ltr">{fmtCompact(delivered.worth)}</span>, note: delivered.count > 0 ? count(delivered.count, "הזמנה נמסרה", "הזמנות נמסרו") : "לא נמסרו הזמנות", href: "/orders?status=delivered" },
-  ];
-
-  const pies = useMemo<Pie[]>(() => {
-    const stock = topShares(worthByCategory(state.products));
-    const sales = topShares(salesByCustomer(state.orders, linesOf, since));
-    const bought = topShares(inBySupplier(month, since, product, supplier));
-    const categories = new Set(state.products.filter((p) => p.price !== null && p.qty > 0).map((p) => p.category?.trim() || "")).size;
-    const suppliers = new Set(month.filter((m) => m.type === "in" && Date.parse(m.created_at) >= since).map((m) => m.supplier_id ?? "")).size;
-    return [
-      { key: "stock", label: "שווי המלאי", sub: "לפי קטגוריה · במחירון", slices: stock, total: sumShares(stock), caption: count(categories, "קטגוריה", "קטגוריות"), href: "/inventory", empty: "אין מלאי עם מחיר", loading: false },
-      { key: "sales", label: "מכירות", sub: "לפי לקוח · בחודש האחרון", slices: sales, total: sumShares(sales), caption: count(delivered.count, "הזמנה נמסרה", "הזמנות נמסרו"), href: "/orders?view=customers", empty: "לא נמסרו הזמנות בחודש האחרון", loading: false },
-      { key: "bought", label: "נכנס מספקים", sub: "לפי ספק · בחודש האחרון · במחירון", slices: bought, total: sumShares(bought), caption: count(suppliers, "ספק", "ספקים"), href: "/suppliers", empty: "לא נקלטה סחורה בחודש האחרון", loading: monthLoading },
-    ];
-  }, [state.products, state.orders, month, since, linesOf, product, supplier, delivered.count, monthLoading]);
-
-  const today = state.movements.filter((m) => Date.parse(m.created_at) >= midnight());
+  /* ───────── the deliveries to come ───────── */
+  const nextOrders = useMemo(() => state.orders.filter((o) => o.status === "open").reverse().sort(byPromise), [state.orders]);
 
   return (
     <Page
       className="mn2-overview"
-      title="היום במפעל"
+      title="סקירת המפעל"
       state={{ word: fmtToday(), tone: "none" }}
       lead={
         <>
@@ -241,9 +214,62 @@ export function Overview(): ReactElement {
         </div>
       }
     >
-      <Chapter title="מה דורש טיפול?" ask="לפי דחיפות והשפעה על העבודה · כל מספר פותח את הרשימה שלו">
-        <Metrics items={needs} />
-        <Block icon="list-checks" title="המשימות הראשונות לבדיקה" sub={tasks.length > 0 ? "מה שחוסם הזמנה או עבודה עומד ראשון" : undefined} count={tasks.length > 0 ? tasks.length : undefined}>
+      {/* ── 1. Four counts, each a card that opens its list ── */}
+      <div className="mn2-kpis">
+        {kpis.map((k) => (
+          <Link key={k.key} href={k.href} className="sa-card mn2-kpi">
+            <span className="mn2-kpi-label">
+              <Line name={k.icon} size={20} tone={lineTone(k.tone)} />
+              {k.label}
+            </span>
+            <span className="mn2-kpi-n"><CountUp value={k.value} /></span>
+            <span className="mn2-kpi-note">{k.note}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── 2. Three panels: what moved, what the stock is worth, who it went to ── */}
+      <div className="mn2-panels">
+        <Panel title="תנועת מלאי" sub={`${CHART_DAYS} הימים האחרונים · במחירון`} href="/movements?period=week">
+          {monthLoading ? (
+            <div className="mn2-chart is-loading" aria-hidden="true" />
+          ) : (
+            <>
+              <div className="mn2-chart-key">
+                <span><i className="is-in" />נכנס <b className="ltr">{fmtCompact(weekIn)}</b></span>
+                <span><i className="is-out" />יצא <b className="ltr">{fmtCompact(weekOut)}</b></span>
+              </div>
+              <div className="mn2-chart" role="img" aria-label={`תנועת מלאי ב-${CHART_DAYS} הימים האחרונים: ${days.map((d) => `${d.date} נכנס ${fmtCompact(d.in)} יצא ${fmtCompact(d.out)}`).join(", ")}`}>
+                {days.map((d, i) => (
+                  <div key={d.key} className={`mn2-chart-day${i === 0 ? " is-today" : ""}`}>
+                    <div className="mn2-chart-bars">
+                      <span className="mn2-bar is-in" style={{ "--h": d.in / peak } as CSSProperties} title={`נכנס ${fmtCompact(d.in)}`}>
+                        {d.in > 0 ? <em className="ltr">{fmtCompact(d.in)}</em> : null}
+                      </span>
+                      <span className="mn2-bar is-out" style={{ "--h": d.out / peak } as CSSProperties} title={`יצא ${fmtCompact(d.out)}`}>
+                        {d.out > 0 ? <em className="ltr">{fmtCompact(d.out)}</em> : null}
+                      </span>
+                    </div>
+                    <span className="mn2-chart-label">{i === 0 ? "היום" : d.day}<span className="ltr">{d.date}</span></span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Panel>
+
+        <Panel title="שווי המלאי" sub="לפי קטגוריה · במחירון" href="/inventory">
+          <RingPanel shares={stockShares} total={worth.total} caption="סה״כ מלאי" empty="אין מלאי עם מחיר" />
+        </Panel>
+
+        <Panel title="מסירות ללקוחות" sub="לפי לקוח · 30 הימים האחרונים" href="/orders?view=customers">
+          <RingPanel shares={salesShares} total={sumShares(salesShares)} caption={count(delivered, "הזמנה", "הזמנות")} empty="לא נמסרו הזמנות בחודש האחרון" />
+        </Panel>
+      </div>
+
+      {/* ── 3. What to handle now, beside the deliveries to come ── */}
+      <div className="mn2-pair">
+        <Panel title="לטיפול עכשיו" sub={tasks.length > 0 ? "מה שחוסם הזמנה או עבודה עומד ראשון" : undefined} href="/faults">
           <JustHandled kind="fault" />
           <JustHandled kind="approval" />
           {tasks.length === 0 ? (
@@ -253,114 +279,107 @@ export function Overview(): ReactElement {
               <p className="mn2-clear-hint">כל מה שחיכה טופל. דיווח חדש מהמחסן יופיע כאן.</p>
             </div>
           ) : (
-            <>
-              <ul className="mn2-rows">
-                {tasks.slice(0, FIRST_TASKS).map((t, i) => (
-                  <li key={t.key}>
-                    <button type="button" className="mn2-row" onClick={t.run}>
-                      <Line name={t.icon} size={22} tone={lineTone(t.tone)} />
-                      <span className="mn2-row-text">
-                        <span className="mn2-row-title">{t.title}</span>
-                        <span className="mn2-row-why">{t.why}</span>
-                      </span>
-                      <span className={`sa-btn sa-btn-sm ${i === 0 ? "sa-btn-primary" : "sa-btn-secondary"} mn2-row-act`}>{t.action}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {tasks.length > FIRST_TASKS ? <p className="mn2-block-foot">מוצגות {fmtQty(FIRST_TASKS)} הראשונות מתוך {fmtQty(tasks.length)}. הרשימות המלאות נפתחות מהמספרים שמעל.</p> : null}
-            </>
+            <ul className="mn2-rows">
+              {tasks.slice(0, FIRST_TASKS).map((t, i) => (
+                <li key={t.key}>
+                  <button type="button" className="mn2-row" onClick={t.run}>
+                    <Line name={t.icon} size={22} tone={lineTone(t.tone)} />
+                    <span className="mn2-row-text">
+                      <span className="mn2-row-title">{t.title}</span>
+                      <span className="mn2-row-why">{t.why}</span>
+                    </span>
+                    <span className={`sa-btn sa-btn-sm ${i === 0 ? "sa-btn-primary" : "sa-btn-secondary"} mn2-row-act`}>{t.action}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
-        </Block>
-      </Chapter>
+        </Panel>
 
-      <Chapter title="תמונת מצב של המפעל" ask="רק לדעת · כל מספר פותח את הפירוט שלו">
-        <Metrics items={standing} />
-      </Chapter>
-
-      <Chapter title="הזמנות ופעילות" ask="מה מוכן, מה מתעכב ומה קרה היום במחסן">
-        <div className="mn2-split">
-          <Block
-            icon="truck"
-            title="הזמנות ומסירות"
-            sub={orders.open > 0 ? `${count(orders.open, "פתוחה", "פתוחות")} · ${fmtCompact(orders.worth)} · לפי מועד המסירה` : undefined}
-            actions={<Link href="/orders" className="sa-btn sa-btn-link sa-btn-sm">כל ההזמנות</Link>}
-          >
-            <JustHandled kind="order" />
-            {nextOrders.length === 0 ? (
-              <EmptyState title="אין הזמנות פתוחות" hint="הזמנה של סוכן תופיע כאן" />
-            ) : (
-              <ul className="mn2-rows">
+        <Panel title="המסירות הקרובות" sub={orders.open > 0 ? `${count(orders.open, "הזמנה פתוחה", "הזמנות פתוחות")} · לפי מועד המסירה` : undefined} href="/orders">
+          <JustHandled kind="order" />
+          {nextOrders.length === 0 ? (
+            <EmptyState title="אין הזמנות פתוחות" hint="הזמנה של סוכן תופיע כאן" />
+          ) : (
+            <table className="mn2-next">
+              <thead>
+                <tr><th>לקוח</th><th>מועד מסירה</th><th>סטטוס</th></tr>
+              </thead>
+              <tbody>
                 {nextOrders.slice(0, ORDER_ROWS).map((o) => {
-                  const lines = linesOf(o.id);
+                  const late = isLate(o);
                   const short = isUncovered(o, linesOf, product);
                   return (
-                    <li key={o.id}>
-                      <button type="button" className="mn2-row" onClick={() => openOrder(o.id)}>
-                        <ProductThumb product={product(lines[0]?.product_id)} small />
-                        <span className="mn2-row-text">
-                          <span className="mn2-row-title">{o.customer}</span>
-                          <span className="mn2-row-why">
-                            הזמנה {o.number} · {o.promised_on ? <span className={isLate(o) ? "mn2-late" : undefined}>{isLate(o) ? fmtPromised(o.promised_on) : `מסירה ${fmtPromised(o.promised_on)}`}</span> : "מועד המסירה לא נקבע"}
-                          </span>
-                        </span>
-                        <span className="mn2-row-end">
-                          <span className="mn2-row-n ltr">{fmtPrice(orderTotal(lines))}</span>
-                          <Word tone={short ? "short" : "ok"}>{short ? "חסר במלאי" : "מוכן למסירה"}</Word>
-                        </span>
-                      </button>
-                    </li>
+                    <tr key={o.id} onClick={() => openOrder(o.id)}>
+                      <td><button type="button" className="mn2-next-name" onClick={(e) => { e.stopPropagation(); openOrder(o.id); }}>{o.customer}</button></td>
+                      <td className="ltr-num">{o.promised_on ? fmtDate(o.promised_on) : "לא נקבע"}</td>
+                      <td><Word tone={late ? "bad" : short ? "short" : "ok"}>{late ? "באיחור" : short ? "חסר במלאי" : "במועד"}</Word></td>
+                    </tr>
                   );
                 })}
-              </ul>
-            )}
-          </Block>
+              </tbody>
+            </table>
+          )}
+        </Panel>
+      </div>
 
-          <Block
-            icon="activity"
-            title="הפעילות האחרונה במחסן"
-            sub={today.length > 0 ? `${count(today.length, "תנועה", "תנועות")} היום` : "אין תנועות היום"}
-            actions={<Link href="/movements?period=today" className="sa-btn sa-btn-link sa-btn-sm">כל התנועות</Link>}
-          >
-            {state.movements.length === 0 ? (
-              <EmptyState title="עוד לא נרשמו תנועות" hint="קליטה או הוצאה ראשונה תופיע כאן">
-                <Button variant="secondary" onClick={() => openAction("receive")}>קליטת סחורה</Button>
-              </EmptyState>
-            ) : (
-              <ul className="mn2-rows">
-                {state.movements.slice(0, MOVE_ROWS).map((m) => {
-                  const p = product(m.product_id);
-                  return (
-                    <li key={m.id}>
-                      <button type="button" className="mn2-row" onClick={() => openMovement(m)}>
-                        <ProductThumb product={p} small />
-                        <span className="mn2-row-text">
-                          <span className="mn2-row-title">{p ? fmtName(p.name) : "מוצר שנמחק"}</span>
-                          <span className="mn2-row-why">{[MOVEMENT_LABEL[m.type], worker(m.worker_id)?.name, fmtRelative(m.created_at)].filter(Boolean).join(" · ")}</span>
-                        </span>
-                        <span className="mn2-row-end">
-                          <span className="mn2-row-n ltr"><MovementQty qty={m.qty} type={m.type} /></span>
-                          <span className="mn2-word">{fmtUnit(m.qty, p?.unit)}</span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Block>
-        </div>
-      </Chapter>
-
-      <Chapter title="נתונים ומגמות" ask="כסף וחלוקה · השבוע מול הקודם, והחודש האחרון לפי קטגוריה, לקוח וספק">
-        <Metrics items={trends} />
-        <PieSheet pies={pies} />
-        {monthFailed ? (
-          <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
-            הסכומים מחושבים רק לפי מה שנטען
-          </Notice>
-        ) : null}
-      </Chapter>
+      {monthFailed ? (
+        <Notice tone="danger" title="התנועות הישנות לא נטענו" action="ניסיון נוסף" onAction={retryMonth}>
+          הסכומים מחושבים רק לפי מה שנטען
+        </Notice>
+      ) : null}
     </Page>
+  );
+}
+
+/** A promised day as the date itself (17.11.2026); the status beside it says whether it is late. */
+const fmtDate = (day: string) => {
+  const [y, m, d] = day.slice(0, 10).split("-").map(Number);
+  return `${d}.${m}.${y}`;
+};
+
+type Kpi = { key: string; label: string; icon: LineName; tone?: Tone; value: number; note: ReactNode; href: string };
+
+/** One sheet of the home page: a name, what it counts, and הצג הכל to its page. */
+function Panel({ title, sub, href, children }: { title: string; sub?: string; href: string; children: ReactNode }): ReactElement {
+  return (
+    <section className="sa-card mn2-panel">
+      <header className="mn2-panel-head">
+        <div className="mn2-panel-text">
+          <h2 className="mn2-panel-title">{title}</h2>
+          {sub ? <p className="mn2-panel-sub">{sub}</p> : null}
+        </div>
+        <Link href={href} className="mn2-panel-all">הצג הכל</Link>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+const hueOf = (s: Share, i: number) => (s.key === REST ? "var(--pie-other)" : `var(--pie-${i + 1})`);
+
+/** A whole and its parts: the total above, the ring, and a legend with each part's share and ₪. */
+function RingPanel({ shares, total, caption, empty }: { shares: Share[]; total: number; caption: string; empty: string }): ReactElement {
+  const [active, setActive] = useState<number | null>(null);
+  const slices = useMemo(() => shares.map((s, i) => ({ ...s, color: hueOf(s, i) })), [shares]);
+  const pcts = useMemo(() => percents(shares.map((s) => s.value)), [shares]);
+  if (total <= 0) return <p className="mn2-panel-empty">{empty}</p>;
+  return (
+    <div className="mn2-ring ov-pies">
+      <p className="mn2-ring-total ltr">{fmtCompact(total)}</p>
+      <div className="mn2-ring-body">
+        <Ring slices={slices} shares={pcts} total={total} caption={caption} active={active} onActive={setActive} label={slices.map((s, i) => `${s.label} ${pcts[i]}%`).join(", ")} />
+        <ul className="mn2-ring-legend">
+          {slices.map((s, i) => (
+            <li key={s.key} className={active === i ? "is-active" : undefined} onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}>
+              <i style={{ background: s.color }} aria-hidden="true" />
+              <span className="mn2-ring-name">{s.label}</span>
+              <span className="mn2-ring-worth ltr">{fmtCompact(s.value)}</span>
+              <span className="mn2-ring-pct ltr">{pcts[i]}%</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
